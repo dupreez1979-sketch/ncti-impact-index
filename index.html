@@ -159,6 +159,17 @@ tbody tr.grouphdr:hover td{background:var(--navy);}
 .caret{display:inline-block;transition:transform .2s;color:var(--pink);font-weight:800;}
 .card.collapsed .cbody{display:none;}
 .card.collapsed .caret{transform:rotate(-90deg);}
+.modelicons{display:flex;gap:5px;align-items:center;}
+.iconbtn{border:1.5px solid var(--navy);background:#fff;color:var(--navy);border-radius:5px;cursor:pointer;font-size:14px;padding:3px 8px;line-height:1;box-shadow:2px 2px 0 var(--navy);}
+.iconbtn:hover{background:var(--navy);color:#fff;}
+.subsec{border-top:1px solid #EAE1C4;padding:11px 0 3px;}
+.subsec:first-child{border-top:none;padding-top:2px;}
+.subhead{display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;font-family:'Charlie Kingdom';font-size:14px;color:var(--navy);}
+.subbody{margin-top:10px;}
+.subsec.collapsed .subbody{display:none;}
+.subsec.collapsed .caret{transform:rotate(-90deg);}
+.model.maximized{position:fixed;top:3vh;left:50%;transform:translateX(-50%);width:min(760px,95vw);max-height:94vh;overflow:auto;z-index:5600;box-shadow:8px 8px 0 var(--navy);}
+#modelbackdrop{position:fixed;inset:0;background:rgba(7,59,76,.42);display:none;z-index:5500;}
 .hidden{display:none;}
 .about p{margin:0 0 8px;} .about b{color:var(--navy);}
 .cgrid{display:grid;grid-template-columns:1fr auto;gap:3px 14px;font-size:12.5px;} .cgrid .cl{color:var(--slate);} .cgrid .cv{font-weight:700;text-align:right;color:var(--navy);}
@@ -177,25 +188,32 @@ tbody tr.grouphdr:hover td{background:var(--navy);}
 <div class="mainrow" id="mainrow">
 <aside class="siderail" id="siderail">
 <div class="railhead"><span class="kpihead" style="margin:0">Panels</span><button class="railbtn" onclick="toggleRail()" title="Collapse this frame">◀ Hide</button></div>
-<div class="card model collapsed">
- <div class="top"><h3 onclick="toggleCard(this)" style="cursor:pointer;user-select:none;margin:0">Model controls <span class="caret">▾</span></h3></div>
- <div class="cbody">
- <div style="margin-bottom:12px"><span class="muted" style="margin-right:6px">Geography</span><span class="geo" id="geo"><button data-g="sa2" class="on" onclick="setGeo('sa2')">SA2</button><button data-g="sa3" onclick="setGeo('sa3')">SA3 (catchment)</button></span></div>
- <div class="presets-bar" id="savedmodels"></div>
- <div class="ind" id="ind"></div>
- <div class="eff" id="eff"></div>
- <div style="margin-top:14px;border-top:1px dashed var(--slate);padding-top:12px">
-  <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end">
-   <div class="fg"><label>High tier at Index ≥</label><input type="number" id="tHigh" value="6.3" step="0.1" min="0" max="10" style="width:78px" oninput="setThr()"></div>
-   <div class="fg"><label>Medium tier at Index ≥</label><input type="number" id="tMed" value="3.8" step="0.1" min="0" max="10" style="width:78px" oninput="setThr()"></div>
-   <div style="width:14px"></div>
-   <div class="fg"><label>Subsidy floor %</label><input type="number" id="sFloor" value="50" step="5" min="0" max="100" style="width:78px" oninput="setSub()"></div>
-   <div class="fg"><label>Full subsidy %</label><input type="number" id="sCeil" value="100" step="5" min="0" max="100" style="width:78px" oninput="setSub()"></div>
-   <div class="fg"><label>Full subsidy at Index ≥</label><input type="number" id="sFull" value="8.0" step="0.1" min="0" max="10" style="width:78px" oninput="setSub()"></div>
-  </div>
-  <div class="muted" id="subnote" style="margin-top:8px"></div>
+<div class="card model" id="modelcard">
+ <div class="top"><h3 onclick="toggleCard(this)" style="cursor:pointer;user-select:none;margin:0">Model controls <span class="caret">▾</span></h3>
+   <div class="modelicons">
+     <button class="iconbtn" title="Reset to default model" onclick="event.stopPropagation();resetModel()">⟳</button>
+     <button class="iconbtn" id="maxbtn" title="Maximize" onclick="event.stopPropagation();toggleMaximize()">⤢</button>
+   </div>
  </div>
- <div style="margin-top:14px"><button class="btn sec" onclick="resetModel()">Reset to default model</button></div>
+ <div class="cbody">
+   <div class="subsec collapsed" id="sec-models"><div class="subhead" onclick="toggleSub(this)">Saved models <span class="caret">▾</span></div>
+     <div class="subbody"><div class="presets-bar" id="savedmodels"></div></div></div>
+   <div class="subsec collapsed" id="sec-geo"><div class="subhead" onclick="toggleSub(this)">Geography <span class="caret">▾</span></div>
+     <div class="subbody"><span class="geo" id="geo"><button data-g="sa2" class="on" onclick="setGeo('sa2')">SA2</button><button data-g="sa3" onclick="setGeo('sa3')">SA3</button></span></div></div>
+   <div class="subsec" id="sec-ind"><div class="subhead" onclick="toggleSub(this)">Indicators <span class="caret">▾</span></div>
+     <div class="subbody"><div class="ind" id="ind"></div><div class="eff" id="eff"></div></div></div>
+   <div class="subsec collapsed" id="sec-tier"><div class="subhead" onclick="toggleSub(this)">Tier &amp; subsidy settings <span class="caret">▾</span></div>
+     <div class="subbody">
+       <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end">
+         <div class="fg"><label>High tier at Index ≥</label><input type="number" id="tHigh" value="6.3" step="0.1" min="0" max="10" style="width:78px" oninput="setThr()"></div>
+         <div class="fg"><label>Medium tier at Index ≥</label><input type="number" id="tMed" value="3.8" step="0.1" min="0" max="10" style="width:78px" oninput="setThr()"></div>
+         <div style="width:14px"></div>
+         <div class="fg"><label>Subsidy floor %</label><input type="number" id="sFloor" value="50" step="5" min="0" max="100" style="width:78px" oninput="setSub()"></div>
+         <div class="fg"><label>Full subsidy %</label><input type="number" id="sCeil" value="100" step="5" min="0" max="100" style="width:78px" oninput="setSub()"></div>
+         <div class="fg"><label>Full subsidy at Index ≥</label><input type="number" id="sFull" value="8.0" step="0.1" min="0" max="10" style="width:78px" oninput="setSub()"></div>
+       </div>
+       <div class="muted" id="subnote" style="margin-top:8px"></div>
+     </div></div>
  </div>
 </div>
 <div class="card model collapsed" id="basketCard">
@@ -289,6 +307,7 @@ tbody tr.grouphdr:hover td{background:var(--navy);}
    <div class="authactions"><button class="btn sec" onclick="closeSignin()">Cancel</button><button class="btn" id="authsend" onclick="sendMagicLink()">Send link</button></div>
  </div>
 </div>
+<div id="modelbackdrop" onclick="toggleMaximize()"></div>
 <div class="overlay" id="ov" onclick="closeD()"></div><div class="drawer" id="drawer"></div>
 <script>
 const SB_URL="https://ezvpiobtzftmrqxdnebh.supabase.co", SB_KEY="sb_publishable_8gY1ugFsn9jDQPHKu81PPA_Z_xERC-c";
@@ -341,6 +360,12 @@ function renderPager(total,start,end,pages){const el=document.getElementById('pa
  el.innerHTML=`<label>Show <select onchange="setPageSize(this.value)">${opts}</select> per page</label> <span>${showing}</span>${pg}`;}
 function toggleCard(el){el.closest('.card').classList.toggle('collapsed');}
 function toggleRail(){document.getElementById('mainrow').classList.toggle('railcollapsed');if(map)setTimeout(()=>map.invalidateSize(),80);}
+function toggleSub(el){el.closest('.subsec').classList.toggle('collapsed');}
+function setDefaultSubs(){['sec-models','sec-geo','sec-tier'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.add('collapsed');});const i=document.getElementById('sec-ind');if(i)i.classList.remove('collapsed');}
+function toggleMaximize(){const c=document.getElementById('modelcard'),bd=document.getElementById('modelbackdrop'),btn=document.getElementById('maxbtn');
+ const on=c.classList.toggle('maximized');
+ if(on){c.classList.remove('collapsed');c.querySelectorAll('.subsec').forEach(s=>s.classList.remove('collapsed'));bd.style.display='block';btn.textContent='⤡';btn.title='Minimize';}
+ else{setDefaultSubs();bd.style.display='none';btn.textContent='⤢';btn.title='Maximize';}}
 // ---------- auth + venue editing ----------
 const sbc=window.supabase?window.supabase.createClient(SB_URL,SB_KEY):null;
 let SESSION=null, editingId=null, editData=null;
