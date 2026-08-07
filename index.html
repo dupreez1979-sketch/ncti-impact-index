@@ -41,6 +41,18 @@ header h1{font-size:29px;margin:0;} header .sub{color:var(--slate);font-size:13p
 .editform label{font-size:11px;color:var(--slate);font-weight:700;text-transform:uppercase;letter-spacing:.3px;display:block;margin-bottom:3px;}
 .editform input,.editform select,.editform textarea{width:100%;font-family:inherit;font-size:13px;padding:6px 8px;border:1.5px solid var(--navy);border-radius:5px;background:#fff;color:var(--navy);}
 .editform .full{grid-column:1/-1;}
+.editform input[type=checkbox]{width:auto;}
+.editform .chk{display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:13px;color:var(--navy);font-weight:600;margin:0;cursor:pointer;}
+.authmodal{position:fixed;inset:0;background:rgba(7,59,76,.42);display:none;align-items:center;justify-content:center;z-index:6000;padding:20px;}
+.authmodal.open{display:flex;}
+.authcard{background:var(--cream);border:2px solid var(--navy);border-radius:10px;box-shadow:6px 6px 0 var(--navy);padding:26px 26px 20px;max-width:420px;width:100%;position:relative;}
+.authcard h2{margin:0 0 6px;font-size:25px;color:var(--navy);}.authcard h2 .pink{color:var(--pink);}
+.authcard p{margin:0 0 14px;color:var(--slate);font-size:13px;line-height:1.5;}
+.authcard input{width:100%;font-family:inherit;font-size:15px;padding:11px 12px;border:1.5px solid var(--navy);border-radius:6px;background:#fff;color:var(--navy);}
+.authactions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;}
+.authx{position:absolute;top:10px;right:14px;border:none;background:none;font-size:24px;color:var(--navy);cursor:pointer;line-height:1;}
+.authmsg{margin-top:10px;font-size:12.5px;min-height:16px;}
+.authmsg.ok{color:#0a8f6e;}.authmsg.err{color:var(--pink);}
 .hero{font-size:40px;line-height:1;margin:20px 0 6px;text-transform:uppercase;color:var(--navy);}
 .hero .pink{color:var(--pink);}
 @media(max-width:760px){.hero{font-size:29px;}.topbar{padding:12px 16px;}}
@@ -176,8 +188,8 @@ tbody tr.grouphdr:hover td{background:var(--navy);}
  <div style="margin-top:14px"><button class="btn sec" onclick="resetModel()">Reset to default model</button></div>
  </div>
 </div>
-<div class="card collapsed" id="basketCard" style="padding:12px 14px;border:2px solid var(--pink)">
- <div class="chead" onclick="toggleCard(this)"><h3 style="margin:0;font-size:15px">Subsidy basket</h3><span class="caret">▾</span></div>
+<div class="card model collapsed" id="basketCard">
+ <div class="top"><h3 onclick="toggleCard(this)" style="cursor:pointer;user-select:none;margin:0">Subsidy basket <span class="caret">▾</span></h3></div>
  <div class="cbody" style="margin-top:8px">
    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;margin-bottom:6px">
      <span class="muted">Fee $</span><input type="number" id="bkFee" value="12500" step="500" style="width:78px" oninput="setBasketFee(this.value)">
@@ -223,7 +235,7 @@ tbody tr.grouphdr:hover td{background:var(--navy);}
  </div>
 </div>
 <div class="page active" id="page-venues">
-<div style="display:flex;align-items:center;gap:10px;margin:0 0 8px"><label style="font-size:12.5px;color:var(--slate);font-weight:700">Group by <select id="groupBy" onchange="setGroup(this.value)" style="font-family:inherit;font-size:13px;padding:5px 7px;border:1.5px solid var(--navy);border-radius:5px;background:#fff;color:var(--navy)"><option value="">(none)</option><option value="state">State</option><option value="tier">Tier</option></select></label></div><div class="card" style="overflow:hidden"><div class="tablewrap"><table><thead><tr id="thead"></tr></thead><tbody id="tbody"></tbody></table></div></div>
+<div style="display:flex;align-items:center;gap:10px;margin:16px 2px 12px"><label style="font-size:12.5px;color:var(--slate);font-weight:700">Group by <select id="groupBy" onchange="setGroup(this.value)" style="font-family:inherit;font-size:13px;padding:5px 7px;border:1.5px solid var(--navy);border-radius:5px;background:#fff;color:var(--navy)"><option value="">(none)</option><option value="state">State</option><option value="tier">Tier</option></select></label></div><div class="card" style="overflow:hidden"><div class="tablewrap"><table><thead><tr id="thead"></tr></thead><tbody id="tbody"></tbody></table></div></div>
  <div class="pager" id="pager"></div>
  <div class="muted" style="margin-top:8px">Click any venue for its profile, the formula under the current model, and the fee calculator.</div></div>
 <div class="page" id="page-charts"><div class="chartsgrid">
@@ -234,7 +246,7 @@ tbody tr.grouphdr:hover td{background:var(--navy);}
  <div class="card chartbox"><h3>Children 0–14 by tier (reach)</h3><canvas id="cChildTier"></canvas></div>
 </div></div>
 <div class="page" id="page-map">
- <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+ <div style="display:flex;gap:12px;align-items:center;margin:6px 2px 14px;flex-wrap:wrap">
    <span class="muted">Shade areas by:</span>
    <button class="preset" id="mapmode_tier" onclick="setMapMode('tier')">Tier</button>
    <button class="preset" id="mapmode_index" onclick="setMapMode('index')">Impact Index (0–10)</button>
@@ -247,6 +259,16 @@ tbody tr.grouphdr:hover td{background:var(--navy);}
  <div class="muted" style="margin-top:8px">The map is driven by the <b>model controls</b> and the <b>filter bar</b> above. Areas recolour and re-tier under the current model; the <b>Tier</b>, <b>Impact Index</b> and <b>State</b> filters hide areas outside your selection. Circles are venues matching <b>all</b> filters (tick "all venues" to keep every venue visible regardless). Grey = not scored. "Highlight gaps" outlines High-impact areas with no current venue.</div>
 </div>
 </div></div>
+</div>
+<div class="authmodal" id="authmodal" onclick="if(event.target===this)closeSignin()">
+ <div class="authcard">
+   <button class="authx" onclick="closeSignin()" title="Close">×</button>
+   <h2>Sign in to <span class="pink">edit</span></h2>
+   <p>Enter your email and we'll send you a secure sign-in link. Only invited users can sign in.</p>
+   <input type="email" id="authemail" placeholder="you@example.com" autocomplete="email" onkeydown="if(event.key==='Enter')sendMagicLink()">
+   <div id="authmsg" class="authmsg"></div>
+   <div class="authactions"><button class="btn sec" onclick="closeSignin()">Cancel</button><button class="btn" id="authsend" onclick="sendMagicLink()">Send link</button></div>
+ </div>
 </div>
 <div class="overlay" id="ov" onclick="closeD()"></div><div class="drawer" id="drawer"></div>
 <script>
@@ -306,8 +328,17 @@ let SESSION=null, editingId=null, editData=null;
 function renderAuth(){const el=document.getElementById('authbox');if(!el)return;
  if(SESSION){el.innerHTML=`<b style="font-size:13px">✎ Edit mode</b><span style="text-transform:none;letter-spacing:0;color:#fff;font-size:11px">${SESSION.user.email}</span><button class="linkbtn" onclick="signOut()">Sign out</button>`;}
  else{el.innerHTML=`<button class="linkbtn" onclick="showSignin()">Sign in to edit</button>`;}}
-function showSignin(){if(!sbc){alert('Auth library not loaded.');return;}const email=prompt("Enter your email — we'll send you a sign-in link:");if(!email)return;
- sbc.auth.signInWithOtp({email:email.trim(),options:{shouldCreateUser:false,emailRedirectTo:location.origin+location.pathname}}).then(({error})=>{alert(error?('Could not send link: '+error.message):'Check your email for the sign-in link, then reopen this page.');});}
+function showSignin(){const m=document.getElementById('authmodal');if(!m)return;m.classList.add('open');setAuthMsg('',false);const e=document.getElementById('authemail');if(e){e.value='';setTimeout(()=>e.focus(),40);}}
+function closeSignin(){const m=document.getElementById('authmodal');if(m)m.classList.remove('open');}
+function setAuthMsg(t,err){const el=document.getElementById('authmsg');if(!el)return;el.textContent=t;el.className='authmsg '+(err?'err':'ok');}
+function sendMagicLink(){if(!sbc){setAuthMsg('Auth library not loaded — check your connection.',true);return;}
+ const email=(document.getElementById('authemail').value||'').trim();
+ if(!email||!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){setAuthMsg('Please enter a valid email address.',true);return;}
+ const btn=document.getElementById('authsend');btn.disabled=true;btn.textContent='Sending…';
+ sbc.auth.signInWithOtp({email,options:{shouldCreateUser:false,emailRedirectTo:location.origin+location.pathname}}).then(({error})=>{
+   btn.disabled=false;btn.textContent='Send link';
+   if(error){setAuthMsg(error.message,true);}else{setAuthMsg('Link sent. Check your email and open it on this device.',false);}
+ });}
 async function signOut(){if(sbc)await sbc.auth.signOut();SESSION=null;editingId=null;renderAuth();render();}
 function initAuth(){if(!sbc){renderAuth();return;}
  sbc.auth.getSession().then(({data})=>{SESSION=data.session;renderAuth();if(V.length)render();});
@@ -320,16 +351,17 @@ function cancelEdit(){editingId=null;editData=null;render();}
 function editorRowHtml(v){const d=editData;
  if(!d)return `<tr class="editrow"><td colspan="${cols.length+1}">Loading…</td></tr>`;
  const sts=[...new Set(V.map(x=>x.status).filter(Boolean))];if(d.status&&!sts.includes(d.status))sts.unshift(d.status);
+ const STATES=['','NSW','VIC','QLD','SA','WA','TAS','NT','ACT'];if(d.state&&!STATES.includes(d.state))STATES.push(d.state);
  const esc=s=>(''+s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
  return `<tr class="editrow"><td colspan="${cols.length+1}"><div class="editform">
    <div><label>Status</label><select id="ef_status">${sts.map(s=>`<option ${s===d.status?'selected':''}>${esc(s)}</option>`).join('')}</select></div>
    <div><label>Venue name</label><input id="ef_name" value="${esc(d.name||'')}"></div>
-   <div><label>State</label><input id="ef_state" value="${esc(d.state||'')}"></div>
+   <div><label>State</label><select id="ef_state">${STATES.map(s=>`<option value="${s}" ${s===(d.state||'')?'selected':''}>${s||'—'}</option>`).join('')}</select></div>
    <div><label>Postcode</label><input id="ef_postcode" value="${esc(d.postcode||'')}"></div>
    <div><label>Latitude</label><input id="ef_lat" type="number" step="0.0001" value="${d.lat==null?'':d.lat}"></div>
    <div><label>Longitude</label><input id="ef_lng" type="number" step="0.0001" value="${d.lng==null?'':d.lng}"></div>
    <div class="full"><label>Notes</label><textarea id="ef_notes" rows="2">${esc(d.notes||'')}</textarea></div>
-   <div><label>Active</label><input id="ef_active" type="checkbox" ${d.active?'checked':''}> <span class="muted">shown in the app</span></div>
+   <div class="full"><label class="chk"><input id="ef_active" type="checkbox" ${d.active?'checked':''}> Active — shown in the venue list, charts and map</label></div>
    <div class="full" style="display:flex;gap:8px;justify-content:flex-end;align-items:center"><span class="muted" style="margin-right:auto">Scores &amp; census are computed — not editable here.</span><button class="btn sec" onclick="cancelEdit()">Cancel</button><button class="btn" onclick="saveVenue()">Save changes</button></div>
  </div></td></tr>`;}
 async function saveVenue(){const g=id=>document.getElementById(id);
