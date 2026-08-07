@@ -1,0 +1,4 @@
+# Static single-page app. No build step; publish the repo root.
+[build]
+  publish = "."
+  command = ""
