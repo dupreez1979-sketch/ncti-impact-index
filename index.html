@@ -69,6 +69,15 @@ header h1{font-size:29px;margin:0;} header .sub{color:var(--slate);font-size:13p
 .geo button{font-family:'Charlie Kingdom';font-size:15px;padding:6px 16px;border:1.5px solid var(--navy);border-radius:5px;background:#fff;color:var(--navy);cursor:pointer;}
 .geo button.on{background:var(--navy);color:#fff;}
 .presets-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
+.modelchip{display:inline-flex;align-items:center;border:1.5px solid var(--navy);border-radius:6px;box-shadow:3px 3px 0 var(--navy);overflow:hidden;}
+.modelchip.on{background:var(--navy);}
+.modelapply{font-family:'Charlie Kingdom';font-size:13px;padding:6px 11px;border:none;background:transparent;color:var(--navy);cursor:pointer;display:flex;align-items:baseline;gap:6px;}
+.modelchip.on .modelapply{color:#fff;}
+.mdate{font-family:'Inter',sans-serif;font-size:10px;color:var(--slate);}
+.modelchip.on .mdate{color:#9DB4D8;}
+.modeledit,.modeldel,.modelupd{border:none;background:transparent;cursor:pointer;font-size:11px;padding:5px 5px;color:var(--slate);}
+.modelchip.on .modeledit,.modelchip.on .modeldel,.modelchip.on .modelupd{color:#9DB4D8;}
+.modeledit:hover,.modelupd:hover{color:var(--pink);}.modeldel:hover{color:var(--pink);}
 .preset{font-family:'Charlie Kingdom';font-size:13px;padding:7px 14px;border:1.5px solid var(--navy);border-radius:6px;background:#fff;color:var(--navy);cursor:pointer;box-shadow:3px 3px 0 var(--navy);}
 .preset.on{background:var(--pink);color:#fff;}
 .preset:active{box-shadow:1px 1px 0 var(--navy);transform:translate(2px,2px);}
@@ -167,11 +176,7 @@ tbody tr.grouphdr:hover td{background:var(--navy);}
  <div class="top"><h3 onclick="toggleCard(this)" style="cursor:pointer;user-select:none;margin:0">Model controls <span class="caret">▾</span></h3></div>
  <div class="cbody">
  <div style="margin-bottom:12px"><span class="muted" style="margin-right:6px">Geography</span><span class="geo" id="geo"><button data-g="sa2" class="on" onclick="setGeo('sa2')">SA2</button><button data-g="sa3" onclick="setGeo('sa3')">SA3 (catchment)</button></span></div>
- <div class="presets-bar"><span class="muted" style="margin-right:2px">Quick options:</span>
-   <button class="preset" id="ps_em_seifa" onclick="applyPreset('em_seifa')">EM + Disadvantage (50/50)</button>
-   <button class="preset" id="ps_all" onclick="applyPreset('all')">All three (default)</button>
-   <button class="preset" id="ps_em_only" onclick="applyPreset('em_only')">Emotional Maturity only</button>
- </div>
+ <div class="presets-bar" id="savedmodels"></div>
  <div class="ind" id="ind"></div>
  <div class="eff" id="eff"></div>
  <div style="margin-top:14px;border-top:1px dashed var(--slate);padding-top:12px">
@@ -259,6 +264,16 @@ tbody tr.grouphdr:hover td{background:var(--navy);}
  <div class="muted" style="margin-top:8px">The map is driven by the <b>model controls</b> and the <b>filter bar</b> above. Areas recolour and re-tier under the current model; the <b>Tier</b>, <b>Impact Index</b> and <b>State</b> filters hide areas outside your selection. Circles are venues matching <b>all</b> filters (tick "all venues" to keep every venue visible regardless). Grey = not scored. "Highlight gaps" outlines High-impact areas with no current venue.</div>
 </div>
 </div></div>
+</div>
+<div class="authmodal" id="modelmodal" onclick="if(event.target===this)closeName()">
+ <div class="authcard">
+   <button class="authx" onclick="closeName()" title="Close">×</button>
+   <h2 id="mm_title">Save model</h2>
+   <p id="mm_sub"></p>
+   <input type="text" id="mm_input" placeholder="Model name" onkeydown="if(event.key==='Enter')submitName()">
+   <div id="mm_msg" class="authmsg"></div>
+   <div class="authactions"><button class="btn sec" onclick="closeName()">Cancel</button><button class="btn" id="mm_ok" onclick="submitName()">Save</button></div>
+ </div>
 </div>
 <div class="authmodal" id="authmodal" onclick="if(event.target===this)closeSignin()">
  <div class="authcard">
@@ -371,6 +386,55 @@ async function saveVenue(){const g=id=>document.getElementById(id);
  if(error){alert('Save failed: '+error.message);return;}
  const v=V.find(x=>x.id===id);if(v){v.name=upd.name;v.state=upd.state;v.status=upd.status;v.postcode=upd.postcode;v.ll=[upd.lat,upd.lng];}
  editingId=null;editData=null;recompute();render();if(map){paintMarkers();}}
+// ---------- saved models ----------
+let MODELS=[];
+function fmtDate(iso){try{return new Date(iso).toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'});}catch(e){return '';}}
+function modelEq(c){if(!c)return false;const M=MODEL;
+ if((c.geo||'sa2')!==M.geo)return false;
+ for(const k of ['em','seifa','rem']){if(!!(c.on&&c.on[k])!==!!M.on[k])return false;if((+((c.pct&&c.pct[k])||0))!==(+M.pct[k]))return false;}
+ if(c.thr&&(+c.thr.high!==+M.thr.high||+c.thr.med!==+M.thr.med))return false;
+ if(c.sub&&(+c.sub.floor!==+M.sub.floor||+c.sub.ceil!==+M.sub.ceil||+c.sub.full!==+M.sub.full))return false;
+ return true;}
+function renderModels(){const el=document.getElementById('savedmodels');if(!el)return;
+ let h='<span class="muted" style="margin-right:2px">Saved models:</span>';
+ if(!MODELS.length)h+='<span class="muted" style="font-size:11px;margin-right:4px">none yet</span>';
+ MODELS.forEach(m=>{const on=modelEq(m.config);
+  h+=`<span class="modelchip ${on?'on':''}"><button class="modelapply" onclick="applyModel(${m.id})" title="Apply this model">${esc(m.name)}${m.date?`<span class="mdate">${m.date}</span>`:''}</button>${SESSION?`<button class="modelupd" title="Update to current settings" onclick="event.stopPropagation();updateModelToCurrent(${m.id})">⟳</button><button class="modeledit" title="Rename" onclick="event.stopPropagation();renameModel(${m.id})">✎</button><button class="modeldel" title="Delete" onclick="event.stopPropagation();deleteModel(${m.id})">✕</button>`:''}</span>`;});
+ h+=`<button class="preset" style="border-style:dashed" onclick="saveCurrentModel()">＋ Save current</button>`;
+ el.innerHTML=h;}
+function applyModel(id){const m=MODELS.find(x=>x.id===id);if(!m||!m.config)return;const c=m.config;
+ MODEL.geo=c.geo||'sa2';MODEL.on={em:!!c.on.em,seifa:!!c.on.seifa,rem:!!c.on.rem};
+ MODEL.pct={em:+c.pct.em||0,seifa:+c.pct.seifa||0,rem:+c.pct.rem||0};
+ MODEL.thr={high:+c.thr.high,med:+c.thr.med};MODEL.sub={floor:+c.sub.floor,ceil:+c.sub.ceil,full:+c.sub.full};
+ document.querySelectorAll('#geo button').forEach(b=>b.classList.toggle('on',b.dataset.g===MODEL.geo));
+ const gv=(i,v)=>{const e=document.getElementById(i);if(e&&v!=null&&!isNaN(v))e.value=v;};
+ gv('tHigh',MODEL.thr.high);gv('tMed',MODEL.thr.med);gv('sFloor',Math.round(MODEL.sub.floor*100));gv('sCeil',Math.round(MODEL.sub.ceil*100));gv('sFull',MODEL.sub.full);
+ buildInd();updateSubnote();recompute();render();}
+function saveCurrentModel(){if(!SESSION){showSignin();return;}openName('Save model','Name this model — the date is added automatically.','','Save',doSaveModel);}
+async function doSaveModel(name){const {data,error}=await sbc.from('models').insert({name:name,config:MODEL}).select('id,name,config,created_at').single();
+ if(error){alert('Save failed: '+error.message);return;}
+ MODELS.push({id:data.id,name:data.name,config:data.config,date:fmtDate(data.created_at)});MODELS.sort((a,b)=>(''+a.name).localeCompare(b.name));renderModels();}
+function renameModel(id){if(!SESSION){showSignin();return;}const m=MODELS.find(x=>x.id===id);if(!m)return;
+ openName('Rename model','',m.name,'Save',async name=>{const {error}=await sbc.from('models').update({name}).eq('id',id);if(error){alert(error.message);return;}m.name=name;MODELS.sort((a,b)=>(''+a.name).localeCompare(b.name));renderModels();});}
+function updateModelToCurrent(id){if(!SESSION){showSignin();return;}const m=MODELS.find(x=>x.id===id);if(!m)return;
+ openConfirm('Update saved model?','Overwrite “'+m.name+'” with the model settings currently on screen?','Update',async ()=>{const {data,error}=await sbc.from('models').update({config:MODEL}).eq('id',id).select('config').single();if(error){alert(error.message);return;}m.config=data.config;renderModels();});}
+function deleteModel(id){if(!SESSION){showSignin();return;}const m=MODELS.find(x=>x.id===id);if(!m)return;
+ openConfirm('Delete model?','This removes “'+m.name+'” for everyone. This cannot be undone.','Delete',async ()=>{const {error}=await sbc.from('models').delete().eq('id',id);if(error){alert(error.message);return;}MODELS=MODELS.filter(x=>x.id!==id);renderModels();});}
+// naming / confirm modal
+let _mmCb=null,_mmInput=true;
+function openName(title,sub,initial,okLabel,cb){_mmCb=cb;_mmInput=true;
+ document.getElementById('mm_title').textContent=title;document.getElementById('mm_sub').textContent=sub||'';
+ const inp=document.getElementById('mm_input');inp.style.display='';inp.value=initial||'';
+ document.getElementById('mm_ok').textContent=okLabel||'Save';document.getElementById('mm_msg').textContent='';
+ document.getElementById('modelmodal').classList.add('open');setTimeout(()=>{inp.focus();inp.select();},40);}
+function openConfirm(title,sub,okLabel,cb){_mmCb=cb;_mmInput=false;
+ document.getElementById('mm_title').textContent=title;document.getElementById('mm_sub').textContent=sub||'';
+ document.getElementById('mm_input').style.display='none';document.getElementById('mm_ok').textContent=okLabel||'Confirm';document.getElementById('mm_msg').textContent='';
+ document.getElementById('modelmodal').classList.add('open');}
+function closeName(){document.getElementById('modelmodal').classList.remove('open');_mmCb=null;}
+function submitName(){if(!_mmCb)return;const val=_mmInput?document.getElementById('mm_input').value.trim():null;
+ if(_mmInput&&!val){const mm=document.getElementById('mm_msg');mm.textContent='Please enter a name.';mm.className='authmsg err';return;}
+ const cb=_mmCb;_mmCb=null;document.getElementById('modelmodal').classList.remove('open');cb(val);}
 
 function computeOne(v){const g=v[MODEL.geo];const map={em:g.em_sub,seifa:g.seifa_sub,rem:g.rem_sub};
  let num=0,den=0;for(const k of ['em','seifa','rem']){if(MODEL.on[k]&&map[k]!=null){num+=MODEL.pct[k]*map[k];den+=MODEL.pct[k];}}
@@ -474,7 +538,7 @@ function render(){const a=filtered();document.getElementById('count').textConten
  renderBasket();updateSelAll();
  if(curPage==='charts')drawCharts(a);
  if(curPage==='map'){schedulePaint();paintMarkers();}
- markActivePreset();}
+ renderModels();}
 function setSort(k){if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=(['name','state','status','ra','tier','eligible'].includes(k))?1:-1;}render();}
 function showPage(p){curPage=p;document.querySelectorAll('.page').forEach(e=>e.classList.remove('active'));document.getElementById('page-'+p).classList.add('active');
  ['venues','charts','map'].forEach(x=>document.getElementById('nav-'+x).classList.toggle('active',p===x));
@@ -621,6 +685,7 @@ async function boot(){
   DATA.params=P; SA2GEO=geo;
   document.getElementById('loading').style.display='none';
   buildInd();updateSubnote();recompute();initFilters();render();renderAuth();
+  try{MODELS=(await sbAll('models','id,name,config,is_preset,created_at')).map(m=>({id:m.id,name:m.name,config:m.config,date:fmtDate(m.created_at)}));MODELS.sort((a,b)=>(''+a.name).localeCompare(b.name));renderModels();}catch(mErr){console.warn('models not loaded (create the table with models.sql):',mErr);}
  }catch(e){
   console.error(e);
   document.getElementById('loading').innerHTML='<div style="max-width:520px"><div style="color:var(--pink);font-size:22px;margin-bottom:8px">Could not load data from Supabase</div><div style="font-family:Inter,sans-serif;font-size:13px;color:var(--slate);line-height:1.5">'+e.message+'<br><br>Check that the CSVs are imported, the read (RLS) policies from schema.sql are on, and the <b>geo</b> Storage bucket is public with <b>sa2_boundaries.geojson</b> uploaded.</div></div>';
