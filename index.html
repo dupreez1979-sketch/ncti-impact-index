@@ -18,6 +18,10 @@ h1,h2,h3,.disp{font-family:'Charlie Kingdom','Inter',sans-serif;font-weight:400;
 .wrap{max-width:100%;margin:0;padding:18px 24px 60px;}
 header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:10px;}
 header h1{font-size:29px;margin:0;} header .sub{color:var(--slate);font-size:13px;margin-top:2px;}
+.topstats{display:flex;gap:24px;align-items:flex-end;flex-wrap:wrap;padding-bottom:2px;}
+.tstat .tsv{font-family:'Charlie Kingdom';font-size:24px;line-height:1;color:var(--navy);white-space:nowrap;}
+.tstat .tsl{font-size:10px;color:var(--slate);font-weight:600;text-transform:uppercase;letter-spacing:.3px;margin-top:4px;white-space:nowrap;}
+.tstat .tsl b{font-family:'Charlie Kingdom';font-weight:400;}
 .topbar{background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:space-between;gap:20px;padding:13px 24px;flex-wrap:wrap;}
 .brand{display:flex;flex-direction:column;line-height:1;}
 .brand1{font-family:'Charlie Kingdom';font-size:20px;color:#fff;letter-spacing:.5px;}
@@ -167,7 +171,8 @@ tbody tr.grouphdr:hover td{background:var(--navy);}
  <div class="topuser" id="authbox"><span style="color:var(--teal);font-size:11px">…</span></div>
 </div>
 <div class="wrap">
-<header><div><h1 class="hero">Children's Theatre <span class="pink">Impact</span> Index</h1><div class="sub">Modelling dashboard · change the model on the left, watch every venue re-score · <span id="count"></span></div></div></header>
+<header><div><h1 class="hero">Children's Theatre <span class="pink">Impact</span> Index</h1><div class="sub">Modelling dashboard · change the model on the left, watch every venue re-score · <span id="count"></span></div></div>
+<div class="topstats" id="kpis"></div></header>
 
 <div class="mainrow" id="mainrow">
 <aside class="siderail" id="siderail">
@@ -222,7 +227,6 @@ tbody tr.grouphdr:hover td{background:var(--navy);}
    <div class="muted" style="margin-top:8px;font-size:10.5px">Tick venues in the Venues list. Selections persist across filters. Only High-tier venues draw a subsidy.</div>
  </div>
 </div>
-<div><div class="kpihead" style="margin:0 0 6px">Live totals</div><div class="kpis" id="kpis"></div></div>
 </aside>
 <button class="railexpand" onclick="toggleRail()" title="Show the panels frame">▶ Panels</button>
 <div class="maincol">
@@ -508,17 +512,13 @@ function render(){const a=filtered();document.getElementById('count').textConten
  const hi=a.filter(v=>v.cTier==='High').length,me=a.filter(v=>v.cTier==='Medium').length,lo=a.filter(v=>v.cTier==='Low').length,el=a.filter(v=>v.cElig==='Yes').length;
  const avg=a.length?a.reduce((s,v)=>s+(v.cIndex||0),0)/a.length:0;
  const totChild=uniqueChild(a),highChild=uniqueChild(a.filter(v=>v.cTier==='High'));
- document.getElementById('kpis').innerHTML=`<div class="card statcard">
-   <div class="statline"><span class="sl">Venues</span><span class="sv">${a.length}</span></div>
-   <div class="statline"><span class="sl">Avg index</span><span class="sv">${avg.toFixed(1)}</span></div>
-   <div class="tiermix">
-     <div class="tmbar">${hi?`<span style="flex:${hi};background:#EF476F"></span>`:''}${me?`<span style="flex:${me};background:#FFD166"></span>`:''}${lo?`<span style="flex:${lo};background:#5BC0BE"></span>`:''}</div>
-     <div class="tmleg"><span><i style="background:#EF476F"></i>High ${hi}</span><span><i style="background:#FFD166"></i>Med ${me}</span><span><i style="background:#5BC0BE"></i>Low ${lo}</span></div>
-   </div>
-   <div class="statline"><span class="sl">Subsidy eligible</span><span class="sv" style="color:#06D6A0">${el}</span></div>
-   <div class="statline" title="Children aged 0–14 living in the distinct areas that host these venues — each SA2/SA3 counted once. Widens from the local SA2 to the broader SA3 catchment with the geography toggle."><span class="sl">Children 0–14 ${MODEL.geo==='sa3'?'(SA3 catchment)':'(SA2 local)'}</span><span class="sv" style="color:#118AB2">${totChild.toLocaleString()}</span></div>
-   <div class="statline" title="Of those, children living in High-tier areas (each area counted once)."><span class="sl">In High areas</span><span class="sv" style="color:#EF476F">${highChild.toLocaleString()}</span></div>
- </div>`;
+ document.getElementById('kpis').innerHTML=`
+   <div class="tstat"><div class="tsv">${a.length}</div><div class="tsl">Venues</div></div>
+   <div class="tstat"><div class="tsv">${avg.toFixed(1)}</div><div class="tsl">Avg index</div></div>
+   <div class="tstat"><div class="tmbar" style="width:108px">${hi?`<span style="flex:${hi};background:#EF476F"></span>`:''}${me?`<span style="flex:${me};background:#FFD166"></span>`:''}${lo?`<span style="flex:${lo};background:#5BC0BE"></span>`:''}</div><div class="tsl" style="margin-top:5px"><b style="color:#EF476F">${hi}</b> High · <b style="color:#B9922E">${me}</b> Med · <b style="color:#3E8F8C">${lo}</b> Low</div></div>
+   <div class="tstat"><div class="tsv" style="color:#06D6A0">${el}</div><div class="tsl">Subsidy eligible</div></div>
+   <div class="tstat" title="Children aged 0–14 living in the distinct areas that host these venues — each SA2/SA3 counted once."><div class="tsv" style="color:#118AB2">${totChild.toLocaleString()}</div><div class="tsl">Children 0–14 ${MODEL.geo==='sa3'?'(SA3)':'(SA2)'}</div></div>
+   <div class="tstat" title="Of those, children living in High-tier areas."><div class="tsv" style="color:#EF476F">${highChild.toLocaleString()}</div><div class="tsl">In High areas</div></div>`;
  document.getElementById('thead').innerHTML='<th style="width:26px;cursor:default"><input type="checkbox" id="selAll" onclick="selectAllFiltered(this.checked)" title="Select all in this view"></th>'+cols.map(c=>`<th onclick="setSort('${c[0]}')">${c[1]}${sortKey===c[0]?(sortDir<0?' ▾':' ▴'):''}</th>`).join('');
  const tw=document.querySelector('#page-venues .tablewrap');const total=a.length;
  const rowHtml=v=>`<tr onclick="openD(${v._i})"><td class="center" onclick="event.stopPropagation()"><input type="checkbox" ${sel.has(v._i)?'checked':''} onclick="event.stopPropagation();toggleSel(${v._i})"></td><td><b>${v.name}</b>${SESSION?` <button class="pencil" title="Edit venue" onclick="event.stopPropagation();editVenue(${v._i})">✎</button>`:''}</td><td>${v.state||''}</td><td style="font-size:11.5px">${v.status||''}</td><td>${(v.cRA||'').replace(' Australia','')}</td><td class="right">${v.cEm!=null?(+v.cEm).toFixed(1):''}</td><td class="center">${v.cDec??''}</td><td class="center"><b>${v.cIndex!=null?v.cIndex.toFixed(1):'—'}</b></td><td class="center"><span class="chip tier-${v.cTier}">${v.cTier}</span></td><td class="center">${v.cSub?Math.round(v.cSub*100)+'%':'–'}</td><td class="center"><span class="pill-${v.cElig}">${v.cElig}</span></td><td class="right">${v.cChild!=null?v.cChild.toLocaleString():''}</td></tr>`;
