@@ -107,6 +107,7 @@ header h1{font-size:29px;margin:0;} header .sub{color:var(--slate);font-size:13p
 .kpi{padding:12px 14px;} .kpi .n{font-family:'Charlie Kingdom';font-size:29px;line-height:1;} .kpi .l{font-size:11px;color:var(--slate);font-weight:600;margin-top:5px;text-transform:uppercase;letter-spacing:.4px;}
 .statcard{padding:8px 12px;}
 .statline{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:5px 0;border-bottom:1px solid #Eee6cf;}
+.bklinkbox{background:#FFF3D6;border:1px solid var(--pink);border-radius:6px;padding:7px 9px;margin-bottom:8px;font-size:11px;color:var(--navy);line-height:1.35;}
 .statline:last-child{border-bottom:none;}
 .statline .sl{font-size:11px;color:var(--slate);font-weight:600;text-transform:uppercase;letter-spacing:.3px;}
 .statline .sv{font-family:'Charlie Kingdom';font-size:20px;line-height:1;color:var(--navy);white-space:nowrap;}
@@ -229,6 +230,8 @@ tbody tr.grouphdr:hover td{background:var(--navy);}
 .rpt-hero .h{font-family:'Charlie Kingdom';font-size:26px;color:var(--navy);line-height:1;}
 .rpt-hero .h.pink{color:var(--pink);}
 .rpt-hero .l{font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:#4A5859;margin-top:4px;}
+.rpt-legend{display:flex;gap:20px;justify-content:center;font-size:11px;color:#4A5859;margin:6px 0 2px;}
+.rpt-legend i{display:inline-block;width:10px;height:10px;border-radius:50%;border:1px solid #fff;box-shadow:0 0 0 1px #073B4C;margin-right:6px;vertical-align:middle;}
 .rpt h3{font-family:'Charlie Kingdom';font-size:16px;color:var(--navy);margin:18px 0 8px;border-bottom:1.5px solid var(--navy);padding-bottom:4px;}
 .rpt table{width:100%;border-collapse:collapse;font-size:11.5px;margin:6px 0 12px;}
 .rpt th{background:var(--navy);color:#fff;text-align:left;padding:5px 8px;font-size:10px;text-transform:uppercase;letter-spacing:.3px;}
@@ -346,14 +349,15 @@ body.aboutmode .siderail,body.aboutmode .railexpand,body.aboutmode #kpis,body.ab
    <div class="modelicons"><button class="iconbtn" id="basketFloatBtn" title="Pop out as a movable note" onclick="event.stopPropagation();toggleBasketFloat()">⤢</button></div>
  </div>
  <div class="cbody" style="margin-top:8px">
-   <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;margin-bottom:6px">
+   <div id="bkFeeRow" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;margin-bottom:6px">
      <span class="muted">Fee $</span><input type="number" id="bkFee" value="12500" step="500" style="width:78px" oninput="setBasketFee(this.value)">
      <button class="preset" style="font-size:10px;padding:3px 6px" onclick="setBasketFee(12500)">12.5k</button>
      <button class="preset" style="font-size:10px;padding:3px 6px" onclick="setBasketFee(14000)">14k</button>
      <button class="preset" style="font-size:10px;padding:3px 6px" onclick="setBasketFee(16000)">16k</button>
    </div>
-   <div class="statline"><span class="sl">Venues selected</span><span class="sv" id="bkN">0</span></div>
-   <div class="statline"><span class="sl">Subsidy-eligible</span><span class="sv" id="bkElig">0</span></div>
+   <div id="bkLink"></div>
+   <div class="statline"><span class="sl" id="bkNL">Venues selected</span><span class="sv" id="bkN">0</span></div>
+   <div class="statline"><span class="sl" id="bkEligL">Subsidy-eligible</span><span class="sv" id="bkElig">0</span></div>
    <div class="statline"><span class="sl">Children 0–14</span><span class="sv" style="color:#118AB2" id="bkChild">0</span></div>
    <div class="statline"><span class="sl">Gross fees</span><span class="sv" id="bkGross">$0</span></div>
    <div class="statline"><span class="sl">Subsidy required</span><span class="sv" style="color:var(--pink)" id="bkSub">$0</span></div>
@@ -522,11 +526,11 @@ let sel=new Set(),basketFee=12500;
 let sources=[],_srcSeq=0;
 const SRC_PRESETS={pa:'Playing Australia',phil:'Philanthropy',gov:'Other government funding',other:'Other source'};
 function toggleSplit(btn){const p=document.getElementById('splitPanel');const h=p.classList.toggle('hidden');btn.textContent=h?'Income sources ▾':'Income sources ▴';}
-function addSource(kind){_srcSeq++;if(kind==='state')sources.push({id:_srcSeq,kind:'state',state:'NSW',name:'State touring grant',amount:0,overridden:false});else sources.push({id:_srcSeq,kind:'manual',name:SRC_PRESETS[kind]||'Other source',amount:0});renderBasket();}
-function removeSource(id){sources=sources.filter(s=>s.id!==id);renderBasket();}
-function setSourceName(id,v){const s=sources.find(x=>x.id===id);if(s)s.name=v;}
-function setSourceAmount(id,v){const s=sources.find(x=>x.id===id);if(s){s.amount=Math.max(0,+v||0);if(s.kind==='state')s.overridden=true;}renderBasket();}
-function setSourceState(id,v){const s=sources.find(x=>x.id===id);if(s){s.state=v;s.overridden=false;}renderBasket();}
+function addSource(kind){_srcSeq++;if(kind==='state')sources.push({id:_srcSeq,kind:'state',state:'NSW',name:'State touring grant',amount:0,overridden:false});else sources.push({id:_srcSeq,kind:'manual',name:SRC_PRESETS[kind]||'Other source',amount:0});renderBasket();persistSourcesIfTour();}
+function removeSource(id){sources=sources.filter(s=>s.id!==id);renderBasket();persistSourcesIfTour();}
+function setSourceName(id,v){const s=sources.find(x=>x.id===id);if(s)s.name=v;persistSourcesIfTour();}
+function setSourceAmount(id,v){const s=sources.find(x=>x.id===id);if(s){s.amount=Math.max(0,+v||0);if(s.kind==='state')s.overridden=true;}renderBasket();persistSourcesIfTour();}
+function setSourceState(id,v){const s=sources.find(x=>x.id===id);if(s){s.state=v;s.overridden=false;}renderBasket();persistSourcesIfTour();}
 function stateOpts(cur){return ['NSW','VIC','QLD','SA','WA','TAS','NT','ACT'].map(x=>`<option ${x===cur?'selected':''}>${x}</option>`).join('');}
 function srcAmt(s,stateSub){return s.kind==='state'?(s.overridden?(s.amount||0):(stateSub[s.state]||0)):(s.amount||0);}
 function resolveSources(sub,stateSub){let other=0;const rows=sources.map(s=>{const amt=srcAmt(s,stateSub);other+=amt;return {name:s.name,amount:amt};});const fund=Math.max(0,sub-other);return {rows,fund,total:fund+other,over:other>sub+0.5};}
@@ -538,10 +542,18 @@ function selectAllFiltered(check){filtered().forEach(v=>{if(check)sel.add(v._i);
 function clearSel(){sel.clear();render();}
 function setBasketFee(v){basketFee=Math.max(0,+v||0);const e=document.getElementById('bkFee');if(e)e.value=basketFee;renderBasket();}
 function updateSelAll(){const el=document.getElementById('selAll');if(!el)return;const a=filtered();let c=0;a.forEach(v=>{if(sel.has(v._i))c++;});el.checked=a.length>0&&c===a.length;el.indeterminate=c>0&&c<a.length;}
-function renderBasket(){if(!document.getElementById('bkN'))return;let n=0,elig=0,sub=0,child=0;const seen=new Set();const stateSub={};
- sel.forEach(i=>{const v=V[i];if(!v)return;n++;const k=areaCode(v);if(k!=null&&!seen.has(k)){seen.add(k);child+=v.cChild||0;}
-   const s=v.cSub>0?basketFee*v.cSub:0;if(s>0)elig++;sub+=s;const st=v.state||'—';stateSub[st]=(stateSub[st]||0)+s;});
- const gross=n*basketFee,pay=gross-sub;
+function persistSourcesIfTour(){const t=activeTourObj();if(t&&sbc){t.sources=JSON.parse(JSON.stringify(sources));sbc.from('tours').update({sources}).eq('id',t.id).then(r=>{if(r&&r.error)console.warn('save sources',r.error);});}}
+function renderBasket(){if(!document.getElementById('bkN'))return;const tour=activeTourObj();
+ let n=0,elig=0,sub=0,child=0,gross=0;const seen=new Set();const stateSub={};
+ if(tour){tourVenues.forEach(tv=>{const v=tv.v;if(!v)return;n++;const fee=tv.fee||0;gross+=fee;const k=areaCode(v);if(k!=null&&!seen.has(k)){seen.add(k);child+=v.cChild||0;}
+     if(tv.confirmed&&v.cSub>0){const s=fee*v.cSub;elig++;sub+=s;const st=v.state||'—';stateSub[st]=(stateSub[st]||0)+s;}});}
+ else{sel.forEach(i=>{const v=V[i];if(!v)return;n++;gross+=basketFee;const k=areaCode(v);if(k!=null&&!seen.has(k)){seen.add(k);child+=v.cChild||0;}
+     const s=v.cSub>0?basketFee*v.cSub:0;if(s>0)elig++;sub+=s;const st=v.state||'—';stateSub[st]=(stateSub[st]||0)+s;});}
+ const pay=gross-sub;
+ const setT=(id,t)=>{const e=document.getElementById(id);if(e)e.textContent=t;};
+ setT('bkNL',tour?'Tour venues':'Venues selected');setT('bkEligL',tour?'Subsidised':'Subsidy-eligible');
+ const feeRow=document.getElementById('bkFeeRow');if(feeRow)feeRow.style.display=tour?'none':'';
+ const link=document.getElementById('bkLink');if(link)link.innerHTML=tour?`<div class="bklinkbox">Linked to tour <b>${esc(tour.name)}</b> — venues, fees &amp; income sources come from the tour. Edit them in the Tours / Tour venues panels.</div>`:'';
  document.getElementById('bkN').textContent=n;
  document.getElementById('bkElig').textContent=elig;
  document.getElementById('bkChild').textContent=child.toLocaleString();
@@ -632,16 +644,16 @@ async function saveModelToTour(){const t=activeTourObj();if(!t){alert('Select a 
 let tourVenues=[];
 async function loadTourVenues(tourId){tourVenues=[];if(tourId&&sbc){const {data,error}=await sbc.from('tour_venues').select('id,venue_id,fee,subsidy_confirmed').eq('tour_id',tourId);
  if(error)console.warn(error);else tourVenues=(data||[]).map(r=>{const v=V.find(x=>x.id===r.venue_id);return v?{id:r.id,venue_id:r.venue_id,fee:r.fee,confirmed:r.subsidy_confirmed,v}:null;}).filter(Boolean);}
- renderTourVenues();renderTourBar();renderTourPanel();}
+ renderTourVenues();renderTourBar();renderTourPanel();renderBasket();}
 async function addSelectedToTour(){const t=activeTourObj();if(!t){alert('Select a tour in the Tours panel first.');return;}if(!sel.size){alert('Tick some venues in the list first.');return;}
  const have=new Set(tourVenues.map(x=>x.venue_id));
  const rows=[...sel].map(i=>V[i]).filter(v=>v&&v.id&&!have.has(v.id)).map(v=>({tour_id:t.id,venue_id:v.id,fee:t.default_fee||basketFee,subsidy_confirmed:v.cTier==='High'}));
  if(!rows.length){alert('Those venues are already on this tour.');return;}
  const {error}=await sbc.from('tour_venues').insert(rows);if(error){alert(error.message);return;}
  await loadTourVenues(t.id);}
-async function setTourVenueFee(id,val){const f=Math.max(0,+val||0);const {error}=await sbc.from('tour_venues').update({fee:f}).eq('id',id);if(error){alert(error.message);return;}const tv=tourVenues.find(x=>x.id===id);if(tv)tv.fee=f;renderTourVenues();}
-async function toggleTourVenueConfirmed(id,ch){const {error}=await sbc.from('tour_venues').update({subsidy_confirmed:ch}).eq('id',id);if(error){alert(error.message);return;}const tv=tourVenues.find(x=>x.id===id);if(tv)tv.confirmed=ch;renderTourVenues();}
-async function removeTourVenue(id){const {error}=await sbc.from('tour_venues').delete().eq('id',id);if(error){alert(error.message);return;}tourVenues=tourVenues.filter(x=>x.id!==id);renderTourVenues();renderTourPanel();}
+async function setTourVenueFee(id,val){const f=Math.max(0,+val||0);const {error}=await sbc.from('tour_venues').update({fee:f}).eq('id',id);if(error){alert(error.message);return;}const tv=tourVenues.find(x=>x.id===id);if(tv)tv.fee=f;renderTourVenues();renderBasket();}
+async function toggleTourVenueConfirmed(id,ch){const {error}=await sbc.from('tour_venues').update({subsidy_confirmed:ch}).eq('id',id);if(error){alert(error.message);return;}const tv=tourVenues.find(x=>x.id===id);if(tv)tv.confirmed=ch;renderTourVenues();renderBasket();}
+async function removeTourVenue(id){const {error}=await sbc.from('tour_venues').delete().eq('id',id);if(error){alert(error.message);return;}tourVenues=tourVenues.filter(x=>x.id!==id);renderTourVenues();renderTourPanel();renderBasket();}
 function tourTotals(){let sub=0,child=0,conf=0;const seen=new Set();
  tourVenues.forEach(tv=>{const v=tv.v;const fee=tv.fee||0;if(tv.confirmed&&v.cSub>0){sub+=fee*v.cSub;conf++;}const k=areaCode(v);if(k!=null&&!seen.has(k)){seen.add(k);child+=v.cChild||0;}});
  return {sub,child,conf};}
@@ -694,12 +706,13 @@ function renderTourBar(){const el=document.getElementById('tourBar');if(!el)retu
 function createTourReport(){const t=activeTourObj();if(!t){alert('Select a tour first.');return;}
  if(!tourVenues.length){alert('This tour has no venues yet.');return;}
  const co=COMPANIES.find(c=>c.id===curCompany),sh=SHOWS.find(s=>s.id===curShow);
- let n=tourVenues.length,confN=0,sub=0,child=0,gross=0;const seen=new Set();const byState={};const pts=[];const stateSub={};
- tourVenues.forEach(tv=>{const v=tv.v;const fee=tv.fee||0;gross+=fee;if(v.ll)pts.push(v.ll);
-   const s=(tv.confirmed&&v.cSub>0)?fee*v.cSub:0;if(s>0)confN++;sub+=s;
+ let n=tourVenues.length,confN=0,sub=0,child=0,gross=0;const seen=new Set();const byState={};const mapItems=[];const stateSub={};
+ tourVenues.forEach(tv=>{const v=tv.v;const fee=tv.fee||0;gross+=fee;const isSub=(tv.confirmed&&v.cSub>0);if(v.ll)mapItems.push({ll:v.ll,sub:isSub});
+   const s=isSub?fee*v.cSub:0;if(s>0)confN++;sub+=s;
    const st=v.state||'Unassigned';(byState[st]=byState[st]||[]).push({tv,s});stateSub[st]=(stateSub[st]||0)+s;
    const k=areaCode(v);if(k!=null&&!seen.has(k)){seen.add(k);child+=v.cChild||0;}});
- const states=Object.keys(byState).sort();const multi=states.length>1;const R=resolveSources(sub,stateSub);
+ const pay=gross-sub;
+ const states=Object.keys(byState).sort();const multi=true;const R=resolveSources(sub,stateSub);
  const den=activeKeys().reduce((a,k)=>a+MODEL.pct[k],0)||1;
  const wtxt=IND.filter(([k])=>MODEL.on[k]).map(([k,l])=>`${l.split(' ')[0]} ${Math.round(MODEL.pct[k]/den*100)}%`).join(' · ')||'—';
  const dt=new Date().toLocaleDateString('en-AU',{day:'numeric',month:'long',year:'numeric'});
@@ -716,7 +729,9 @@ function createTourReport(){const t=activeTourObj();if(!t){alert('Select a tour 
      <p>This proposal sets out the subsidy sought for <b>${esc(t.name)}</b>${sh?` (${esc(sh.title)})`:''}${co?` by ${esc(co.name)}`:''} — the venues on the tour, the children it reaches, and how the subsidy is funded.</p>
      <div class="rpt-hero">
        <div><div class="h pink">${fmt$(sub)}</div><div class="l">Subsidy sought</div></div>
-       <div><div class="h">${n}</div><div class="l">Tour venues · ${confN} subsidised</div></div>
+       <div><div class="h">${fmt$(pay)}</div><div class="l">Presenter contribution</div></div>
+       <div><div class="h">${fmt$(gross)}</div><div class="l">Total tour value</div></div>
+       <div><div class="h">${n} <span style="font-size:15px">venues</span></div><div class="l">${confN} subsidised</div></div>
        <div><div class="h">${child.toLocaleString()}</div><div class="l">Children 0–14 reached</div></div>
      </div>
      <h3>Funding sources</h3>
@@ -731,8 +746,9 @@ function createTourReport(){const t=activeTourObj();if(!t){alert('Select a tour 
      </div>
      ${tierReportSVG()}
      <h3>Where the tour goes</h3>
-     <div style="margin:6px 0 4px">${ausMapSVG(pts,400)}</div>
-     <h3>Venues${multi?' (by state)':''}</h3>
+     <div style="margin:6px 0 4px">${ausTourMap(mapItems,400)}</div>
+     <div class="rpt-legend"><span><i style="background:#EF476F"></i>Subsidised venue</span><span><i style="background:#118AB2"></i>On tour (no subsidy)</span></div>
+     <h3>Venues by state</h3>
      <table><thead>${vhead}</thead><tbody>${vrows}</tbody></table>
      <div class="rpt-foot">Impact scoring from AEDC 2024, ABS SEIFA 2021 (IRSD), ABS Remoteness Areas, ABS Census 2021 and Estimated Resident Population. Prepared with the National Children's Theatre Initiative.</div>
    </div>
@@ -1130,6 +1146,11 @@ function ausMapSVG(pts,w){w=w||300;if(!AUS.states||!AUS.states.length)return '';
  const paths=AUS.states.map(d=>`<path d="${d}" fill="#EDE3C8" stroke="#073B4C" stroke-width="0.7"/>`).join('');
  const dots=(pts||[]).map(ll=>{if(!ll)return '';const px=(ll[1]-AUS.lonmin)*AUS.coslat*AUS.scale,py=(AUS.latmax-ll[0])*AUS.scale;return `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="4" fill="#EF476F" stroke="#fff" stroke-width="1.3"/>`;}).join('');
  return `<svg viewBox="0 0 ${AUS.w} ${AUS.h}" width="${w}" style="border:1.5px solid #073B4C;border-radius:6px;background:#EAF3F6;display:block;margin:0 auto;max-width:100%">${paths}${dots}</svg>`;}
+function ausTourMap(items,w){w=w||400;if(!AUS.states||!AUS.states.length)return '';
+ const paths=AUS.states.map(d=>`<path d="${d}" fill="#EDE3C8" stroke="#073B4C" stroke-width="0.7"/>`).join('');
+ const draw=sub=>(items||[]).filter(it=>!!it.sub===sub&&it.ll).map(it=>{const px=(it.ll[1]-AUS.lonmin)*AUS.coslat*AUS.scale,py=(AUS.latmax-it.ll[0])*AUS.scale;const col=it.sub?'#EF476F':'#118AB2';return `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="4" fill="${col}" stroke="#fff" stroke-width="1.3"/>`;}).join('');
+ // draw non-subsidised first, subsidised on top
+ return `<svg viewBox="0 0 ${AUS.w} ${AUS.h}" width="${w}" style="border:1.5px solid #073B4C;border-radius:6px;background:#EAF3F6;display:block;margin:0 auto;max-width:100%">${paths}${draw(false)}${draw(true)}</svg>`;}
 function areaSummary(v,g){const em=g.em_pct,dec=g.decile,ra=(g.ra||'').replace(' Australia','');
  const emTxt=em!=null?`<b>${(+em).toFixed(1)}%</b> of young children here are developmentally vulnerable or at-risk on the AEDC emotional-maturity domain — ${em>=25.17?'<b>above</b>':'below'} the national average of about 25%. ${em>=25.17?'Higher rates point to greater developmental vulnerability among local children, which lifts the Impact score.':'Lower rates ease the emotional-maturity part of the score.'}`:'Emotional-maturity data is not available for this area.';
  let decTxt='Disadvantage (SEIFA) data is not available for this area.';
