@@ -124,7 +124,7 @@ input[type=text],input[type=number]{font-family:inherit;font-size:13px;padding:7
 .ms{position:relative;} .ms>button{font-family:inherit;font-size:13px;padding:7px 10px;border:1.5px solid var(--navy);border-radius:5px;background:#fff;color:var(--navy);cursor:pointer;min-width:150px;text-align:left;display:flex;justify-content:space-between;gap:8px;}
 .ms .panel{display:none;position:absolute;z-index:3000;top:36px;left:0;background:#fff;border:1.5px solid var(--navy);border-radius:5px;box-shadow:4px 4px 0 var(--navy);padding:6px;max-height:250px;overflow:auto;min-width:190px;}
 .ms.open .panel{display:block;} .ms label.opt{display:flex;gap:7px;align-items:center;padding:4px 6px;font-size:12.5px;cursor:pointer;white-space:nowrap;} .ms label.opt:hover{background:#FFF3D0;}
-.chartsgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;} .chartsgrid canvas{max-height:300px;}
+.chartsgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;} .chartsgrid canvas{max-height:300px;}
 .chartbox{padding:10px 12px;} .chartbox h3{font-size:14px;margin:2px 0 6px;}
 table{width:100%;border-collapse:collapse;font-size:12.5px;}
 thead th{position:sticky;top:0;background:var(--navy);color:#fff;font-size:11px;text-transform:uppercase;letter-spacing:.3px;padding:8px;text-align:left;cursor:pointer;white-space:nowrap;}
@@ -159,16 +159,27 @@ tbody tr.grouphdr:hover td{background:var(--navy);}
 .caret{display:inline-block;transition:transform .2s;color:var(--pink);font-weight:800;}
 .card.collapsed .cbody{display:none;}
 .card.collapsed .caret{transform:rotate(-90deg);}
-.modelicons{display:flex;gap:5px;align-items:center;}
-.iconbtn{border:1.5px solid var(--navy);background:#fff;color:var(--navy);border-radius:5px;cursor:pointer;font-size:14px;padding:3px 8px;line-height:1;box-shadow:2px 2px 0 var(--navy);}
-.iconbtn:hover{background:var(--navy);color:#fff;}
+.modelicons{display:flex;gap:6px;align-items:center;}
+.iconbtn{border:1.5px solid var(--navy);background:var(--navy);color:#fff;border-radius:6px;cursor:pointer;font-size:17px;padding:5px 11px;line-height:1;box-shadow:2px 2px 0 rgba(7,59,76,.45);}
+.iconbtn:hover{background:var(--pink);border-color:var(--pink);}
+.tierviz{margin:2px 0 14px;}
+.tvtrack{position:relative;height:44px;border:1.5px solid var(--navy);border-radius:6px;overflow:hidden;background:#fff;user-select:none;touch-action:none;}
+.tvzone{position:absolute;top:0;bottom:0;}
+#tvramp{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2;}
+#tvrampfill{fill:rgba(7,59,76,.30);}
+.tvhandle{position:absolute;top:-2px;bottom:-2px;width:12px;margin-left:-6px;background:var(--navy);border:2px solid #fff;border-radius:5px;cursor:ew-resize;z-index:3;box-shadow:0 0 0 1px var(--navy);}
+.tvmark{position:absolute;top:-3px;bottom:-3px;width:4px;margin-left:-2px;background:#111;cursor:ew-resize;z-index:4;}
+.tvaxis{display:flex;justify-content:space-between;font-size:10px;color:var(--slate);margin-top:4px;}
+.tvkey{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--slate);margin-top:6px;}
+.tvkey i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:middle;}
 .subsec{border-top:1px solid #EAE1C4;padding:11px 0 3px;}
 .subsec:first-child{border-top:none;padding-top:2px;}
 .subhead{display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;font-family:'Charlie Kingdom';font-size:14px;color:var(--navy);}
 .subbody{margin-top:10px;}
 .subsec.collapsed .subbody{display:none;}
 .subsec.collapsed .caret{transform:rotate(-90deg);}
-.model.maximized{position:fixed;top:3vh;left:50%;transform:translateX(-50%);width:min(760px,95vw);max-height:94vh;overflow:auto;z-index:5600;box-shadow:8px 8px 0 var(--navy);}
+.model.maximized{position:fixed;top:4vh;left:50%;transform:translateX(-50%);width:min(720px,94vw);max-height:92vh;overflow:auto;z-index:5600;padding:20px 24px 22px;border-radius:10px;box-shadow:8px 8px 0 var(--navy);}
+.model.maximized .top{border-bottom:2px solid var(--navy);padding-bottom:12px;}
 #modelbackdrop{position:fixed;inset:0;background:rgba(7,59,76,.42);display:none;z-index:5500;}
 .hidden{display:none;}
 .about p{margin:0 0 8px;} .about b{color:var(--navy);}
@@ -182,7 +193,7 @@ tbody tr.grouphdr:hover td{background:var(--navy);}
  <div class="topuser" id="authbox"><span style="color:var(--teal);font-size:11px">…</span></div>
 </div>
 <div class="wrap">
-<header><div><h1 class="hero">Children's Theatre <span class="pink">Impact</span> Index</h1><div class="sub">Modelling dashboard · change the model on the left, watch every venue re-score · <span id="count"></span></div></div>
+<header><div><h1 class="hero">Children's Theatre <span class="pink">Impact</span> Index</h1></div>
 <div class="topstats" id="kpis"></div></header>
 
 <div class="mainrow" id="mainrow">
@@ -204,6 +215,20 @@ tbody tr.grouphdr:hover td{background:var(--navy);}
      <div class="subbody"><div class="ind" id="ind"></div><div class="eff" id="eff"></div></div></div>
    <div class="subsec collapsed" id="sec-tier"><div class="subhead" onclick="toggleSub(this)">Tier &amp; subsidy settings <span class="caret">▾</span></div>
      <div class="subbody">
+       <div class="tierviz">
+         <div class="tvtrack" id="tvtrack">
+           <div class="tvzone" id="tvz_low" style="background:#5BC0BE"></div>
+           <div class="tvzone" id="tvz_med" style="background:#FFD166"></div>
+           <div class="tvzone" id="tvz_high" style="background:#EF476F"></div>
+           <svg id="tvramp" viewBox="0 0 100 100" preserveAspectRatio="none"><polygon id="tvrampfill" points=""></polygon></svg>
+           <div class="tvhandle" id="tvh_med" title="Drag: where Medium tier starts" onpointerdown="tvDrag('med',event)"></div>
+           <div class="tvhandle" id="tvh_high" title="Drag: where High tier starts" onpointerdown="tvDrag('high',event)"></div>
+           <div class="tvmark" id="tvh_full" title="Drag: where 100% subsidy is reached" onpointerdown="tvDrag('full',event)"></div>
+         </div>
+         <div class="tvaxis"><span>0</span><span>2</span><span>4</span><span>6</span><span>8</span><span>10</span></div>
+         <div class="tvkey"><span><i style="background:#5BC0BE"></i>Low</span><span><i style="background:#FFD166"></i>Medium</span><span><i style="background:#EF476F"></i>High</span><span><i style="background:rgba(7,59,76,.3)"></i>subsidy ramp</span></div>
+         <div class="muted" style="font-size:11px;margin-top:4px">Drag the dark handles for the Medium / High cut-offs, and the black line for where 100% subsidy is reached. Or type exact values below.</div>
+       </div>
        <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end">
          <div class="fg"><label>High tier at Index ≥</label><input type="number" id="tHigh" value="6.3" step="0.1" min="0" max="10" style="width:78px" oninput="setThr()"></div>
          <div class="fg"><label>Medium tier at Index ≥</label><input type="number" id="tMed" value="3.8" step="0.1" min="0" max="10" style="width:78px" oninput="setThr()"></div>
@@ -365,7 +390,29 @@ function setDefaultSubs(){['sec-models','sec-geo','sec-tier'].forEach(id=>{const
 function toggleMaximize(){const c=document.getElementById('modelcard'),bd=document.getElementById('modelbackdrop'),btn=document.getElementById('maxbtn');
  const on=c.classList.toggle('maximized');
  if(on){c.classList.remove('collapsed');c.querySelectorAll('.subsec').forEach(s=>s.classList.remove('collapsed'));bd.style.display='block';btn.textContent='⤡';btn.title='Minimize';}
- else{setDefaultSubs();bd.style.display='none';btn.textContent='⤢';btn.title='Maximize';}}
+ else{setDefaultSubs();bd.style.display='none';btn.textContent='⤢';btn.title='Maximize';}
+ setTimeout(renderTierViz,20);}
+// ---------- visual tier / subsidy editor ----------
+function pctX(v){return Math.max(0,Math.min(100,(+v)/10*100));}
+function renderTierViz(){const t=document.getElementById('tvtrack');if(!t)return;
+ const med=+MODEL.thr.med,high=+MODEL.thr.high,full=Math.max(+MODEL.sub.full,high);
+ const xMed=pctX(med),xHigh=pctX(high),xFull=pctX(full);
+ const setZ=(id,l,w)=>{const e=document.getElementById(id);if(e){e.style.left=l+'%';e.style.width=Math.max(0,w)+'%';}};
+ setZ('tvz_low',0,xMed);setZ('tvz_med',xMed,xHigh-xMed);setZ('tvz_high',xHigh,100-xHigh);
+ const pos=(id,x)=>{const e=document.getElementById(id);if(e)e.style.left=x+'%';};
+ pos('tvh_med',xMed);pos('tvh_high',xHigh);pos('tvh_full',xFull);
+ const yF=100-MODEL.sub.floor*100,yC=100-MODEL.sub.ceil*100;
+ const poly=document.getElementById('tvrampfill');if(poly)poly.setAttribute('points',`${xHigh},100 ${xHigh},${yF} ${xFull},${yC} 100,${yC} 100,100`);}
+let _tvRAF=false;
+function tvApply(){if(_tvRAF)return;_tvRAF=true;requestAnimationFrame(()=>{_tvRAF=false;recompute();render();});}
+function tvDrag(kind,ev){ev.preventDefault();const track=document.getElementById('tvtrack');if(!track)return;
+ const move=e=>{const r=track.getBoundingClientRect();const cx=e.touches?e.touches[0].clientX:e.clientX;let v=(cx-r.left)/r.width*10;v=Math.round(v*10)/10;v=Math.max(0,Math.min(10,v));
+   if(kind==='med'){v=Math.max(0,Math.min(v,MODEL.thr.high-0.1));MODEL.thr.med=v;const el=document.getElementById('tMed');if(el)el.value=v;}
+   else if(kind==='high'){v=Math.max(MODEL.thr.med+0.1,v);MODEL.thr.high=v;if(MODEL.sub.full<v){MODEL.sub.full=v;const ef=document.getElementById('sFull');if(ef)ef.value=v;}const el=document.getElementById('tHigh');if(el)el.value=v;}
+   else{v=Math.max(MODEL.thr.high,v);MODEL.sub.full=v;const el=document.getElementById('sFull');if(el)el.value=v;}
+   updateSubnote();renderTierViz();tvApply();};
+ const up=()=>{document.removeEventListener('pointermove',move);document.removeEventListener('pointerup',up);recompute();render();};
+ document.addEventListener('pointermove',move);document.addEventListener('pointerup',up);move(ev);}
 // ---------- auth + venue editing ----------
 const sbc=window.supabase?window.supabase.createClient(SB_URL,SB_KEY):null;
 let SESSION=null, editingId=null, editData=null;
@@ -533,7 +580,7 @@ function filtered(){const q=document.getElementById('q').value.toLowerCase();
 
 const cols=[['name','Venue'],['state','State'],['status','Status'],['ra','Remoteness'],['em_pct','EM %'],['decile','SEIFA dec'],['index','Index'],['tier','Tier'],['subsidy','Subsidy'],['eligible','Eligible'],['child','Children 0–14']];
 let charts={};
-function render(){const a=filtered();document.getElementById('count').textContent=a.length+' of '+V.length+' venues';
+function render(){const a=filtered();const _cc=document.getElementById('count');if(_cc)_cc.textContent=a.length+' of '+V.length+' venues';
  const hi=a.filter(v=>v.cTier==='High').length,me=a.filter(v=>v.cTier==='Medium').length,lo=a.filter(v=>v.cTier==='Low').length,el=a.filter(v=>v.cElig==='Yes').length;
  const avg=a.length?a.reduce((s,v)=>s+(v.cIndex||0),0)/a.length:0;
  const totChild=uniqueChild(a),highChild=uniqueChild(a.filter(v=>v.cTier==='High'));
@@ -563,7 +610,7 @@ function render(){const a=filtered();document.getElementById('count').textConten
  renderBasket();updateSelAll();
  if(curPage==='charts')drawCharts(a);
  if(curPage==='map'){schedulePaint();paintMarkers();}
- renderModels();}
+ renderModels();renderTierViz();}
 function setSort(k){if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=(['name','state','status','ra','tier','eligible'].includes(k))?1:-1;}render();}
 function showPage(p){curPage=p;document.querySelectorAll('.page').forEach(e=>e.classList.remove('active'));document.getElementById('page-'+p).classList.add('active');
  ['venues','charts','map'].forEach(x=>document.getElementById('nav-'+x).classList.toggle('active',p===x));
