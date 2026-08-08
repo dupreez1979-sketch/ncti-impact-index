@@ -168,8 +168,10 @@ tbody tr.grouphdr:hover td{background:var(--navy);}
 .tierviz{margin:2px 0 14px;}
 .tvtrack{position:relative;height:44px;border:1.5px solid var(--navy);border-radius:6px;overflow:hidden;background:#fff;user-select:none;touch-action:none;}
 .tvzone{position:absolute;top:0;bottom:0;}
+.tvticks{position:absolute;inset:0;pointer-events:none;z-index:1;background:repeating-linear-gradient(to right, transparent 0, transparent calc(10% - 1px), rgba(7,59,76,.28) calc(10% - 1px), rgba(7,59,76,.28) 10%);}
 #tvramp{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2;}
-#tvrampfill{fill:rgba(7,59,76,.30);}
+#tvrampfill{fill:rgba(7,59,76,.55);stroke:#073B4C;stroke-width:2;vector-effect:non-scaling-stroke;}
+.tvfields{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px;} .tvfields input{width:100%;}
 .tvhandle{position:absolute;top:-2px;bottom:-2px;width:12px;margin-left:-6px;background:var(--navy);border:2px solid #fff;border-radius:5px;cursor:ew-resize;z-index:3;box-shadow:0 0 0 1px var(--navy);}
 .tvmark{position:absolute;top:-3px;bottom:-3px;width:4px;margin-left:-2px;background:#111;cursor:ew-resize;z-index:4;}
 .tvaxis{display:flex;justify-content:space-between;font-size:10px;color:var(--slate);margin-top:4px;}
@@ -223,22 +225,22 @@ tbody tr.grouphdr:hover td{background:var(--navy);}
            <div class="tvzone" id="tvz_low" style="background:#5BC0BE"></div>
            <div class="tvzone" id="tvz_med" style="background:#FFD166"></div>
            <div class="tvzone" id="tvz_high" style="background:#EF476F"></div>
+           <div class="tvticks"></div>
            <svg id="tvramp" viewBox="0 0 100 100" preserveAspectRatio="none"><polygon id="tvrampfill" points=""></polygon></svg>
            <div class="tvhandle" id="tvh_med" title="Drag: where Medium tier starts" onpointerdown="tvDrag('med',event)"></div>
            <div class="tvhandle" id="tvh_high" title="Drag: where High tier starts" onpointerdown="tvDrag('high',event)"></div>
            <div class="tvmark" id="tvh_full" title="Drag: where 100% subsidy is reached" onpointerdown="tvDrag('full',event)"></div>
          </div>
-         <div class="tvaxis"><span>0</span><span>2</span><span>4</span><span>6</span><span>8</span><span>10</span></div>
+         <div class="tvaxis"><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span></div>
          <div class="tvkey"><span><i style="background:#5BC0BE"></i>Low</span><span><i style="background:#FFD166"></i>Medium</span><span><i style="background:#EF476F"></i>High</span><span><i style="background:rgba(7,59,76,.3)"></i>subsidy ramp</span></div>
          <div class="muted" style="font-size:11px;margin-top:4px">Drag the dark handles for the Medium / High cut-offs, and the black line for where 100% subsidy is reached. Or type exact values below.</div>
        </div>
-       <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end">
-         <div class="fg"><label>High tier at Index ≥</label><input type="number" id="tHigh" value="6.3" step="0.1" min="0" max="10" style="width:78px" oninput="setThr()"></div>
-         <div class="fg"><label>Medium tier at Index ≥</label><input type="number" id="tMed" value="3.8" step="0.1" min="0" max="10" style="width:78px" oninput="setThr()"></div>
-         <div style="width:14px"></div>
-         <div class="fg"><label>Subsidy floor %</label><input type="number" id="sFloor" value="50" step="5" min="0" max="100" style="width:78px" oninput="setSub()"></div>
-         <div class="fg"><label>Full subsidy %</label><input type="number" id="sCeil" value="100" step="5" min="0" max="100" style="width:78px" oninput="setSub()"></div>
-         <div class="fg"><label>Full subsidy at Index ≥</label><input type="number" id="sFull" value="8.0" step="0.1" min="0" max="10" style="width:78px" oninput="setSub()"></div>
+       <div class="tvfields">
+         <div class="fg"><label>High tier at Index ≥</label><input type="number" id="tHigh" value="6.3" step="0.1" min="0" max="10" oninput="setThr()"></div>
+         <div class="fg"><label>Medium tier at Index ≥</label><input type="number" id="tMed" value="3.8" step="0.1" min="0" max="10" oninput="setThr()"></div>
+         <div class="fg"><label>Subsidy floor %</label><input type="number" id="sFloor" value="50" step="5" min="0" max="100" oninput="setSub()"></div>
+         <div class="fg"><label>Full subsidy %</label><input type="number" id="sCeil" value="100" step="5" min="0" max="100" oninput="setSub()"></div>
+         <div class="fg"><label>Full subsidy at Index ≥</label><input type="number" id="sFull" value="8.0" step="0.1" min="0" max="10" oninput="setSub()"></div>
        </div>
        <div class="muted" id="subnote" style="margin-top:8px"></div>
      </div></div>
@@ -397,10 +399,11 @@ function toggleCard(el){el.closest('.card').classList.toggle('collapsed');}
 function toggleRail(){document.getElementById('mainrow').classList.toggle('railcollapsed');if(map)setTimeout(()=>map.invalidateSize(),80);}
 function toggleSub(el){el.closest('.subsec').classList.toggle('collapsed');}
 function setDefaultSubs(){['sec-models','sec-geo','sec-tier'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.add('collapsed');});const i=document.getElementById('sec-ind');if(i)i.classList.remove('collapsed');}
+let _modelHome=null;
 function toggleMaximize(){const c=document.getElementById('modelcard'),bd=document.getElementById('modelbackdrop'),btn=document.getElementById('maxbtn');
- const on=c.classList.toggle('maximized');
- if(on){c.classList.remove('collapsed');c.querySelectorAll('.subsec').forEach(s=>s.classList.remove('collapsed'));bd.style.display='block';btn.textContent='⤡';btn.title='Minimize';}
- else{setDefaultSubs();bd.style.display='none';btn.textContent='⤢';btn.title='Maximize';}
+ const on=!c.classList.contains('maximized');
+ if(on){_modelHome={parent:c.parentNode,next:c.nextSibling};document.body.appendChild(c);c.classList.add('maximized');c.classList.remove('collapsed');c.querySelectorAll('.subsec').forEach(s=>s.classList.remove('collapsed'));bd.style.display='block';btn.textContent='⤡';btn.title='Minimize';}
+ else{c.classList.remove('maximized');if(_modelHome){_modelHome.parent.insertBefore(c,_modelHome.next);_modelHome=null;}setDefaultSubs();bd.style.display='none';btn.textContent='⤢';btn.title='Maximize';}
  setTimeout(renderTierViz,20);}
 // ---------- visual tier / subsidy editor ----------
 function pctX(v){return Math.max(0,Math.min(100,(+v)/10*100));}
