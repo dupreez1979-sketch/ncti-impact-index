@@ -187,9 +187,19 @@ tbody tr.grouphdr:hover td{background:var(--navy);}
 .model.maximized{position:fixed;top:4vh;left:50%;transform:translateX(-50%);width:min(720px,94vw);max-height:92vh;overflow:auto;z-index:5600;padding:20px 24px 22px;border-radius:10px;box-shadow:8px 8px 0 var(--navy);}
 .model.maximized .top{border-bottom:2px solid var(--navy);padding-bottom:12px;}
 #modelbackdrop{position:fixed;inset:0;background:rgba(7,59,76,.42);display:none;z-index:5500;}
-.about-page{max-width:900px;}
-.about-page h2.abt{font-family:'Charlie Kingdom';font-size:30px;color:var(--navy);margin:0 0 8px;letter-spacing:.3px;}
-.about-page .lead{font-size:15px;color:var(--slate);line-height:1.6;margin:0 0 18px;}
+body.aboutmode .siderail,body.aboutmode .railexpand,body.aboutmode #kpis,body.aboutmode #filterCard{display:none!important;}
+.aboutwrap{max-width:940px;margin:0 auto;padding:4px 2px 40px;}
+.kicker{font-size:12px;letter-spacing:3px;text-transform:uppercase;color:var(--pink);font-weight:800;margin-bottom:8px;}
+.ahero{font-family:'Charlie Kingdom';font-size:40px;line-height:1.03;color:var(--navy);text-transform:uppercase;margin:0 0 14px;}
+.ahero .pink{color:var(--pink);}
+.aboutwrap .lead{font-size:15px;color:var(--slate);line-height:1.6;margin:0 0 6px;max-width:760px;}
+.objgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.objcard{border:1.5px solid var(--navy);border-radius:8px;box-shadow:5px 5px 0 var(--navy);padding:16px 18px;color:#fff;}
+.objn{font-family:'Charlie Kingdom';font-size:14px;opacity:.85;}
+.objt{font-family:'Charlie Kingdom';font-size:19px;margin:4px 0 8px;}
+.objd{font-size:12.5px;line-height:1.5;}
+.sources{color:var(--slate);font-size:11.5px;margin-top:22px;}
+@media(max-width:760px){.objgrid{grid-template-columns:1fr;}.ahero{font-size:30px;}}
 .acc{border:1.5px solid var(--navy);border-radius:8px;overflow:hidden;box-shadow:4px 4px 0 var(--navy);}
 .accitem{border-top:1.5px solid var(--navy);}
 .accitem:first-child{border-top:none;}
@@ -294,7 +304,7 @@ tbody tr.grouphdr:hover td{background:var(--navy);}
 </aside>
 <button class="railexpand" onclick="toggleRail()" title="Show the panels frame">▶ Panels</button>
 <div class="maincol">
-<div class="card" style="padding:10px 14px 12px">
+<div class="card" id="filterCard" style="padding:10px 14px 12px">
  <div class="chead" onclick="toggleCard(this)"><h3 style="margin:0">Filters</h3><span class="caret">▾</span></div>
  <div class="filters cbody" id="filtersBody" style="padding:0;margin:10px 0 0">
  <div class="fg"><label>Search venue</label><input type="text" id="q" placeholder="type a name…" oninput="render()"></div>
@@ -332,9 +342,17 @@ tbody tr.grouphdr:hover td{background:var(--navy);}
  <div class="muted" style="margin-top:8px">The map is driven by the <b>model controls</b> and the <b>filter bar</b> above. Areas recolour and re-tier under the current model; the <b>Tier</b>, <b>Impact Index</b> and <b>State</b> filters hide areas outside your selection. Circles are venues matching <b>all</b> filters (tick "all venues" to keep every venue visible regardless). Grey = not scored. "Highlight gaps" outlines High-impact areas with no current venue.</div>
 </div>
 <div class="page" id="page-about">
- <div class="card about-page" style="padding:24px 28px">
-   <h2 class="abt">About the Impact Index</h2>
-   <p class="lead">The Children's Theatre Impact Index scores every community in Australia for the social value that children's theatre can create there — a single number from 0 to 10, so touring and subsidy can be directed to where they matter most. This page explains what it measures, how it is built, and how to use it.</p>
+ <div class="aboutwrap">
+   <div class="kicker">About</div>
+   <h1 class="ahero">The Children's Theatre <span class="pink">Impact</span> Index</h1>
+   <p class="lead">The Index scores every community in Australia for the social value that children's theatre can create there — a single number from 0 to 10, so touring and subsidy can be directed to where they matter most.</p>
+   <div class="kicker" style="margin-top:32px">The three measures</div>
+   <div class="objgrid">
+     <div class="objcard" style="background:#06D6A0"><div class="objn">01</div><div class="objt">Emotional maturity</div><div class="objd">Where young children are developmentally vulnerable on the AEDC emotional-maturity domain — the clearest place-based signal of developmental need.</div></div>
+     <div class="objcard" style="background:#118AB2"><div class="objn">02</div><div class="objt">Disadvantage</div><div class="objd">SEIFA socio-economic disadvantage — the communities with the least access to professional live performance.</div></div>
+     <div class="objcard" style="background:#9B5DE5"><div class="objn">03</div><div class="objt">Remoteness</div><div class="objd">Distance from cultural infrastructure, lifting the score for isolated communities. Switched off in some models.</div></div>
+   </div>
+   <div class="kicker" style="margin-top:32px">The detail</div>
    <div class="acc">
      <div class="accitem open"><div class="acch" onclick="toggleAcc(this)"><span>1 · What the Index is</span><span class="caret">▾</span></div><div class="accb">
        <p>The Index answers a practical question for the National Children's Theatre Initiative: with limited touring and subsidy budgets, <b>where should children's theatre go first</b> to reach the children who stand to benefit most?</p>
@@ -389,7 +407,7 @@ tbody tr.grouphdr:hover td{background:var(--navy);}
        <p>The tool is a <b>live web application</b>: the data lives in a database, so venues, saved models and scenarios can be edited in place and shared by link, and the figures can be refreshed as new ABS and AEDC releases arrive.</p>
      </div></div>
    </div>
-   <p class="muted" style="margin-top:16px;font-size:11.5px">Sources: AEDC 2024 · ABS SEIFA 2021 (IRSD) · ABS Remoteness Areas (ASGS 2021) · ABS Estimated Resident Population · ABS Census 2021. Built for the National Children's Theatre Initiative.</p>
+   <p class="sources">Sources: AEDC 2024 · ABS SEIFA 2021 (IRSD) · ABS Remoteness Areas (ASGS 2021) · ABS Estimated Resident Population · ABS Census 2021. Built for the National Children's Theatre Initiative.</p>
  </div>
 </div>
 </div></div>
@@ -710,7 +728,7 @@ function render(){const a=filtered();const _cc=document.getElementById('count');
  if(curPage==='map'){schedulePaint();paintMarkers();}
  renderModels();renderTierViz();}
 function setSort(k){if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=(['name','state','status','ra','tier','eligible'].includes(k))?1:-1;}render();}
-function showPage(p){curPage=p;document.querySelectorAll('.page').forEach(e=>e.classList.remove('active'));document.getElementById('page-'+p).classList.add('active');
+function showPage(p){curPage=p;document.body.classList.toggle('aboutmode',p==='about');document.querySelectorAll('.page').forEach(e=>e.classList.remove('active'));document.getElementById('page-'+p).classList.add('active');
  ['venues','charts','map','about'].forEach(x=>document.getElementById('nav-'+x).classList.toggle('active',p===x));
  if(p==='map'){if(!map)initMap();setTimeout(()=>{if(map){map.invalidateSize();paintMap();paintMarkers();}},60);}
  render();}
