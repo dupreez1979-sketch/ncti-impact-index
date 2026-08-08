@@ -319,7 +319,7 @@ body.aboutmode .siderail,body.aboutmode .railexpand,body.aboutmode #kpis,body.ab
  </div>
 </div>
 <div class="card model collapsed" id="tourCard">
- <div class="top"><h3 onclick="toggleCard(this)" style="cursor:pointer;user-select:none;margin:0">Tour <span class="caret">▾</span></h3></div>
+ <div class="top" onpointerdown="tourDragStart(event)"><h3 onclick="toggleCard(this)" style="cursor:pointer;user-select:none;margin:0">Tour <span class="caret">▾</span></h3><div class="modelicons"><button class="iconbtn" id="tourFloatBtn" title="Pop out as a movable note" onclick="event.stopPropagation();toggleTourFloat()">⤢</button></div></div>
  <div class="cbody" id="tourBody"></div>
 </div>
 <div class="card model collapsed" id="basketCard">
@@ -551,7 +551,14 @@ function toggleCard(el){el.closest('.card').classList.toggle('collapsed');}
 function toggleRail(){document.getElementById('mainrow').classList.toggle('railcollapsed');if(map)setTimeout(()=>map.invalidateSize(),80);}
 function toggleSub(el){el.closest('.subsec').classList.toggle('collapsed');}
 function toggleAcc(el){el.closest('.accitem').classList.toggle('open');}
-let basketFloating=false,_basketHome=null;
+function floatCard(cardId,btnId,left,top){const c=document.getElementById(cardId),b=document.getElementById(btnId);
+ if(!c.classList.contains('floating')){c._home={parent:c.parentNode,next:c.nextSibling};document.body.appendChild(c);c.classList.add('floating');c.classList.remove('collapsed');c.style.right='';c.style.left=left+'px';c.style.top=top+'px';c.style.width='320px';if(b){b.textContent='⤡';b.title='Dock back into the panel';}}
+ else dockCard(cardId,btnId);}
+function dockCard(cardId,btnId){const c=document.getElementById(cardId),b=document.getElementById(btnId);c.classList.remove('floating');c.style.left=c.style.top=c.style.right=c.style.width='';if(c._home){c._home.parent.insertBefore(c,c._home.next);c._home=null;}if(b){b.textContent='⤢';b.title='Pop out as a movable note';}}
+function cardDragStart(cardId,e){const c=document.getElementById(cardId);if(!c.classList.contains('floating'))return;if(e.target.closest('button'))return;const r=c.getBoundingClientRect();const dx=e.clientX-r.left,dy=e.clientY-r.top;
+ const move=ev=>{c.style.right='';c.style.left=Math.max(4,Math.min(window.innerWidth-80,ev.clientX-dx))+'px';c.style.top=Math.max(4,Math.min(window.innerHeight-44,ev.clientY-dy))+'px';};
+ const up=()=>{document.removeEventListener('pointermove',move);document.removeEventListener('pointerup',up);};
+ document.addEventListener('pointermove',move);document.addEventListener('pointerup',up);}
 // ---------- tours (companies → shows → tours) ----------
 let COMPANIES=[],SHOWS=[],TOURS=[],curCompany=null,curShow=null,curTour=null;
 function activeTourObj(){return TOURS.find(t=>t.id===curTour)||null;}
@@ -561,7 +568,7 @@ async function loadTours(){try{
  }catch(e){console.warn('tours not loaded (run tours.sql):',e);}}
 function selectCompany(id){curCompany=id?+id:null;curShow=null;curTour=null;renderTourPanel();}
 function selectShow(id){curShow=id?+id:null;curTour=null;renderTourPanel();}
-function selectTour(id){curTour=id?+id:null;renderTourPanel();}
+function selectTour(id){curTour=id?+id:null;const t=activeTourObj();if(t&&t.model){applyTourModel();}else{renderTourPanel();}}
 function renderTourPanel(){const el=document.getElementById('tourBody');if(!el)return;
  if(!SESSION){el.innerHTML='<div class="muted" style="font-size:12px">Sign in to build and manage tours.</div>';return;}
  const compOpts='<option value="">— select company —</option>'+COMPANIES.map(c=>`<option value="${c.id}" ${c.id===curCompany?'selected':''}>${esc(c.name)}</option>`).join('');
@@ -576,11 +583,11 @@ function renderTourPanel(){const el=document.getElementById('tourBody');if(!el)r
  if(t){const co=COMPANIES.find(c=>c.id===curCompany),sh=SHOWS.find(s=>s.id===curShow);
    h+=`<div style="margin-top:10px;border-top:1px dashed var(--slate);padding-top:8px">
      <div class="muted" style="font-size:11px">Active tour</div>
-     <div style="font-family:'Charlie Kingdom';font-size:14px;color:var(--navy);line-height:1.2">${esc((co?co.name:'')+' · '+(sh?sh.title:'')+' · '+t.name)}</div>
+     <div style="font-family:'Charlie Kingdom';font-size:15px;color:var(--pink);line-height:1.2">${esc((co?co.name:'')+' · '+(sh?sh.title:'')+' · '+t.name)}</div>
      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
-       <button class="btn sec" style="padding:5px 9px;font-size:11.5px" onclick="applyTourModel()" ${t.model?'':'disabled'}>Apply tour's model</button>
        <button class="btn sec" style="padding:5px 9px;font-size:11.5px" onclick="saveModelToTour()">Save current model to tour</button>
      </div>
+     ${t.model?'<div class="muted" style="font-size:10.5px;margin-top:4px">This tour\'s saved model is applied automatically.</div>':'<div class="muted" style="font-size:10.5px;margin-top:4px">No model saved yet — set the controls and press Save.</div>'}
      <div class="muted" style="font-size:10.5px;margin-top:6px">Next: add venues to this tour (with per-venue fees and confirmed subsidy) from the Venues list.</div>
    </div>`;}
  el.innerHTML=h;}
@@ -601,15 +608,10 @@ function applyTourModel(){const t=activeTourObj();if(!t||!t.model)return;const c
  if(t.sources)sources=JSON.parse(JSON.stringify(t.sources));
  buildInd();updateSubnote();recompute();render();}
 async function saveModelToTour(){const t=activeTourObj();if(!t){alert('Select a tour first.');return;}const {error}=await sbc.from('tours').update({model:MODEL,sources:sources}).eq('id',t.id);if(error){alert(error.message);return;}t.model=JSON.parse(JSON.stringify(MODEL));t.sources=JSON.parse(JSON.stringify(sources));renderTourPanel();alert('Model saved to “'+t.name+'”.');}
-function toggleBasketFloat(){const c=document.getElementById('basketCard'),b=document.getElementById('basketFloatBtn');
- if(!basketFloating){_basketHome={parent:c.parentNode,next:c.nextSibling};document.body.appendChild(c);c.classList.add('floating');c.classList.remove('collapsed');
-   c.style.right='';c.style.left='380px';c.style.top='88px';c.style.width='320px';basketFloating=true;if(b){b.textContent='⤡';b.title='Dock back into the panel';}}
- else dockBasket();}
-function dockBasket(){const c=document.getElementById('basketCard'),b=document.getElementById('basketFloatBtn');c.classList.remove('floating');c.style.left=c.style.top=c.style.right=c.style.width='';if(_basketHome){_basketHome.parent.insertBefore(c,_basketHome.next);_basketHome=null;}basketFloating=false;if(b){b.textContent='⤢';b.title='Pop out as a movable note';}}
-function basketDragStart(e){if(!basketFloating)return;if(e.target.closest('button'))return;const c=document.getElementById('basketCard');const r=c.getBoundingClientRect();const dx=e.clientX-r.left,dy=e.clientY-r.top;
- const move=ev=>{c.style.right='';c.style.left=Math.max(4,Math.min(window.innerWidth-80,ev.clientX-dx))+'px';c.style.top=Math.max(4,Math.min(window.innerHeight-44,ev.clientY-dy))+'px';};
- const up=()=>{document.removeEventListener('pointermove',move);document.removeEventListener('pointerup',up);};
- document.addEventListener('pointermove',move);document.addEventListener('pointerup',up);}
+function toggleBasketFloat(){floatCard('basketCard','basketFloatBtn',380,88);}
+function basketDragStart(e){cardDragStart('basketCard',e);}
+function toggleTourFloat(){floatCard('tourCard','tourFloatBtn',40,100);}
+function tourDragStart(e){cardDragStart('tourCard',e);}
 // ---------- subsidy report (PDF) ----------
 function closeReport(){document.getElementById('reportView').classList.remove('open');}
 function tierReportSVG(){const W=620,H=64,ax=16;const x=v=>v/10*W;
