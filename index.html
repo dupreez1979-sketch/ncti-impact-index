@@ -146,6 +146,12 @@ tbody tr.grouphdr:hover td{background:var(--navy);}
 .fundrow{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin:9px 0;font-size:12.5px;} .fundrow>b{white-space:nowrap;text-align:right;} .fundlbl{font-weight:600;margin-bottom:3px;} .fundrow.total{border-top:1.5px solid var(--navy);padding-top:7px;margin-top:6px;}
 .fundrow select,.fundrow input[type=number]{font-family:inherit;font-size:12px;padding:3px 6px;border:1.5px solid var(--navy);border-radius:5px;background:#fff;color:var(--navy);}
 .fundrow input[type=number]:disabled{opacity:.5;}
+.srcrow{display:flex;gap:6px;align-items:center;margin:6px 0;}
+.srcname{flex:1;min-width:0;font-family:inherit;font-size:12px;padding:4px 6px;border:1.5px solid var(--navy);border-radius:5px;background:#fff;color:var(--navy);}
+.srcrow select,.srcamt input{font-family:inherit;font-size:12px;padding:4px 6px;border:1.5px solid var(--navy);border-radius:5px;background:#fff;color:var(--navy);}
+.srcamt input{width:82px;} .srcrow>b{white-space:nowrap;font-size:12px;min-width:56px;text-align:right;}
+.srcx{border:none;background:transparent;color:var(--slate);cursor:pointer;font-size:12px;padding:2px 4px;} .srcx:hover{color:var(--pink);}
+.addsrc{font-family:inherit;font-size:12px;padding:5px 8px;border:1.5px dashed var(--navy);border-radius:5px;background:#fff;color:var(--navy);cursor:pointer;}
 .chip{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:800;border:1px solid var(--navy);}
 .tier-High{background:var(--pink);color:#fff;}.tier-Medium{background:var(--yellow);color:var(--navy);}.tier-Low{background:var(--teal);color:var(--navy);}
 .pill-Yes{background:var(--em);color:var(--navy);padding:1px 8px;border-radius:12px;font-weight:800;font-size:11px;}.pill-No{color:#9AA0A6;font-weight:700;font-size:11px;}
@@ -327,16 +333,10 @@ body.aboutmode .siderail,body.aboutmode .railexpand,body.aboutmode #kpis,body.ab
    <div class="statline"><span class="sl">Venues pay</span><span class="sv" id="bkPay">$0</span></div>
    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
      <button class="btn" style="padding:5px 10px;font-size:11.5px" onclick="createReport()">Report (PDF)</button>
-     <button class="btn sec" style="padding:5px 10px;font-size:11.5px" onclick="toggleSplit(this)">Split funding ▾</button>
+     <button class="btn sec" style="padding:5px 10px;font-size:11.5px" onclick="toggleSplit(this)">Income sources ▾</button>
      <button class="btn sec" style="padding:5px 10px;font-size:11.5px" onclick="clearSel()">Clear</button>
    </div>
-   <div class="hidden" id="splitPanel" style="margin-top:8px;border-top:1px dashed var(--slate);padding-top:8px">
-     <div class="muted" style="margin-bottom:8px;font-size:11px">How the subsidy required is funded:</div>
-     <div class="fundrow"><div><div class="fundlbl">Home state government</div><select id="spState" onchange="setSplitState(this.value)"><option>NSW</option><option>VIC</option><option>QLD</option><option>SA</option><option>WA</option><option>TAS</option><option>NT</option><option>ACT</option></select> <span class="muted" id="spStateNote" style="font-size:10.5px"></span></div><b id="spStateAmt">$0</b></div>
-     <div class="fundrow"><div><div class="fundlbl">Playing Australia</div><span class="muted" style="font-size:10.5px">rest of the country</span></div><b id="spPaAmt">$0</b></div>
-     <div class="fundrow"><div><label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;cursor:pointer"><input type="checkbox" id="spPhilOn" onchange="setSplitPhilOn(this.checked)"> Philanthropy</label><div class="muted" style="font-size:10.5px;margin-top:3px"><input id="spPhilPct" type="number" min="0" max="100" step="5" value="50" style="width:50px" oninput="setSplitPhilPct(this.value)" disabled> % of the rest</div></div><b id="spPhilAmt">$0</b></div>
-     <div class="fundrow total"><b>Total subsidy</b><b id="spTot">$0</b></div>
-   </div>
+   <div class="hidden" id="splitPanel" style="margin-top:8px;border-top:1px dashed var(--slate);padding-top:8px"><div id="sourcesBox"></div></div>
    <div class="muted" style="margin-top:8px;font-size:10.5px">Tick venues in the Venues list. Selections persist across filters. Only High-tier venues draw a subsidy.</div>
  </div>
 </div>
@@ -492,11 +492,16 @@ function fixSum(changed){let ak=activeKeys();if(!ak.length)return;let s=ak.reduc
 let sortKey='index',sortDir=-1,curPage='venues';
 let pageSize=20,pageNum=1,groupBy='';
 let sel=new Set(),basketFee=12500;
-let splitState='NSW',splitPhilOn=false,splitPhilPct=50;
-function toggleSplit(btn){const p=document.getElementById('splitPanel');const h=p.classList.toggle('hidden');btn.textContent=h?'Split funding ▾':'Split funding ▴';}
-function setSplitState(v){splitState=v;renderBasket();}
-function setSplitPhilOn(b){splitPhilOn=b;renderBasket();}
-function setSplitPhilPct(v){splitPhilPct=Math.max(0,Math.min(100,+v||0));renderBasket();}
+let sources=[],_srcSeq=0;
+const SRC_PRESETS={pa:'Playing Australia',phil:'Philanthropy',gov:'Other government funding',other:'Other source'};
+function toggleSplit(btn){const p=document.getElementById('splitPanel');const h=p.classList.toggle('hidden');btn.textContent=h?'Income sources ▾':'Income sources ▴';}
+function addSource(kind){_srcSeq++;if(kind==='state')sources.push({id:_srcSeq,kind:'state',state:'NSW',name:'State touring grant'});else sources.push({id:_srcSeq,kind:'manual',name:SRC_PRESETS[kind]||'Other source',amount:0});renderBasket();}
+function removeSource(id){sources=sources.filter(s=>s.id!==id);renderBasket();}
+function setSourceName(id,v){const s=sources.find(x=>x.id===id);if(s)s.name=v;}
+function setSourceAmount(id,v){const s=sources.find(x=>x.id===id);if(s)s.amount=Math.max(0,+v||0);renderBasket();}
+function setSourceState(id,v){const s=sources.find(x=>x.id===id);if(s)s.state=v;renderBasket();}
+function stateOpts(cur){return ['NSW','VIC','QLD','SA','WA','TAS','NT','ACT'].map(x=>`<option ${x===cur?'selected':''}>${x}</option>`).join('');}
+function resolveSources(sub,stateSub){let other=0;const rows=sources.map(s=>{const amt=s.kind==='state'?(stateSub[s.state]||0):(s.amount||0);other+=amt;return {name:s.name,amount:amt};});const fund=Math.max(0,sub-other);return {rows,fund,total:fund+other,over:other>sub+0.5};}
 let collapsedGroups=new Set();
 function setGroup(v){groupBy=v;collapsedGroups.clear();pageNum=1;render();}
 function toggleGroup(k){if(collapsedGroups.has(k))collapsedGroups.delete(k);else collapsedGroups.add(k);render();}
@@ -505,10 +510,9 @@ function selectAllFiltered(check){filtered().forEach(v=>{if(check)sel.add(v._i);
 function clearSel(){sel.clear();render();}
 function setBasketFee(v){basketFee=Math.max(0,+v||0);const e=document.getElementById('bkFee');if(e)e.value=basketFee;renderBasket();}
 function updateSelAll(){const el=document.getElementById('selAll');if(!el)return;const a=filtered();let c=0;a.forEach(v=>{if(sel.has(v._i))c++;});el.checked=a.length>0&&c===a.length;el.indeterminate=c>0&&c<a.length;}
-function renderBasket(){if(!document.getElementById('bkN'))return;let n=0,elig=0,sub=0,child=0,homeSub=0,homeN=0;const seen=new Set();
+function renderBasket(){if(!document.getElementById('bkN'))return;let n=0,elig=0,sub=0,child=0;const seen=new Set();const stateSub={};
  sel.forEach(i=>{const v=V[i];if(!v)return;n++;const k=areaCode(v);if(k!=null&&!seen.has(k)){seen.add(k);child+=v.cChild||0;}
-   const s=v.cSub>0?basketFee*v.cSub:0;if(s>0)elig++;sub+=s;
-   if(v.state===splitState){homeN++;homeSub+=s;}});
+   const s=v.cSub>0?basketFee*v.cSub:0;if(s>0)elig++;sub+=s;const st=v.state||'—';stateSub[st]=(stateSub[st]||0)+s;});
  const gross=n*basketFee,pay=gross-sub;
  document.getElementById('bkN').textContent=n;
  document.getElementById('bkElig').textContent=elig;
@@ -516,12 +520,16 @@ function renderBasket(){if(!document.getElementById('bkN'))return;let n=0,elig=0
  document.getElementById('bkGross').textContent=fmt$(gross);
  document.getElementById('bkSub').textContent=fmt$(sub);
  document.getElementById('bkPay').textContent=fmt$(pay);
- const el=id=>document.getElementById(id);
- if(el('spStateAmt')){const rest=Math.max(0,sub-homeSub);const phil=splitPhilOn?rest*splitPhilPct/100:0;const playing=rest-phil;
-   el('spStateAmt').textContent=fmt$(homeSub);el('spPaAmt').textContent=fmt$(playing);el('spPhilAmt').textContent=fmt$(phil);el('spTot').textContent=fmt$(sub);
-   const note=el('spStateNote');if(note)note.textContent=homeN?('· '+homeN+' selected in '+splitState):('· none selected in '+splitState);
-   const pc=el('spPhilPct');if(pc)pc.disabled=!splitPhilOn;
-   const sst=el('spState');if(sst&&sst.value!==splitState)sst.value=splitState;}}
+ const box=document.getElementById('sourcesBox');
+ if(box){const R=resolveSources(sub,stateSub);
+   let h='<div class="muted" style="margin-bottom:8px;font-size:11px">How the subsidy is funded — add the sources that make it up:</div>';
+   h+=`<div class="fundrow"><div><div class="fundlbl">Children's Theatre Investment Fund</div><span class="muted" style="font-size:10.5px">balance not covered by other sources</span></div><b>${fmt$(R.fund)}</b></div>`;
+   sources.forEach(s=>{const amt=s.kind==='state'?(stateSub[s.state]||0):(s.amount||0);
+     if(s.kind==='state')h+=`<div class="srcrow"><input class="srcname" value="${esc(s.name)}" onchange="setSourceName(${s.id},this.value)"><select onchange="setSourceState(${s.id},this.value)">${stateOpts(s.state)}</select><b>${fmt$(amt)}</b><button class="srcx" title="Remove" onclick="removeSource(${s.id})">✕</button></div>`;
+     else h+=`<div class="srcrow"><input class="srcname" value="${esc(s.name)}" onchange="setSourceName(${s.id},this.value)"><span class="srcamt">$<input type="number" value="${s.amount||0}" step="500" min="0" onchange="setSourceAmount(${s.id},this.value)"></span><button class="srcx" title="Remove" onclick="removeSource(${s.id})">✕</button></div>`;});
+   h+='<div style="margin:8px 0 2px"><select class="addsrc" onchange="if(this.value){addSource(this.value);this.value=\'\';}"><option value="">+ Add a source…</option><option value="state">State touring grant</option><option value="pa">Playing Australia</option><option value="phil">Philanthropy</option><option value="gov">Other government funding</option><option value="other">Other source</option></select></div>';
+   h+=`<div class="fundrow total"><b>Total sources</b><b style="color:${R.over?'#EF476F':'inherit'}">${fmt$(R.total)}${R.over?' — over':''}</b></div>`;
+   box.innerHTML=h;}}
 function setPageSize(v){pageSize=(v==='all')?Infinity:+v;pageNum=1;render();}
 function gotoPage(n){pageNum=n;render();}
 function renderPager(total,start,end,pages){const el=document.getElementById('pager');if(!el)return;
@@ -557,13 +565,12 @@ function tierReportSVG(){const W=620,H=64,ax=16;const x=v=>v/10*W;
  return s;}
 function createReport(){
  if(!sel.size){alert('Select some venues in the Venues list first.');return;}
- let n=0,elig=0,sub=0,child=0,homeSub=0,homeN=0,gross=0;const seen=new Set();const byState={};const pts=[];
+ let n=0,elig=0,sub=0,child=0,gross=0;const seen=new Set();const byState={};const pts=[];const stateSub={};
  sel.forEach(i=>{const v=V[i];if(!v)return;n++;const k=areaCode(v);if(k!=null&&!seen.has(k)){seen.add(k);child+=v.cChild||0;}
    if(v.ll)pts.push(v.ll);
    const s=v.cSub>0?basketFee*v.cSub:0;if(s>0)elig++;sub+=s;gross+=basketFee;
-   if(v.state===splitState){homeN++;homeSub+=s;}
-   const st=v.state||'Unassigned';(byState[st]=byState[st]||[]).push(v);});
- const rest=Math.max(0,sub-homeSub),phil=splitPhilOn?rest*splitPhilPct/100:0,playing=rest-phil,pay=gross-sub;
+   const st=v.state||'Unassigned';(byState[st]=byState[st]||[]).push(v);stateSub[st]=(stateSub[st]||0)+s;});
+ const pay=gross-sub;const R=resolveSources(sub,stateSub);
  const states=Object.keys(byState).sort();const multi=states.length>1;
  const den=activeKeys().reduce((a,k)=>a+MODEL.pct[k],0)||1;
  const wtxt=IND.filter(([k])=>MODEL.on[k]).map(([k,l])=>`${l.split(' ')[0]} ${Math.round(MODEL.pct[k]/den*100)}%`).join(' · ')||'—';
@@ -576,7 +583,7 @@ function createReport(){
    arr.forEach(v=>{const s=v.cSub>0?basketFee*v.cSub:0;
      vrows+=`<tr><td>${esc(v.name)}</td>${multi?'':`<td>${esc(v.state||'')}</td>`}<td>${esc(v.status||'')}</td><td class="center">${v.cIndex!=null?v.cIndex.toFixed(1):'—'}</td><td class="center">${v.cTier}</td><td class="right">${v.cSub?Math.round(v.cSub*100)+'%':'–'}</td><td class="right">${s?fmt$(s):'–'}</td></tr>`;});});
  const vhead=`<tr><th>Venue</th>${multi?'':'<th>State</th>'}<th>Status</th><th class="center">Index</th><th>Tier</th><th class="right">Subsidy</th><th class="right">Amount</th></tr>`;
- const philRow=splitPhilOn?`<tr><td>Philanthropy <span style="color:#6b7a80">(${splitPhilPct}% of the remainder)</span></td><td class="right">${fmt$(phil)}</td></tr>`:'';
+ const fundRows=`<tr><td>Children's Theatre Investment Fund <span style="color:#6b7a80">(balance)</span></td><td class="right">${fmt$(R.fund)}</td></tr>`+R.rows.map(r=>`<tr><td>${esc(r.name)}</td><td class="right">${fmt$(r.amount)}</td></tr>`).join('');
  const html=`<div class="rpt">
    <div class="rpt-headbar">${logo?`<img class="rpt-logo" src="${logo}">`:''}<div class="rpt-title">Children's Theatre Impact Index</div><div class="rpt-subt">Subsidy investment proposal · ${dt}</div></div>
    <div class="rpt-body">
@@ -586,13 +593,8 @@ function createReport(){
        <div><div class="h">${n}</div><div class="l">Venues supported${elig!==n?` · ${elig} funded`:''}</div></div>
        <div><div class="h">${child.toLocaleString()}</div><div class="l">Children 0–14 reached</div></div>
      </div>
-     <h3>How it is funded</h3>
-     <table><tbody>
-       <tr><td>Home state government <b>(${splitState})</b> <span style="color:#6b7a80">${homeN} venue${homeN!=1?'s':''}</span></td><td class="right">${fmt$(homeSub)}</td></tr>
-       <tr><td>Playing Australia <span style="color:#6b7a80">(rest of the country)</span></td><td class="right">${fmt$(playing)}</td></tr>
-       ${philRow}
-       <tr class="grp"><td><b>Total subsidy sought</b></td><td class="right"><b>${fmt$(sub)}</b></td></tr>
-     </tbody></table>
+     <h3>Funding sources</h3>
+     <table><tbody>${fundRows}<tr class="grp"><td><b>Total subsidy sought</b></td><td class="right"><b>${fmt$(sub)}</b></td></tr></tbody></table>
      <p style="color:#6b7a80;font-size:11px">Gross presenter fees across the package: ${fmt$(gross)} · venues contribute ${fmt$(pay)} · subsidy covers the balance.</p>
      <h3>The model used</h3>
      <div class="settings">
