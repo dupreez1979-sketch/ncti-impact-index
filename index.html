@@ -152,6 +152,10 @@ tbody tr.grouphdr:hover td{background:var(--navy);}
 .srcamt input{width:82px;} .srcrow>b{white-space:nowrap;font-size:12px;min-width:56px;text-align:right;}
 .srcx{border:none;background:transparent;color:var(--slate);cursor:pointer;font-size:12px;padding:2px 4px;} .srcx:hover{color:var(--pink);}
 .addsrc{font-family:inherit;font-size:12px;padding:5px 8px;border:1.5px dashed var(--navy);border-radius:5px;background:#fff;color:var(--navy);cursor:pointer;}
+.tourrow{display:flex;gap:5px;align-items:center;margin:6px 0;}
+.tourrow select{flex:1;min-width:0;font-family:inherit;font-size:12px;padding:5px 7px;border:1.5px solid var(--navy);border-radius:5px;background:#fff;color:var(--navy);}
+.iconbtn2{border:1.5px solid var(--navy);background:#fff;color:var(--navy);border-radius:5px;cursor:pointer;font-size:12px;padding:4px 7px;line-height:1;flex:none;}
+.iconbtn2:hover{background:var(--navy);color:#fff;}
 .chip{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:800;border:1px solid var(--navy);}
 .tier-High{background:var(--pink);color:#fff;}.tier-Medium{background:var(--yellow);color:var(--navy);}.tier-Low{background:var(--teal);color:var(--navy);}
 .pill-Yes{background:var(--em);color:var(--navy);padding:1px 8px;border-radius:12px;font-weight:800;font-size:11px;}.pill-No{color:#9AA0A6;font-weight:700;font-size:11px;}
@@ -313,6 +317,10 @@ body.aboutmode .siderail,body.aboutmode .railexpand,body.aboutmode #kpis,body.ab
        <div class="muted" id="subnote" style="margin-top:8px"></div>
      </div></div>
  </div>
+</div>
+<div class="card model collapsed" id="tourCard">
+ <div class="top"><h3 onclick="toggleCard(this)" style="cursor:pointer;user-select:none;margin:0">Tour <span class="caret">▾</span></h3></div>
+ <div class="cbody" id="tourBody"></div>
 </div>
 <div class="card model collapsed" id="basketCard">
  <div class="top" onpointerdown="basketDragStart(event)"><h3 onclick="toggleCard(this)" style="cursor:pointer;user-select:none;margin:0">Subsidy basket <span class="caret">▾</span></h3>
@@ -495,13 +503,14 @@ let sel=new Set(),basketFee=12500;
 let sources=[],_srcSeq=0;
 const SRC_PRESETS={pa:'Playing Australia',phil:'Philanthropy',gov:'Other government funding',other:'Other source'};
 function toggleSplit(btn){const p=document.getElementById('splitPanel');const h=p.classList.toggle('hidden');btn.textContent=h?'Income sources ▾':'Income sources ▴';}
-function addSource(kind){_srcSeq++;if(kind==='state')sources.push({id:_srcSeq,kind:'state',state:'NSW',name:'State touring grant'});else sources.push({id:_srcSeq,kind:'manual',name:SRC_PRESETS[kind]||'Other source',amount:0});renderBasket();}
+function addSource(kind){_srcSeq++;if(kind==='state')sources.push({id:_srcSeq,kind:'state',state:'NSW',name:'State touring grant',amount:0,overridden:false});else sources.push({id:_srcSeq,kind:'manual',name:SRC_PRESETS[kind]||'Other source',amount:0});renderBasket();}
 function removeSource(id){sources=sources.filter(s=>s.id!==id);renderBasket();}
 function setSourceName(id,v){const s=sources.find(x=>x.id===id);if(s)s.name=v;}
-function setSourceAmount(id,v){const s=sources.find(x=>x.id===id);if(s)s.amount=Math.max(0,+v||0);renderBasket();}
-function setSourceState(id,v){const s=sources.find(x=>x.id===id);if(s)s.state=v;renderBasket();}
+function setSourceAmount(id,v){const s=sources.find(x=>x.id===id);if(s){s.amount=Math.max(0,+v||0);if(s.kind==='state')s.overridden=true;}renderBasket();}
+function setSourceState(id,v){const s=sources.find(x=>x.id===id);if(s){s.state=v;s.overridden=false;}renderBasket();}
 function stateOpts(cur){return ['NSW','VIC','QLD','SA','WA','TAS','NT','ACT'].map(x=>`<option ${x===cur?'selected':''}>${x}</option>`).join('');}
-function resolveSources(sub,stateSub){let other=0;const rows=sources.map(s=>{const amt=s.kind==='state'?(stateSub[s.state]||0):(s.amount||0);other+=amt;return {name:s.name,amount:amt};});const fund=Math.max(0,sub-other);return {rows,fund,total:fund+other,over:other>sub+0.5};}
+function srcAmt(s,stateSub){return s.kind==='state'?(s.overridden?(s.amount||0):(stateSub[s.state]||0)):(s.amount||0);}
+function resolveSources(sub,stateSub){let other=0;const rows=sources.map(s=>{const amt=srcAmt(s,stateSub);other+=amt;return {name:s.name,amount:amt};});const fund=Math.max(0,sub-other);return {rows,fund,total:fund+other,over:other>sub+0.5};}
 let collapsedGroups=new Set();
 function setGroup(v){groupBy=v;collapsedGroups.clear();pageNum=1;render();}
 function toggleGroup(k){if(collapsedGroups.has(k))collapsedGroups.delete(k);else collapsedGroups.add(k);render();}
@@ -524,8 +533,8 @@ function renderBasket(){if(!document.getElementById('bkN'))return;let n=0,elig=0
  if(box){const R=resolveSources(sub,stateSub);
    let h='<div class="muted" style="margin-bottom:8px;font-size:11px">How the subsidy is funded — add the sources that make it up:</div>';
    h+=`<div class="fundrow"><div><div class="fundlbl">Children's Theatre Investment Fund</div><span class="muted" style="font-size:10.5px">balance not covered by other sources</span></div><b>${fmt$(R.fund)}</b></div>`;
-   sources.forEach(s=>{const amt=s.kind==='state'?(stateSub[s.state]||0):(s.amount||0);
-     if(s.kind==='state')h+=`<div class="srcrow"><input class="srcname" value="${esc(s.name)}" onchange="setSourceName(${s.id},this.value)"><select onchange="setSourceState(${s.id},this.value)">${stateOpts(s.state)}</select><b>${fmt$(amt)}</b><button class="srcx" title="Remove" onclick="removeSource(${s.id})">✕</button></div>`;
+   sources.forEach(s=>{const amt=srcAmt(s,stateSub);
+     if(s.kind==='state')h+=`<div class="srcrow"><input class="srcname" value="${esc(s.name)}" onchange="setSourceName(${s.id},this.value)"><select onchange="setSourceState(${s.id},this.value)">${stateOpts(s.state)}</select><span class="srcamt">$<input type="number" value="${Math.round(amt)}" step="500" min="0" onchange="setSourceAmount(${s.id},this.value)" title="Auto from ${s.state}; edit to override"></span><button class="srcx" title="Remove" onclick="removeSource(${s.id})">✕</button></div>`;
      else h+=`<div class="srcrow"><input class="srcname" value="${esc(s.name)}" onchange="setSourceName(${s.id},this.value)"><span class="srcamt">$<input type="number" value="${s.amount||0}" step="500" min="0" onchange="setSourceAmount(${s.id},this.value)"></span><button class="srcx" title="Remove" onclick="removeSource(${s.id})">✕</button></div>`;});
    h+='<div style="margin:8px 0 2px"><select class="addsrc" onchange="if(this.value){addSource(this.value);this.value=\'\';}"><option value="">+ Add a source…</option><option value="state">State touring grant</option><option value="pa">Playing Australia</option><option value="phil">Philanthropy</option><option value="gov">Other government funding</option><option value="other">Other source</option></select></div>';
    h+=`<div class="fundrow total"><b>Total sources</b><b style="color:${R.over?'#EF476F':'inherit'}">${fmt$(R.total)}${R.over?' — over':''}</b></div>`;
@@ -543,6 +552,55 @@ function toggleRail(){document.getElementById('mainrow').classList.toggle('railc
 function toggleSub(el){el.closest('.subsec').classList.toggle('collapsed');}
 function toggleAcc(el){el.closest('.accitem').classList.toggle('open');}
 let basketFloating=false,_basketHome=null;
+// ---------- tours (companies → shows → tours) ----------
+let COMPANIES=[],SHOWS=[],TOURS=[],curCompany=null,curShow=null,curTour=null;
+function activeTourObj(){return TOURS.find(t=>t.id===curTour)||null;}
+async function loadTours(){try{
+  const [c,s,t]=await Promise.all([sbAll('companies','id,name,address'),sbAll('shows','id,company_id,title'),sbAll('tours','id,show_id,name,model,sources,default_fee')]);
+  COMPANIES=c;SHOWS=s;TOURS=t;COMPANIES.sort((a,b)=>(''+a.name).localeCompare(b.name));renderTourPanel();
+ }catch(e){console.warn('tours not loaded (run tours.sql):',e);}}
+function selectCompany(id){curCompany=id?+id:null;curShow=null;curTour=null;renderTourPanel();}
+function selectShow(id){curShow=id?+id:null;curTour=null;renderTourPanel();}
+function selectTour(id){curTour=id?+id:null;renderTourPanel();}
+function renderTourPanel(){const el=document.getElementById('tourBody');if(!el)return;
+ if(!SESSION){el.innerHTML='<div class="muted" style="font-size:12px">Sign in to build and manage tours.</div>';return;}
+ const compOpts='<option value="">— select company —</option>'+COMPANIES.map(c=>`<option value="${c.id}" ${c.id===curCompany?'selected':''}>${esc(c.name)}</option>`).join('');
+ const shows=SHOWS.filter(s=>s.company_id===curCompany).sort((a,b)=>(''+a.title).localeCompare(b.title));
+ const showOpts='<option value="">— select work —</option>'+shows.map(s=>`<option value="${s.id}" ${s.id===curShow?'selected':''}>${esc(s.title)}</option>`).join('');
+ const tours=TOURS.filter(t=>t.show_id===curShow).sort((a,b)=>(''+a.name).localeCompare(b.name));
+ const tourOpts='<option value="">— select tour —</option>'+tours.map(t=>`<option value="${t.id}" ${t.id===curTour?'selected':''}>${esc(t.name)}</option>`).join('');
+ let h=`<div class="tourrow"><select onchange="selectCompany(this.value)">${compOpts}</select><button class="iconbtn2" title="New company" onclick="addCompany()">＋</button>${curCompany?`<button class="iconbtn2" title="Edit company" onclick="editCompany()">✎</button><button class="iconbtn2" title="Delete company" onclick="deleteCompany()">✕</button>`:''}</div>`;
+ h+=`<div class="tourrow"><select onchange="selectShow(this.value)" ${curCompany?'':'disabled'}>${showOpts}</select>${curCompany?`<button class="iconbtn2" title="New work" onclick="addShow()">＋</button>`:''}${curShow?`<button class="iconbtn2" title="Edit work" onclick="editShow()">✎</button><button class="iconbtn2" title="Delete work" onclick="deleteShow()">✕</button>`:''}</div>`;
+ h+=`<div class="tourrow"><select onchange="selectTour(this.value)" ${curShow?'':'disabled'}>${tourOpts}</select>${curShow?`<button class="iconbtn2" title="New tour" onclick="addTour()">＋</button>`:''}${curTour?`<button class="iconbtn2" title="Edit tour" onclick="editTour()">✎</button><button class="iconbtn2" title="Delete tour" onclick="deleteTour()">✕</button>`:''}</div>`;
+ const t=activeTourObj();
+ if(t){const co=COMPANIES.find(c=>c.id===curCompany),sh=SHOWS.find(s=>s.id===curShow);
+   h+=`<div style="margin-top:10px;border-top:1px dashed var(--slate);padding-top:8px">
+     <div class="muted" style="font-size:11px">Active tour</div>
+     <div style="font-family:'Charlie Kingdom';font-size:14px;color:var(--navy);line-height:1.2">${esc((co?co.name:'')+' · '+(sh?sh.title:'')+' · '+t.name)}</div>
+     <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+       <button class="btn sec" style="padding:5px 9px;font-size:11.5px" onclick="applyTourModel()" ${t.model?'':'disabled'}>Apply tour's model</button>
+       <button class="btn sec" style="padding:5px 9px;font-size:11.5px" onclick="saveModelToTour()">Save current model to tour</button>
+     </div>
+     <div class="muted" style="font-size:10.5px;margin-top:6px">Next: add venues to this tour (with per-venue fees and confirmed subsidy) from the Venues list.</div>
+   </div>`;}
+ el.innerHTML=h;}
+function addCompany(){openModel('New company','','','Create',async(name,addr)=>{const {data,error}=await sbc.from('companies').insert({name,address:addr||null}).select('id,name,address').single();if(error){alert(error.message);return;}COMPANIES.push(data);COMPANIES.sort((a,b)=>(''+a.name).localeCompare(b.name));curCompany=data.id;curShow=curTour=null;renderTourPanel();},{sub:'Company name and (optionally) address.',namePlaceholder:'Company name',descPlaceholder:'Address (optional)'});}
+function editCompany(){const c=COMPANIES.find(x=>x.id===curCompany);if(!c)return;openModel('Edit company',c.name,c.address||'','Save',async(name,addr)=>{const {error}=await sbc.from('companies').update({name,address:addr||null}).eq('id',c.id);if(error){alert(error.message);return;}c.name=name;c.address=addr;COMPANIES.sort((a,b)=>(''+a.name).localeCompare(b.name));renderTourPanel();},{sub:'Company name and address.',namePlaceholder:'Company name',descPlaceholder:'Address (optional)'});}
+function deleteCompany(){const c=COMPANIES.find(x=>x.id===curCompany);if(!c)return;openConfirm('Delete company?','Deleting “'+c.name+'” also removes its works, tours and their venue lists. This cannot be undone.','Delete',async()=>{const {error}=await sbc.from('companies').delete().eq('id',c.id);if(error){alert(error.message);return;}const showIds=SHOWS.filter(s=>s.company_id===c.id).map(s=>s.id);COMPANIES=COMPANIES.filter(x=>x.id!==c.id);SHOWS=SHOWS.filter(s=>s.company_id!==c.id);TOURS=TOURS.filter(t=>!showIds.includes(t.show_id));curCompany=curShow=curTour=null;renderTourPanel();});}
+function addShow(){if(!curCompany)return;openModel('New work / show','','','Create',async name=>{const {data,error}=await sbc.from('shows').insert({company_id:curCompany,title:name}).select('id,company_id,title').single();if(error){alert(error.message);return;}SHOWS.push(data);curShow=data.id;curTour=null;renderTourPanel();},{sub:'The title of the work.',showDesc:false,namePlaceholder:'Show title'});}
+function editShow(){const s=SHOWS.find(x=>x.id===curShow);if(!s)return;openModel('Edit work',s.title,'','Save',async name=>{const {error}=await sbc.from('shows').update({title:name}).eq('id',s.id);if(error){alert(error.message);return;}s.title=name;renderTourPanel();},{showDesc:false,namePlaceholder:'Show title'});}
+function deleteShow(){const s=SHOWS.find(x=>x.id===curShow);if(!s)return;openConfirm('Delete work?','Deleting “'+s.title+'” also removes its tours. This cannot be undone.','Delete',async()=>{const {error}=await sbc.from('shows').delete().eq('id',s.id);if(error){alert(error.message);return;}SHOWS=SHOWS.filter(x=>x.id!==s.id);TOURS=TOURS.filter(t=>t.show_id!==s.id);curShow=curTour=null;renderTourPanel();});}
+function addTour(){if(!curShow)return;openModel('New tour','','','Create',async name=>{const {data,error}=await sbc.from('tours').insert({show_id:curShow,name,default_fee:12500}).select('id,show_id,name,model,sources,default_fee').single();if(error){alert(error.message);return;}TOURS.push(data);curTour=data.id;renderTourPanel();},{sub:'Name this tour, e.g. “2027 National Tour”.',showDesc:false,namePlaceholder:'Tour name'});}
+function editTour(){const t=activeTourObj();if(!t)return;openModel('Edit tour',t.name,'','Save',async name=>{const {error}=await sbc.from('tours').update({name}).eq('id',t.id);if(error){alert(error.message);return;}t.name=name;renderTourPanel();},{showDesc:false,namePlaceholder:'Tour name'});}
+function deleteTour(){const t=activeTourObj();if(!t)return;openConfirm('Delete tour?','Deleting “'+t.name+'” removes its venue list. This cannot be undone.','Delete',async()=>{const {error}=await sbc.from('tours').delete().eq('id',t.id);if(error){alert(error.message);return;}TOURS=TOURS.filter(x=>x.id!==t.id);curTour=null;renderTourPanel();});}
+function applyTourModel(){const t=activeTourObj();if(!t||!t.model)return;const c=t.model;
+ MODEL.geo=c.geo||'sa2';MODEL.on={em:!!c.on.em,seifa:!!c.on.seifa,rem:!!c.on.rem};MODEL.pct={em:+c.pct.em||0,seifa:+c.pct.seifa||0,rem:+c.pct.rem||0};MODEL.thr={high:+c.thr.high,med:+c.thr.med};MODEL.sub={floor:+c.sub.floor,ceil:+c.sub.ceil,full:+c.sub.full};
+ document.querySelectorAll('#geo button').forEach(b=>b.classList.toggle('on',b.dataset.g===MODEL.geo));
+ const gv=(i,val)=>{const e=document.getElementById(i);if(e&&val!=null&&!isNaN(val))e.value=val;};
+ gv('tHigh',MODEL.thr.high);gv('tMed',MODEL.thr.med);gv('sFloor',Math.round(MODEL.sub.floor*100));gv('sCeil',Math.round(MODEL.sub.ceil*100));gv('sFull',MODEL.sub.full);
+ if(t.sources)sources=JSON.parse(JSON.stringify(t.sources));
+ buildInd();updateSubnote();recompute();render();}
+async function saveModelToTour(){const t=activeTourObj();if(!t){alert('Select a tour first.');return;}const {error}=await sbc.from('tours').update({model:MODEL,sources:sources}).eq('id',t.id);if(error){alert(error.message);return;}t.model=JSON.parse(JSON.stringify(MODEL));t.sources=JSON.parse(JSON.stringify(sources));renderTourPanel();alert('Model saved to “'+t.name+'”.');}
 function toggleBasketFloat(){const c=document.getElementById('basketCard'),b=document.getElementById('basketFloatBtn');
  if(!basketFloating){_basketHome={parent:c.parentNode,next:c.nextSibling};document.body.appendChild(c);c.classList.add('floating');c.classList.remove('collapsed');
    c.style.right='';c.style.left='380px';c.style.top='88px';c.style.width='320px';basketFloating=true;if(b){b.textContent='⤡';b.title='Dock back into the panel';}}
@@ -790,10 +848,11 @@ function deleteModel(id){if(!SESSION){showSignin();return;}const m=MODELS.find(x
  openConfirm('Delete model?','This removes “'+m.name+'” for everyone. This cannot be undone.','Delete',async ()=>{const {error}=await sbc.from('models').delete().eq('id',id);if(error){alert(error.message);return;}MODELS=MODELS.filter(x=>x.id!==id);renderModels();});}
 // naming / confirm modal
 let _mmCb=null,_mmMode='model';
-function openModel(title,name,desc,okLabel,cb){_mmCb=cb;_mmMode='model';
- document.getElementById('mm_title').textContent=title;document.getElementById('mm_sub').textContent='A short name shows on the button; the description appears in the ⓘ tooltip.';
- const inp=document.getElementById('mm_input');inp.style.display='';inp.value=name||'';
- const d=document.getElementById('mm_desc');d.style.display='';d.value=desc||'';
+function openModel(title,name,desc,okLabel,cb,opts){opts=opts||{};_mmCb=cb;_mmMode='model';
+ document.getElementById('mm_title').textContent=title;document.getElementById('mm_sub').textContent=opts.sub||'A short name shows on the button; the description appears in the ⓘ tooltip.';
+ const inp=document.getElementById('mm_input');inp.style.display='';inp.value=name||'';inp.placeholder=opts.namePlaceholder||'Short name — shown on the button';
+ const d=document.getElementById('mm_desc');
+ if(opts.showDesc===false){d.style.display='none';}else{d.style.display='';d.value=desc||'';d.placeholder=opts.descPlaceholder||'Description (optional) — shown in the ⓘ tooltip';}
  document.getElementById('mm_ok').textContent=okLabel||'Save';document.getElementById('mm_msg').textContent='';
  document.getElementById('modelmodal').classList.add('open');setTimeout(()=>{inp.focus();inp.select();},40);}
 function openConfirm(title,sub,okLabel,cb){_mmCb=cb;_mmMode='confirm';
@@ -907,7 +966,7 @@ function render(){const a=filtered();const _cc=document.getElementById('count');
  renderBasket();updateSelAll();
  if(curPage==='charts')drawCharts(a);
  if(curPage==='map'){schedulePaint();paintMarkers();}
- renderModels();renderTierViz();}
+ renderModels();renderTierViz();renderTourPanel();}
 function setSort(k){if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=(['name','state','status','ra','tier','eligible'].includes(k))?1:-1;}render();}
 function showPage(p){curPage=p;document.body.classList.toggle('aboutmode',p==='about');document.querySelectorAll('.page').forEach(e=>e.classList.remove('active'));document.getElementById('page-'+p).classList.add('active');
  ['venues','charts','map','about'].forEach(x=>document.getElementById('nav-'+x).classList.toggle('active',p===x));
@@ -1060,6 +1119,7 @@ async function boot(){
   document.getElementById('loading').style.display='none';
   buildInd();updateSubnote();recompute();initFilters();render();renderAuth();
   try{MODELS=(await sbAll('models','id,name,description,config,is_preset,created_at')).map(m=>({id:m.id,name:m.name,description:m.description,config:m.config,date:fmtDate(m.created_at)}));MODELS.sort((a,b)=>(''+a.name).localeCompare(b.name));renderModels();}catch(mErr){console.warn('models not loaded (create the table with models.sql):',mErr);}
+  loadTours();
  }catch(e){
   console.error(e);
   document.getElementById('loading').innerHTML='<div style="max-width:520px"><div style="color:var(--pink);font-size:22px;margin-bottom:8px">Could not load data from Supabase</div><div style="font-family:Inter,sans-serif;font-size:13px;color:var(--slate);line-height:1.5">'+e.message+'<br><br>Check that the CSVs are imported, the read (RLS) policies from schema.sql are on, and the <b>geo</b> Storage bucket is public with <b>sa2_boundaries.geojson</b> uploaded.</div></div>';
