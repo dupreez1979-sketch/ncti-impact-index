@@ -280,10 +280,9 @@ body.aboutmode .siderail,body.aboutmode .railexpand,body.aboutmode #kpis,body.ab
 <aside class="siderail" id="siderail">
 <div class="railhead"><span class="kpihead" style="margin:0">Panels</span><button class="railbtn" onclick="toggleRail()" title="Collapse this frame">◀ Hide</button></div>
 <div class="card model" id="modelcard">
- <div class="top"><h3 onclick="toggleCard(this)" style="cursor:pointer;user-select:none;margin:0">Model <span class="caret">▾</span></h3>
+ <div class="top" onpointerdown="modelDragStart(event)"><h3 onclick="toggleCard(this)" style="cursor:pointer;user-select:none;margin:0">Model <span class="caret">▾</span></h3>
    <div class="modelicons">
-     <button class="iconbtn" title="Reset to default model" onclick="event.stopPropagation();resetModel()">⟳</button>
-     <button class="iconbtn" id="maxbtn" title="Maximize" onclick="event.stopPropagation();toggleMaximize()">⤢</button>
+     <button class="iconbtn" id="modelFloatBtn" title="Pop out as a movable note" onclick="event.stopPropagation();toggleModelFloat()">⤢</button>
    </div>
  </div>
  <div class="cbody">
@@ -644,16 +643,66 @@ function renderTourVenues(){const el=document.getElementById('tourVenuesBody');i
    tourVenues.slice().sort((a,b)=>(b.v.cIndex||0)-(a.v.cIndex||0)).forEach(tv=>{const v=tv.v;
      h+=`<div class="tvitem"><div class="tvname"><b>${esc(v.name)}</b> <span class="chip tier-${v.cTier}" style="font-size:9px;padding:1px 6px">${v.cTier}</span></div><label class="tvconf"><input type="checkbox" ${tv.confirmed?'checked':''} onchange="toggleTourVenueConfirmed(${tv.id},this.checked)"> subsidy</label><span class="tvfee">$<input type="number" value="${tv.fee||0}" step="500" min="0" onchange="setTourVenueFee(${tv.id},this.value)"></span><button class="srcx" title="Remove from tour" onclick="removeTourVenue(${tv.id})">✕</button></div>`;});
    h+='</div>';
-   h+=`<div class="fundrow total" style="margin-top:8px"><b>Subsidy required</b><b style="color:var(--pink)">${fmt$(T.sub)}</b></div><div class="statline" style="border:none;padding-top:4px"><span class="sl">Children 0–14 reached</span><span class="sv" style="color:#118AB2">${T.child.toLocaleString()}</span></div>`;}
+   h+=`<div class="fundrow total" style="margin-top:8px"><b>Subsidy required</b><b style="color:var(--pink)">${fmt$(T.sub)}</b></div><div class="statline" style="border:none;padding-top:4px"><span class="sl">Children 0–14 reached</span><span class="sv" style="color:#118AB2">${T.child.toLocaleString()}</span></div>`;
+   h+='<button class="btn" style="margin-top:10px;width:100%;font-size:12px" onclick="createTourReport()">Tour report (PDF)</button>';}
  el.innerHTML=h;}
 function renderTourBar(){const el=document.getElementById('tourBar');if(!el)return;const t=activeTourObj();
  if(SESSION&&t){const co=COMPANIES.find(c=>c.id===curCompany),sh=SHOWS.find(s=>s.id===curShow);
    el.innerHTML=`<span style="color:var(--pink);font-weight:700;font-family:'Charlie Kingdom';font-size:13px">Building: ${esc((co?co.name+' · ':'')+(sh?sh.title+' · ':'')+t.name)}</span> <button class="btn" style="padding:4px 10px;font-size:11.5px" onclick="addSelectedToTour()">Add ticked venues to tour${sel.size?' ('+sel.size+')':''}</button>`;}
  else el.innerHTML='';}
+function createTourReport(){const t=activeTourObj();if(!t){alert('Select a tour first.');return;}
+ if(!tourVenues.length){alert('This tour has no venues yet.');return;}
+ const co=COMPANIES.find(c=>c.id===curCompany),sh=SHOWS.find(s=>s.id===curShow);
+ let n=tourVenues.length,confN=0,sub=0,child=0,gross=0;const seen=new Set();const byState={};const pts=[];const stateSub={};
+ tourVenues.forEach(tv=>{const v=tv.v;const fee=tv.fee||0;gross+=fee;if(v.ll)pts.push(v.ll);
+   const s=(tv.confirmed&&v.cSub>0)?fee*v.cSub:0;if(s>0)confN++;sub+=s;
+   const st=v.state||'Unassigned';(byState[st]=byState[st]||[]).push({tv,s});stateSub[st]=(stateSub[st]||0)+s;
+   const k=areaCode(v);if(k!=null&&!seen.has(k)){seen.add(k);child+=v.cChild||0;}});
+ const states=Object.keys(byState).sort();const multi=states.length>1;const R=resolveSources(sub,stateSub);
+ const den=activeKeys().reduce((a,k)=>a+MODEL.pct[k],0)||1;
+ const wtxt=IND.filter(([k])=>MODEL.on[k]).map(([k,l])=>`${l.split(' ')[0]} ${Math.round(MODEL.pct[k]/den*100)}%`).join(' · ')||'—';
+ const dt=new Date().toLocaleDateString('en-AU',{day:'numeric',month:'long',year:'numeric'});
+ const logo=(document.querySelector('.brandlogo')||{}).src||'';
+ let vrows='';
+ states.forEach(st=>{const arr=byState[st].slice().sort((a,b)=>(b.tv.v.cIndex||0)-(a.tv.v.cIndex||0));const stSub=arr.reduce((a,x)=>a+x.s,0);
+   if(multi)vrows+=`<tr class="grp"><td colspan="5">${esc(st)} — ${arr.length} venue${arr.length!=1?'s':''} · subsidy ${fmt$(stSub)}</td></tr>`;
+   arr.forEach(x=>{const v=x.tv.v;vrows+=`<tr><td>${esc(v.name)}</td>${multi?'':`<td>${esc(v.state||'')}</td>`}<td class="center">${v.cIndex!=null?v.cIndex.toFixed(1):'—'}</td><td class="center">${v.cTier}</td><td class="right">${fmt$(x.tv.fee||0)}</td><td class="right">${x.s?fmt$(x.s):'–'}</td></tr>`;});});
+ const vhead=`<tr><th>Venue</th>${multi?'':'<th>State</th>'}<th class="center">Index</th><th>Tier</th><th class="right">Fee</th><th class="right">Subsidy</th></tr>`;
+ const fundRows=`<tr><td>Children's Theatre Investment Fund <span style="color:#6b7a80">(balance)</span></td><td class="right">${fmt$(R.fund)}</td></tr>`+R.rows.map(r=>`<tr><td>${esc(r.name)}</td><td class="right">${fmt$(r.amount)}</td></tr>`).join('');
+ const html=`<div class="rpt">
+   <div class="rpt-headbar">${logo?`<img class="rpt-logo" src="${logo}">`:''}<div class="rpt-title">${esc((co?co.name:'')+(sh?' · '+sh.title:''))}</div><div class="rpt-subt">${esc(t.name)} — tour subsidy proposal · ${dt}</div></div>
+   <div class="rpt-body">
+     <p>This proposal sets out the subsidy sought for <b>${esc(t.name)}</b>${sh?` (${esc(sh.title)})`:''}${co?` by ${esc(co.name)}`:''} — the venues on the tour, the children it reaches, and how the subsidy is funded.</p>
+     <div class="rpt-hero">
+       <div><div class="h pink">${fmt$(sub)}</div><div class="l">Subsidy sought</div></div>
+       <div><div class="h">${n}</div><div class="l">Tour venues · ${confN} subsidised</div></div>
+       <div><div class="h">${child.toLocaleString()}</div><div class="l">Children 0–14 reached</div></div>
+     </div>
+     <h3>Funding sources</h3>
+     <table><tbody>${fundRows}<tr class="grp"><td><b>Total subsidy sought</b></td><td class="right"><b>${fmt$(sub)}</b></td></tr></tbody></table>
+     <p style="color:#6b7a80;font-size:11px">Gross presenter fees across the tour: ${fmt$(gross)}. Subsidy applies to confirmed High-tier venues only.</p>
+     <h3>The model used</h3>
+     <div class="settings">
+       <div>Geography: <b>${MODEL.geo.toUpperCase()}</b></div>
+       <div>Indicator weights: <b>${wtxt}</b></div>
+       <div>Priority tiers: <b>High ≥ ${(+MODEL.thr.high).toFixed(1)}</b>, Medium ≥ ${(+MODEL.thr.med).toFixed(1)}</div>
+       <div style="grid-column:1/-1">Subsidy: <b>${Math.round(MODEL.sub.floor*100)}% → ${Math.round(MODEL.sub.ceil*100)}%</b> across the High band, full at index ${(+MODEL.sub.full).toFixed(1)}+.</div>
+     </div>
+     ${tierReportSVG()}
+     <h3>Where the tour goes</h3>
+     <div style="margin:6px 0 4px">${ausMapSVG(pts,400)}</div>
+     <h3>Venues${multi?' (by state)':''}</h3>
+     <table><thead>${vhead}</thead><tbody>${vrows}</tbody></table>
+     <div class="rpt-foot">Impact scoring from AEDC 2024, ABS SEIFA 2021 (IRSD), ABS Remoteness Areas, ABS Census 2021 and Estimated Resident Population. Prepared with the National Children's Theatre Initiative.</div>
+   </div>
+ </div>`;
+ document.getElementById('reportBody').innerHTML=html;document.getElementById('reportView').classList.add('open');document.getElementById('reportView').scrollTop=0;}
 function toggleBasketFloat(){floatCard('basketCard','basketFloatBtn',380,88);}
 function basketDragStart(e){cardDragStart('basketCard',e);}
 function toggleTourFloat(){floatCard('tourCard','tourFloatBtn',40,100);}
 function tourDragStart(e){cardDragStart('tourCard',e);}
+function toggleModelFloat(){floatCard('modelcard','modelFloatBtn',380,80);}
+function modelDragStart(e){cardDragStart('modelcard',e);}
 // ---------- subsidy report (PDF) ----------
 function closeReport(){document.getElementById('reportView').classList.remove('open');}
 function tierReportSVG(){const W=620,H=64,ax=16;const x=v=>v/10*W;
