@@ -161,6 +161,17 @@ tbody tr.grouphdr:hover td{background:var(--navy);}
 .tvname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .tvconf{display:flex;align-items:center;gap:4px;font-size:10.5px;color:var(--slate);white-space:nowrap;}
 .tvfee input{width:72px;font-family:inherit;font-size:12px;padding:3px 5px;border:1.5px solid var(--navy);border-radius:5px;background:#fff;color:var(--navy);}
+.tvfilters{display:flex;gap:14px;flex-wrap:wrap;margin:2px 0 10px;font-size:11px;color:var(--slate);align-items:center;}
+.tvfilters label{display:flex;align-items:center;gap:5px;}
+.tvfilters select{font-family:inherit;font-size:11px;padding:3px 6px;border:1.5px solid var(--navy);border-radius:5px;background:#fff;color:var(--navy);}
+.tvtablewrap{max-height:56vh;overflow:auto;border:1px solid #Eee6cf;border-radius:8px;}
+.tvtable{width:100%;border-collapse:collapse;font-size:12px;}
+.tvtable th{position:sticky;top:0;z-index:1;background:var(--navy);color:#fff;font-size:9.5px;text-transform:uppercase;letter-spacing:.3px;padding:6px 8px;text-align:left;}
+.tvtable td{padding:5px 8px;border-bottom:1px solid #Eee6cf;vertical-align:middle;}
+.tvtable td.center{text-align:center;}.tvtable td.right{text-align:right;font-variant-numeric:tabular-nums;}
+.tvtable tbody tr:hover{background:#FFF3D6;}
+.tvtable tr.tvgrp td{background:#0d4a5c;color:#fff;font-weight:800;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;position:sticky;left:0;}
+.tvtable .tvfee input{width:78px;}
 .chip{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:800;border:1px solid var(--navy);}
 .tier-High{background:var(--pink);color:#fff;}.tier-Medium{background:var(--yellow);color:var(--navy);}.tier-Low{background:var(--teal);color:var(--navy);}
 .pill-Yes{background:var(--em);color:var(--navy);padding:1px 8px;border-radius:12px;font-weight:800;font-size:11px;}.pill-No{color:#9AA0A6;font-weight:700;font-size:11px;}
@@ -327,7 +338,7 @@ body.aboutmode .siderail,body.aboutmode .railexpand,body.aboutmode #kpis,body.ab
  <div class="cbody" id="tourBody"></div>
 </div>
 <div class="card model collapsed" id="tourVenuesCard">
- <div class="top" onpointerdown="cardDragStart('tourVenuesCard',event)"><h3 onclick="toggleCard(this)" style="cursor:pointer;user-select:none;margin:0">Tour venues <span class="caret">▾</span></h3><div class="modelicons"><button class="iconbtn" id="tvFloatBtn" title="Pop out as a movable note" onclick="event.stopPropagation();floatCard('tourVenuesCard','tvFloatBtn',420,120)">⤢</button></div></div>
+ <div class="top" onpointerdown="cardDragStart('tourVenuesCard',event)"><h3 onclick="toggleCard(this)" style="cursor:pointer;user-select:none;margin:0">Tour venues <span class="caret">▾</span></h3><div class="modelicons"><button class="iconbtn" id="tvFloatBtn" title="Pop out as a movable note" onclick="event.stopPropagation();toggleTourVenuesFloat()">⤢</button></div></div>
  <div class="cbody" id="tourVenuesBody"></div>
 </div>
 <div class="card model collapsed" id="basketCard">
@@ -559,9 +570,10 @@ function toggleCard(el){el.closest('.card').classList.toggle('collapsed');}
 function toggleRail(){document.getElementById('mainrow').classList.toggle('railcollapsed');if(map)setTimeout(()=>map.invalidateSize(),80);}
 function toggleSub(el){el.closest('.subsec').classList.toggle('collapsed');}
 function toggleAcc(el){el.closest('.accitem').classList.toggle('open');}
-function floatCard(cardId,btnId,left,top){const c=document.getElementById(cardId),b=document.getElementById(btnId);
- if(!c.classList.contains('floating')){c._home={parent:c.parentNode,next:c.nextSibling};document.body.appendChild(c);c.classList.add('floating');c.classList.remove('collapsed');c.style.right='';c.style.left=left+'px';c.style.top=top+'px';c.style.width='320px';if(b){b.textContent='⤡';b.title='Dock back into the panel';}}
+function floatCard(cardId,btnId,left,top,w){const c=document.getElementById(cardId),b=document.getElementById(btnId);
+ if(!c.classList.contains('floating')){c._home={parent:c.parentNode,next:c.nextSibling};document.body.appendChild(c);c.classList.add('floating');c.classList.remove('collapsed');c.style.right='';c.style.left=left+'px';c.style.top=top+'px';c.style.width=(w||320)+'px';if(b){b.textContent='⤡';b.title='Dock back into the panel';}}
  else dockCard(cardId,btnId);}
+function toggleTourVenuesFloat(){floatCard('tourVenuesCard','tvFloatBtn',200,70,700);renderTourVenues();}
 function dockCard(cardId,btnId){const c=document.getElementById(cardId),b=document.getElementById(btnId);c.classList.remove('floating');c.style.left=c.style.top=c.style.right=c.style.width='';if(c._home){c._home.parent.insertBefore(c,c._home.next);c._home=null;}if(b){b.textContent='⤢';b.title='Pop out as a movable note';}}
 function cardDragStart(cardId,e){const c=document.getElementById(cardId);if(!c.classList.contains('floating'))return;if(e.target.closest('button'))return;const r=c.getBoundingClientRect();const dx=e.clientX-r.left,dy=e.clientY-r.top;
  const move=ev=>{c.style.right='';c.style.left=Math.max(4,Math.min(window.innerWidth-80,ev.clientX-dx))+'px';c.style.top=Math.max(4,Math.min(window.innerHeight-44,ev.clientY-dy))+'px';};
@@ -633,18 +645,47 @@ async function removeTourVenue(id){const {error}=await sbc.from('tour_venues').d
 function tourTotals(){let sub=0,child=0,conf=0;const seen=new Set();
  tourVenues.forEach(tv=>{const v=tv.v;const fee=tv.fee||0;if(tv.confirmed&&v.cSub>0){sub+=fee*v.cSub;conf++;}const k=areaCode(v);if(k!=null&&!seen.has(k)){seen.add(k);child+=v.cChild||0;}});
  return {sub,child,conf};}
+let tvSort='index',tvSortDir=-1,tvfTier='',tvfState='',tvfConf='',tvGroup='';
+function setTvSort(k){if(tvSort===k)tvSortDir*=-1;else{tvSort=k;tvSortDir=(k==='name'||k==='state'||k==='tier')?1:-1;}renderTourVenues();}
+function setTvFilter(which,v){if(which==='tier')tvfTier=v;else if(which==='state')tvfState=v;else if(which==='conf')tvfConf=v;else tvGroup=v;renderTourVenues();}
+function tvRow(x){const v=x.v;const amt=(x.confirmed&&v.cSub>0)?(x.fee||0)*v.cSub:0;
+ return `<tr><td>${esc(v.name)}</td><td>${esc(v.state||'')}</td><td><span class="chip tier-${v.cTier}" style="font-size:9px;padding:1px 6px">${v.cTier}</span></td><td class="center">${v.cIndex!=null?v.cIndex.toFixed(1):'—'}</td><td><span class="tvfee">$<input type="number" value="${x.fee||0}" step="500" min="0" onchange="setTourVenueFee(${x.id},this.value)"></span></td><td class="center"><input type="checkbox" ${x.confirmed?'checked':''} onchange="toggleTourVenueConfirmed(${x.id},this.checked)"></td><td class="right">${amt?fmt$(amt):'–'}</td><td><button class="srcx" onclick="removeTourVenue(${x.id})" title="Remove from tour">✕</button></td></tr>`;}
 function renderTourVenues(){const el=document.getElementById('tourVenuesBody');if(!el)return;const t=activeTourObj();
  if(!SESSION){el.innerHTML='<div class="muted" style="font-size:12px">Sign in to manage tour venues.</div>';return;}
  if(!t){el.innerHTML='<div class="muted" style="font-size:12px">Select a tour in the Tours panel to build its venue list.</div>';return;}
- const T=tourTotals();
- let h=`<div class="muted" style="font-size:11px;margin-bottom:6px">${tourVenues.length} venue${tourVenues.length!=1?'s':''} on this tour · ${T.conf} with confirmed subsidy</div>`;
- if(!tourVenues.length)h+='<div class="muted" style="font-size:11.5px">Tick venues in the Venues list and use “Add ticked venues to tour” at the top.</div>';
- else{h+='<div class="tvlist">';
+ const T=tourTotals();const card=document.getElementById('tourVenuesCard');const floating=!!(card&&card.classList.contains('floating'));
+ let h=`<div class="muted" style="font-size:11px;margin-bottom:6px">${tourVenues.length} venue${tourVenues.length!=1?'s':''} on this tour · ${T.conf} with confirmed subsidy${floating?'':' · <span style="color:var(--pink)">⤢ expand for sorting, filters &amp; grouping</span>'}</div>`;
+ if(!tourVenues.length){h+='<div class="muted" style="font-size:11.5px">Tick venues in the Venues list and use “Add ticked venues to tour” at the top.</div>';el.innerHTML=h;return;}
+ if(floating){
+   const states=[...new Set(tourVenues.map(x=>x.v.state).filter(Boolean))].sort();
+   const opt=(val,cur,lbl)=>`<option value="${val}" ${val===cur?'selected':''}>${lbl}</option>`;
+   h+=`<div class="tvfilters">
+     <label>Tier <select onchange="setTvFilter('tier',this.value)">${opt('',tvfTier,'All')}${['High','Medium','Low'].map(x=>opt(x,tvfTier,x)).join('')}</select></label>
+     <label>State <select onchange="setTvFilter('state',this.value)">${opt('',tvfState,'All')}${states.map(s=>opt(s,tvfState,s)).join('')}</select></label>
+     <label>Subsidy <select onchange="setTvFilter('conf',this.value)">${opt('',tvfConf,'All')}${opt('yes',tvfConf,'Confirmed')}${opt('no',tvfConf,'Not confirmed')}</select></label>
+     <label>Group by <select onchange="setTvFilter('group',this.value)">${opt('',tvGroup,'(none)')}${opt('state',tvGroup,'State')}${opt('tier',tvGroup,'Tier')}</select></label>
+   </div>`;
+   let list=tourVenues.slice();
+   if(tvfTier)list=list.filter(x=>x.v.cTier===tvfTier);
+   if(tvfState)list=list.filter(x=>(x.v.state||'')===tvfState);
+   if(tvfConf==='yes')list=list.filter(x=>x.confirmed);if(tvfConf==='no')list=list.filter(x=>!x.confirmed);
+   const kf={name:x=>x.v.name||'',state:x=>x.v.state||'',tier:x=>(({High:0,Medium:1,Low:2})[x.v.cTier]??9),index:x=>x.v.cIndex||0,fee:x=>x.fee||0,conf:x=>x.confirmed?0:1,amount:x=>(x.confirmed&&x.v.cSub>0?(x.fee||0)*x.v.cSub:0)}[tvSort]||(x=>x.v.cIndex||0);
+   list.sort((a,b)=>{const A=kf(a),B=kf(b);if(typeof A==='string')return tvSortDir*(''+A).localeCompare(''+B);return tvSortDir*(A-B);});
+   let rows='';
+   if(tvGroup){const ord={High:0,Medium:1,Low:2};const gof=x=>tvGroup==='tier'?x.v.cTier:(x.v.state||'—');
+     list.sort((a,b)=>tvGroup==='tier'?((ord[a.v.cTier]??9)-(ord[b.v.cTier]??9)):(''+(a.v.state||'—')).localeCompare(''+(b.v.state||'—')));
+     let cur=null;list.forEach(x=>{const g=gof(x);if(g!==cur){cur=g;rows+=`<tr class="tvgrp"><td colspan="8">${esc(g)}</td></tr>`;}rows+=tvRow(x);});}
+   else rows=list.map(tvRow).join('');
+   const th=(k,l)=>`<th onclick="setTvSort('${k}')" style="cursor:pointer;white-space:nowrap">${l}${tvSort===k?(tvSortDir<0?' ▾':' ▴'):''}</th>`;
+   h+=`<div class="tvtablewrap"><table class="tvtable"><thead><tr>${th('name','Venue')}${th('state','State')}${th('tier','Tier')}${th('index','Index')}${th('fee','Fee')}${th('conf','Subsidy')}${th('amount','Amount')}<th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+ } else {
+   h+='<div class="tvlist">';
    tourVenues.slice().sort((a,b)=>(b.v.cIndex||0)-(a.v.cIndex||0)).forEach(tv=>{const v=tv.v;
      h+=`<div class="tvitem"><div class="tvname"><b>${esc(v.name)}</b> <span class="chip tier-${v.cTier}" style="font-size:9px;padding:1px 6px">${v.cTier}</span></div><label class="tvconf"><input type="checkbox" ${tv.confirmed?'checked':''} onchange="toggleTourVenueConfirmed(${tv.id},this.checked)"> subsidy</label><span class="tvfee">$<input type="number" value="${tv.fee||0}" step="500" min="0" onchange="setTourVenueFee(${tv.id},this.value)"></span><button class="srcx" title="Remove from tour" onclick="removeTourVenue(${tv.id})">✕</button></div>`;});
    h+='</div>';
-   h+=`<div class="fundrow total" style="margin-top:8px"><b>Subsidy required</b><b style="color:var(--pink)">${fmt$(T.sub)}</b></div><div class="statline" style="border:none;padding-top:4px"><span class="sl">Children 0–14 reached</span><span class="sv" style="color:#118AB2">${T.child.toLocaleString()}</span></div>`;
-   h+='<button class="btn" style="margin-top:10px;width:100%;font-size:12px" onclick="createTourReport()">Tour report (PDF)</button>';}
+ }
+ h+=`<div class="fundrow total" style="margin-top:8px"><b>Subsidy required</b><b style="color:var(--pink)">${fmt$(T.sub)}</b></div><div class="statline" style="border:none;padding-top:4px"><span class="sl">Children 0–14 reached</span><span class="sv" style="color:#118AB2">${T.child.toLocaleString()}</span></div>`;
+ h+='<button class="btn" style="margin-top:10px;width:100%;font-size:12px" onclick="createTourReport()">Tour report (PDF)</button>';
  el.innerHTML=h;}
 function renderTourBar(){const el=document.getElementById('tourBar');if(!el)return;const t=activeTourObj();
  if(SESSION&&t){const co=COMPANIES.find(c=>c.id===curCompany),sh=SHOWS.find(s=>s.id===curShow);
