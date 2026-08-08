@@ -273,6 +273,7 @@ tbody tr.grouphdr:hover td{background:var(--navy);}
 }
 #modelbackdrop{position:fixed;inset:0;background:rgba(7,59,76,.42);display:none;z-index:5500;}
 body.aboutmode .siderail,body.aboutmode .railexpand,body.aboutmode #kpis,body.aboutmode #filterCard{display:none!important;}
+body.toursmode .siderail,body.toursmode .railexpand,body.toursmode #kpis{display:none!important;}
 .aboutwrap{max-width:940px;margin:0 auto;padding:4px 2px 40px;}
 .kicker{font-size:12px;letter-spacing:3px;text-transform:uppercase;color:var(--pink);font-weight:800;margin-bottom:8px;}
 .ahero{font-family:'Charlie Kingdom';font-size:40px;line-height:1.03;color:var(--navy);text-transform:uppercase;margin:0 0 14px;}
@@ -847,12 +848,12 @@ function renderToursList(rows){const body=document.getElementById('toursBody');i
  const start=(tuSize===Infinity)?0:(tuPage-1)*tuSize;const end=(tuSize===Infinity)?total:Math.min(total,start+tuSize);const pageRows=rows.slice(start,end);
  let h='<div class="card" style="overflow:hidden"><div class="tablewrap"><table class="tourstable"><thead><tr><th>Company</th><th>Work</th><th>Tour</th><th class="center">Venues</th><th class="center">Subsidised</th><th class="right">Subsidy</th><th class="right">Presenter</th><th class="center">Children</th><th></th></tr></thead><tbody>';
  if(!pageRows.length)h+='<tr><td colspan="9" style="padding:16px;color:var(--slate)">No tours match these filters.</td></tr>';
- pageRows.forEach(r=>{h+=`<tr onclick="openTourFromList(${r.t.id})" style="cursor:pointer"><td>${esc(r.co?r.co.name:'—')}</td><td>${esc(r.sh?r.sh.title:'—')}</td><td><b>${esc(r.t.name)}</b></td><td class="center">${r.a.venues}</td><td class="center">${r.a.confirmed}</td><td class="right" style="color:var(--pink);font-weight:700">${fmt$(r.a.subsidy)}</td><td class="right">${fmt$(r.a.gross-r.a.subsidy)}</td><td class="center" style="color:#118AB2">${r.a.child.toLocaleString()}</td><td class="center"><button class="btn sec" style="padding:3px 8px;font-size:11px" onclick="event.stopPropagation();openTourFromList(${r.t.id})">Report</button></td></tr>`;});
+ pageRows.forEach(r=>{h+=`<tr onclick="activateTourFromList(${r.t.id})" style="cursor:pointer" title="Open as the active tour on the Venues tab"><td>${esc(r.co?r.co.name:'—')}</td><td>${esc(r.sh?r.sh.title:'—')}</td><td><b>${esc(r.t.name)}</b></td><td class="center">${r.a.venues}</td><td class="center">${r.a.confirmed}</td><td class="right" style="color:var(--pink);font-weight:700">${fmt$(r.a.subsidy)}</td><td class="right">${fmt$(r.a.gross-r.a.subsidy)}</td><td class="center" style="color:#118AB2">${r.a.child.toLocaleString()}</td><td class="center"><button class="btn sec" style="padding:3px 8px;font-size:11px" onclick="event.stopPropagation();openTourFromList(${r.t.id})">Report</button></td></tr>`;});
  h+='</tbody></table></div></div>';
  const opts=[20,50,100].map(n=>`<option value="${n}" ${tuSize===n?'selected':''}>${n}</option>`).join('')+`<option value="all" ${tuSize===Infinity?'selected':''}>All</option>`;
  let pg='';if(pages>1){pg=`<div class="pbtns"><button onclick="tuGoto(1)" ${tuPage===1?'disabled':''}>« First</button><button onclick="tuGoto(${tuPage-1})" ${tuPage===1?'disabled':''}>‹ Prev</button><span style="padding:0 6px">Page <b>${tuPage}</b> of <b>${pages}</b></span><button onclick="tuGoto(${tuPage+1})" ${tuPage===pages?'disabled':''}>Next ›</button><button onclick="tuGoto(${pages})" ${tuPage===pages?'disabled':''}>Last »</button></div>`;}
  h+=`<div class="pager"><label>Show <select onchange="setTuSize(this.value)">${opts}</select> per page</label> <span>${total?`Showing <b>${start+1}–${end}</b> of <b>${total}</b> tours`:'No tours'}</span>${pg}</div>`;
- h+='<div class="muted" style="margin-top:8px">Click any tour to open its subsidy report. Each tour’s subsidy is calculated under its own saved model.</div>';
+ h+='<div class="muted" style="margin-top:8px">Click any tour to open it as the active tour on the Venues tab; use <b>Report</b> for its subsidy PDF. Each tour’s subsidy is calculated under its own saved model.</div>';
  body.innerHTML=h;}
 function renderToursMap(rows){const body=document.getElementById('toursBody');if(!body)return;const pts=[];rows.forEach(r=>r.a.pts.forEach(p=>pts.push(p)));
  let h='<div class="card" style="padding:16px">';
@@ -878,7 +879,9 @@ function renderToursAnalysis(rows,TT){const body=document.getElementById('toursB
  mk('tcTier','doughnut',{labels:['High','Medium','Low'],datasets:[{data:[tierCount.High,tierCount.Medium,tierCount.Low],backgroundColor:[TIERCOL.High,TIERCOL.Medium,TIERCOL.Low],borderColor:'#fff',borderWidth:2}]},{plugins:{legend:{position:'bottom'}}});
  let potential=0,confirmed=0;rows.forEach(r=>{const m=tourModelOf(r.t);r.a.tvs.forEach(x=>{const c=computeWith(x.v,m);if(c.subsidy>0){const amt=(x.fee||0)*c.subsidy;potential+=amt;if(x.confirmed)confirmed+=amt;}});});
  mk('tcConf','bar',{labels:['Confirmed','Full potential'],datasets:[{data:[Math.round(confirmed),Math.round(potential)],backgroundColor:['#EF476F','#5BC0BE'],borderColor:'#073B4C',borderWidth:1}]},{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}});}
-async function openTourFromList(tourId){const t=TOURS.find(x=>x.id===tourId);if(!t)return;const sh=SHOWS.find(s=>s.id===t.show_id);curShow=t.show_id;curCompany=sh?sh.company_id:null;curTour=tourId;await loadTourVenues(tourId);if(t.model)applyTourModel();renderTourPanel();createTourReport();}
+async function loadTourAsActive(tourId){const t=TOURS.find(x=>x.id===tourId);if(!t)return null;const sh=SHOWS.find(s=>s.id===t.show_id);curShow=t.show_id;curCompany=sh?sh.company_id:null;curTour=tourId;await loadTourVenues(tourId);if(t.model)applyTourModel();renderTourPanel();return t;}
+async function openTourFromList(tourId){const t=await loadTourAsActive(tourId);if(t)createTourReport();}
+async function activateTourFromList(tourId){const t=await loadTourAsActive(tourId);if(t)showPage('venues');}
 function toggleBasketFloat(){floatCard('basketCard','basketFloatBtn',380,88);}
 function basketDragStart(e){cardDragStart('basketCard',e);}
 function toggleTourFloat(){floatCard('tourCard','tourFloatBtn',40,100);}
@@ -1243,7 +1246,7 @@ function render(){const a=filtered();const _cc=document.getElementById('count');
  if(curPage==='map'){schedulePaint();paintMarkers();}
  renderModels();renderTierViz();renderTourPanel();renderTourBar();renderTourVenues();}
 function setSort(k){if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=(['name','state','status','ra','tier','eligible'].includes(k))?1:-1;}render();}
-function showPage(p){curPage=p;const explorer=(p==='venues'||p==='map'||p==='charts');document.body.classList.toggle('aboutmode',p==='about');document.querySelectorAll('.page').forEach(e=>e.classList.remove('active'));document.getElementById('page-'+p).classList.add('active');
+function showPage(p){curPage=p;const explorer=(p==='venues'||p==='map'||p==='charts');document.body.classList.toggle('aboutmode',p==='about');document.body.classList.toggle('toursmode',p==='tours');document.querySelectorAll('.page').forEach(e=>e.classList.remove('active'));document.getElementById('page-'+p).classList.add('active');
  document.getElementById('nav-venues').classList.toggle('active',explorer);
  document.getElementById('nav-tours').classList.toggle('active',p==='tours');
  document.getElementById('nav-about').classList.toggle('active',p==='about');
