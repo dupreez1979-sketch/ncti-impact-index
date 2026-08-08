@@ -174,7 +174,7 @@ tbody tr.grouphdr:hover td{background:var(--navy);}
 #tvrampfill{fill:rgba(7,59,76,.55);stroke:#073B4C;stroke-width:2;vector-effect:non-scaling-stroke;}
 .tvfields{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px;} .tvfields input{width:100%;}
 .tvhandle{position:absolute;top:-2px;bottom:-2px;width:12px;margin-left:-6px;background:var(--navy);border:2px solid #fff;border-radius:5px;cursor:ew-resize;z-index:3;box-shadow:0 0 0 1px var(--navy);}
-.tvmark{position:absolute;top:-3px;bottom:-3px;width:4px;margin-left:-2px;background:#111;cursor:ew-resize;z-index:4;}
+.tvmark{position:absolute;top:-3px;bottom:-3px;width:5px;margin-left:-2.5px;background:#fff;border:1px solid var(--navy);border-radius:2px;box-shadow:0 0 3px rgba(0,0,0,.35);cursor:ew-resize;z-index:4;}
 .tvaxis{display:flex;justify-content:space-between;font-size:10px;color:var(--slate);margin-top:4px;}
 .tvkey{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--slate);margin-top:6px;}
 .tvkey i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:middle;}
@@ -329,7 +329,7 @@ body.aboutmode .siderail,body.aboutmode .railexpand,body.aboutmode #kpis,body.ab
  <div class="card chartbox"><h3>Children 0–14 by tier (reach)</h3><canvas id="cChildTier"></canvas></div>
 </div></div>
 <div class="page" id="page-map">
- <div style="display:flex;gap:12px;align-items:center;margin:6px 2px 14px;flex-wrap:wrap">
+ <div style="display:flex;gap:12px;align-items:center;margin:20px 2px 14px;flex-wrap:wrap">
    <span class="muted">Shade areas by:</span>
    <button class="preset" id="mapmode_tier" onclick="setMapMode('tier')">Tier</button>
    <button class="preset" id="mapmode_index" onclick="setMapMode('index')">Impact Index (0–10)</button>
