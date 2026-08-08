@@ -73,18 +73,16 @@ header h1{font-size:29px;margin:0;} header .sub{color:var(--slate);font-size:13p
 .geo button{font-family:'Charlie Kingdom';font-size:15px;padding:6px 16px;border:1.5px solid var(--navy);border-radius:5px;background:#fff;color:var(--navy);cursor:pointer;}
 .geo button.on{background:var(--navy);color:#fff;}
 .presets-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
-.modelchip{position:relative;display:inline-flex;align-items:center;width:186px;border:1.5px solid var(--navy);border-radius:6px;box-shadow:3px 3px 0 var(--navy);overflow:hidden;background:#fff;}
+#savedmodels{display:flex;flex-direction:column;gap:8px;align-items:stretch;}
+.modelchip{display:flex;align-items:center;border:1.5px solid var(--navy);border-radius:6px;box-shadow:3px 3px 0 var(--navy);overflow:hidden;background:#fff;}
 .modelchip.on{background:var(--navy);}
-.modelapply{flex:1;min-width:0;font-family:'Charlie Kingdom';font-size:13px;padding:7px 10px;border:none;background:transparent;color:var(--navy);cursor:pointer;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.modelapply{flex:1;min-width:0;font-family:'Charlie Kingdom';font-size:13px;padding:8px 10px;border:none;background:transparent;color:var(--navy);cursor:pointer;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .modelchip.on .modelapply{color:#fff;}
-.modelinfo{padding:0 9px;color:var(--slate);cursor:help;font-size:14px;flex:none;}
-.modelchip.on .modelinfo{color:#9DB4D8;}
-.modelacts{position:absolute;right:0;top:0;bottom:0;display:none;align-items:center;gap:2px;padding:0 6px;background:#fff;border-left:1px solid #E7DFC6;}
-.modelchip.on .modelacts{background:var(--navy);border-left-color:#1d4e5e;}
-.modelchip:hover .modelacts{display:flex;}
-.modelacts button{border:none;background:transparent;cursor:pointer;font-size:14px;padding:4px 5px;color:var(--navy);line-height:1;}
-.modelchip.on .modelacts button{color:#fff;}
-.modelacts button:hover{color:var(--pink);}
+.modelicons2{display:flex;align-items:center;gap:0;flex:none;padding-right:4px;}
+.modelicons2 button,.modelicons2 .modelinfo{border:none;background:transparent;cursor:pointer;font-size:14px;padding:6px 6px;color:var(--slate);line-height:1;}
+.modelicons2 .modelinfo{cursor:help;}
+.modelchip.on .modelicons2 button,.modelchip.on .modelicons2 .modelinfo{color:#cfe0ea;}
+.modelicons2 button:hover{color:var(--pink);}
 .preset{font-family:'Charlie Kingdom';font-size:13px;padding:7px 14px;border:1.5px solid var(--navy);border-radius:6px;background:#fff;color:var(--navy);cursor:pointer;box-shadow:3px 3px 0 var(--navy);}
 .preset.on{background:var(--pink);color:#fff;}
 .preset:active{box-shadow:1px 1px 0 var(--navy);transform:translate(2px,2px);}
@@ -493,8 +491,8 @@ function renderModels(){const el=document.getElementById('savedmodels');if(!el)r
  if(!MODELS.length)h+='<span class="muted" style="font-size:11px;margin-right:4px">No saved models yet.</span>';
  MODELS.forEach(m=>{const on=modelEq(m.config);
   const tip='Created '+(m.date||'—')+(m.description?('\n\n'+m.description):'');
-  h+=`<span class="modelchip ${on?'on':''}"><button class="modelapply" onclick="applyModel(${m.id})" title="Apply: ${esc(m.name)}">${esc(m.name)}</button><span class="modelinfo" title="${esc(tip)}">ⓘ</span>${SESSION?`<span class="modelacts"><button title="Update to current settings" onclick="event.stopPropagation();updateModelToCurrent(${m.id})">⟳</button><button title="Edit name &amp; description" onclick="event.stopPropagation();renameModel(${m.id})">✎</button><button title="Delete" onclick="event.stopPropagation();deleteModel(${m.id})">✕</button></span>`:''}</span>`;});
- h+=`<button class="preset" style="border-style:dashed" onclick="saveCurrentModel()">＋ Save current</button>`;
+  h+=`<span class="modelchip ${on?'on':''}"><button class="modelapply" onclick="applyModel(${m.id})" title="Apply: ${esc(m.name)}">${esc(m.name)}</button><span class="modelicons2"><span class="modelinfo" title="${esc(tip)}">ⓘ</span>${SESSION?`<button title="Update to current settings" onclick="event.stopPropagation();updateModelToCurrent(${m.id})">⟳</button><button title="Edit name &amp; description" onclick="event.stopPropagation();renameModel(${m.id})">✎</button><button title="Delete" onclick="event.stopPropagation();deleteModel(${m.id})">✕</button>`:''}</span></span>`;});
+ h+=`<button class="preset" style="border-style:dashed;align-self:flex-start" onclick="saveCurrentModel()">＋ Save current</button>`;
  el.innerHTML=h;}
 function applyModel(id){const m=MODELS.find(x=>x.id===id);if(!m||!m.config)return;const c=m.config;
  MODEL.geo=c.geo||'sa2';MODEL.on={em:!!c.on.em,seifa:!!c.on.seifa,rem:!!c.on.rem};
