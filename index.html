@@ -156,6 +156,11 @@ tbody tr.grouphdr:hover td{background:var(--navy);}
 .tourrow select{flex:1;min-width:0;font-family:inherit;font-size:12px;padding:5px 7px;border:1.5px solid var(--navy);border-radius:5px;background:#fff;color:var(--navy);}
 .iconbtn2{border:1.5px solid var(--navy);background:#fff;color:var(--navy);border-radius:5px;cursor:pointer;font-size:12px;padding:4px 7px;line-height:1;flex:none;}
 .iconbtn2:hover{background:var(--navy);color:#fff;}
+.tvlist{max-height:300px;overflow:auto;}
+.tvitem{display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid #Eee6cf;font-size:12px;}
+.tvname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tvconf{display:flex;align-items:center;gap:4px;font-size:10.5px;color:var(--slate);white-space:nowrap;}
+.tvfee input{width:72px;font-family:inherit;font-size:12px;padding:3px 5px;border:1.5px solid var(--navy);border-radius:5px;background:#fff;color:var(--navy);}
 .chip{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:800;border:1px solid var(--navy);}
 .tier-High{background:var(--pink);color:#fff;}.tier-Medium{background:var(--yellow);color:var(--navy);}.tier-Low{background:var(--teal);color:var(--navy);}
 .pill-Yes{background:var(--em);color:var(--navy);padding:1px 8px;border-radius:12px;font-weight:800;font-size:11px;}.pill-No{color:#9AA0A6;font-weight:700;font-size:11px;}
@@ -322,6 +327,10 @@ body.aboutmode .siderail,body.aboutmode .railexpand,body.aboutmode #kpis,body.ab
  <div class="top" onpointerdown="tourDragStart(event)"><h3 onclick="toggleCard(this)" style="cursor:pointer;user-select:none;margin:0">Tours <span class="caret">▾</span></h3><div class="modelicons"><button class="iconbtn" id="tourFloatBtn" title="Pop out as a movable note" onclick="event.stopPropagation();toggleTourFloat()">⤢</button></div></div>
  <div class="cbody" id="tourBody"></div>
 </div>
+<div class="card model collapsed" id="tourVenuesCard">
+ <div class="top" onpointerdown="cardDragStart('tourVenuesCard',event)"><h3 onclick="toggleCard(this)" style="cursor:pointer;user-select:none;margin:0">Tour venues <span class="caret">▾</span></h3><div class="modelicons"><button class="iconbtn" id="tvFloatBtn" title="Pop out as a movable note" onclick="event.stopPropagation();floatCard('tourVenuesCard','tvFloatBtn',420,120)">⤢</button></div></div>
+ <div class="cbody" id="tourVenuesBody"></div>
+</div>
 <div class="card model collapsed" id="basketCard">
  <div class="top" onpointerdown="basketDragStart(event)"><h3 onclick="toggleCard(this)" style="cursor:pointer;user-select:none;margin:0">Subsidy <span class="caret">▾</span></h3>
    <div class="modelicons"><button class="iconbtn" id="basketFloatBtn" title="Pop out as a movable note" onclick="event.stopPropagation();toggleBasketFloat()">⤢</button></div>
@@ -365,7 +374,7 @@ body.aboutmode .siderail,body.aboutmode .railexpand,body.aboutmode #kpis,body.ab
  </div>
 </div>
 <div class="page active" id="page-venues">
-<div style="display:flex;align-items:center;gap:10px;margin:16px 2px 12px"><label style="font-size:12.5px;color:var(--slate);font-weight:700">Group by <select id="groupBy" onchange="setGroup(this.value)" style="font-family:inherit;font-size:13px;padding:5px 7px;border:1.5px solid var(--navy);border-radius:5px;background:#fff;color:var(--navy)"><option value="">(none)</option><option value="state">State</option><option value="tier">Tier</option></select></label></div><div class="card" style="overflow:hidden"><div class="tablewrap"><table><thead><tr id="thead"></tr></thead><tbody id="tbody"></tbody></table></div></div>
+<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:16px 2px 12px"><label style="font-size:12.5px;color:var(--slate);font-weight:700">Group by <select id="groupBy" onchange="setGroup(this.value)" style="font-family:inherit;font-size:13px;padding:5px 7px;border:1.5px solid var(--navy);border-radius:5px;background:#fff;color:var(--navy)"><option value="">(none)</option><option value="state">State</option><option value="tier">Tier</option></select></label><span id="tourBar" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"></span></div><div class="card" style="overflow:hidden"><div class="tablewrap"><table><thead><tr id="thead"></tr></thead><tbody id="tbody"></tbody></table></div></div>
  <div class="pager" id="pager"></div>
  <div class="muted" style="margin-top:8px">Click any venue for its profile, the formula under the current model, and the fee calculator.</div></div>
 <div class="page" id="page-charts"><div class="chartsgrid">
@@ -514,7 +523,7 @@ function resolveSources(sub,stateSub){let other=0;const rows=sources.map(s=>{con
 let collapsedGroups=new Set();
 function setGroup(v){groupBy=v;collapsedGroups.clear();pageNum=1;render();}
 function toggleGroup(k){if(collapsedGroups.has(k))collapsedGroups.delete(k);else collapsedGroups.add(k);render();}
-function toggleSel(i){if(sel.has(i))sel.delete(i);else sel.add(i);renderBasket();updateSelAll();}
+function toggleSel(i){if(sel.has(i))sel.delete(i);else sel.add(i);renderBasket();updateSelAll();renderTourBar();}
 function selectAllFiltered(check){filtered().forEach(v=>{if(check)sel.add(v._i);else sel.delete(v._i);});render();}
 function clearSel(){sel.clear();render();}
 function setBasketFee(v){basketFee=Math.max(0,+v||0);const e=document.getElementById('bkFee');if(e)e.value=basketFee;renderBasket();}
@@ -568,7 +577,7 @@ async function loadTours(){try{
  }catch(e){console.warn('tours not loaded (run tours.sql):',e);}}
 function selectCompany(id){curCompany=id?+id:null;curShow=null;curTour=null;renderTourPanel();}
 function selectShow(id){curShow=id?+id:null;curTour=null;renderTourPanel();}
-function selectTour(id){curTour=id?+id:null;const t=activeTourObj();if(t&&t.model){applyTourModel();}else{renderTourPanel();}}
+function selectTour(id){curTour=id?+id:null;loadTourVenues(curTour);const t=activeTourObj();if(t&&t.model){applyTourModel();}else{renderTourPanel();}}
 function renderTourPanel(){const el=document.getElementById('tourBody');if(!el)return;
  if(!SESSION){el.innerHTML='<div class="muted" style="font-size:12px">Sign in to build and manage tours.</div>';return;}
  const compOpts='<option value="">— select company —</option>'+COMPANIES.map(c=>`<option value="${c.id}" ${c.id===curCompany?'selected':''}>${esc(c.name)}</option>`).join('');
@@ -608,6 +617,39 @@ function applyTourModel(){const t=activeTourObj();if(!t||!t.model)return;const c
  if(t.sources)sources=JSON.parse(JSON.stringify(t.sources));
  buildInd();updateSubnote();recompute();render();}
 async function saveModelToTour(){const t=activeTourObj();if(!t){alert('Select a tour first.');return;}const {error}=await sbc.from('tours').update({model:MODEL,sources:sources}).eq('id',t.id);if(error){alert(error.message);return;}t.model=JSON.parse(JSON.stringify(MODEL));t.sources=JSON.parse(JSON.stringify(sources));renderTourPanel();alert('Model saved to “'+t.name+'”.');}
+// ---------- tour venues ----------
+let tourVenues=[];
+async function loadTourVenues(tourId){tourVenues=[];if(tourId&&sbc){const {data,error}=await sbc.from('tour_venues').select('id,venue_id,fee,subsidy_confirmed').eq('tour_id',tourId);
+ if(error)console.warn(error);else tourVenues=(data||[]).map(r=>{const v=V.find(x=>x.id===r.venue_id);return v?{id:r.id,venue_id:r.venue_id,fee:r.fee,confirmed:r.subsidy_confirmed,v}:null;}).filter(Boolean);}
+ renderTourVenues();renderTourBar();renderTourPanel();}
+async function addSelectedToTour(){const t=activeTourObj();if(!t){alert('Select a tour in the Tours panel first.');return;}if(!sel.size){alert('Tick some venues in the list first.');return;}
+ const have=new Set(tourVenues.map(x=>x.venue_id));
+ const rows=[...sel].map(i=>V[i]).filter(v=>v&&v.id&&!have.has(v.id)).map(v=>({tour_id:t.id,venue_id:v.id,fee:t.default_fee||basketFee,subsidy_confirmed:v.cTier==='High'}));
+ if(!rows.length){alert('Those venues are already on this tour.');return;}
+ const {error}=await sbc.from('tour_venues').insert(rows);if(error){alert(error.message);return;}
+ await loadTourVenues(t.id);}
+async function setTourVenueFee(id,val){const f=Math.max(0,+val||0);const {error}=await sbc.from('tour_venues').update({fee:f}).eq('id',id);if(error){alert(error.message);return;}const tv=tourVenues.find(x=>x.id===id);if(tv)tv.fee=f;renderTourVenues();}
+async function toggleTourVenueConfirmed(id,ch){const {error}=await sbc.from('tour_venues').update({subsidy_confirmed:ch}).eq('id',id);if(error){alert(error.message);return;}const tv=tourVenues.find(x=>x.id===id);if(tv)tv.confirmed=ch;renderTourVenues();}
+async function removeTourVenue(id){const {error}=await sbc.from('tour_venues').delete().eq('id',id);if(error){alert(error.message);return;}tourVenues=tourVenues.filter(x=>x.id!==id);renderTourVenues();renderTourPanel();}
+function tourTotals(){let sub=0,child=0,conf=0;const seen=new Set();
+ tourVenues.forEach(tv=>{const v=tv.v;const fee=tv.fee||0;if(tv.confirmed&&v.cSub>0){sub+=fee*v.cSub;conf++;}const k=areaCode(v);if(k!=null&&!seen.has(k)){seen.add(k);child+=v.cChild||0;}});
+ return {sub,child,conf};}
+function renderTourVenues(){const el=document.getElementById('tourVenuesBody');if(!el)return;const t=activeTourObj();
+ if(!SESSION){el.innerHTML='<div class="muted" style="font-size:12px">Sign in to manage tour venues.</div>';return;}
+ if(!t){el.innerHTML='<div class="muted" style="font-size:12px">Select a tour in the Tours panel to build its venue list.</div>';return;}
+ const T=tourTotals();
+ let h=`<div class="muted" style="font-size:11px;margin-bottom:6px">${tourVenues.length} venue${tourVenues.length!=1?'s':''} on this tour · ${T.conf} with confirmed subsidy</div>`;
+ if(!tourVenues.length)h+='<div class="muted" style="font-size:11.5px">Tick venues in the Venues list and use “Add ticked venues to tour” at the top.</div>';
+ else{h+='<div class="tvlist">';
+   tourVenues.slice().sort((a,b)=>(b.v.cIndex||0)-(a.v.cIndex||0)).forEach(tv=>{const v=tv.v;
+     h+=`<div class="tvitem"><div class="tvname"><b>${esc(v.name)}</b> <span class="chip tier-${v.cTier}" style="font-size:9px;padding:1px 6px">${v.cTier}</span></div><label class="tvconf"><input type="checkbox" ${tv.confirmed?'checked':''} onchange="toggleTourVenueConfirmed(${tv.id},this.checked)"> subsidy</label><span class="tvfee">$<input type="number" value="${tv.fee||0}" step="500" min="0" onchange="setTourVenueFee(${tv.id},this.value)"></span><button class="srcx" title="Remove from tour" onclick="removeTourVenue(${tv.id})">✕</button></div>`;});
+   h+='</div>';
+   h+=`<div class="fundrow total" style="margin-top:8px"><b>Subsidy required</b><b style="color:var(--pink)">${fmt$(T.sub)}</b></div><div class="statline" style="border:none;padding-top:4px"><span class="sl">Children 0–14 reached</span><span class="sv" style="color:#118AB2">${T.child.toLocaleString()}</span></div>`;}
+ el.innerHTML=h;}
+function renderTourBar(){const el=document.getElementById('tourBar');if(!el)return;const t=activeTourObj();
+ if(SESSION&&t){const co=COMPANIES.find(c=>c.id===curCompany),sh=SHOWS.find(s=>s.id===curShow);
+   el.innerHTML=`<span style="color:var(--pink);font-weight:700;font-family:'Charlie Kingdom';font-size:13px">Building: ${esc((co?co.name+' · ':'')+(sh?sh.title+' · ':'')+t.name)}</span> <button class="btn" style="padding:4px 10px;font-size:11.5px" onclick="addSelectedToTour()">Add ticked venues to tour${sel.size?' ('+sel.size+')':''}</button>`;}
+ else el.innerHTML='';}
 function toggleBasketFloat(){floatCard('basketCard','basketFloatBtn',380,88);}
 function basketDragStart(e){cardDragStart('basketCard',e);}
 function toggleTourFloat(){floatCard('tourCard','tourFloatBtn',40,100);}
@@ -968,7 +1010,7 @@ function render(){const a=filtered();const _cc=document.getElementById('count');
  renderBasket();updateSelAll();
  if(curPage==='charts')drawCharts(a);
  if(curPage==='map'){schedulePaint();paintMarkers();}
- renderModels();renderTierViz();renderTourPanel();}
+ renderModels();renderTierViz();renderTourPanel();renderTourBar();renderTourVenues();}
 function setSort(k){if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=(['name','state','status','ra','tier','eligible'].includes(k))?1:-1;}render();}
 function showPage(p){curPage=p;document.body.classList.toggle('aboutmode',p==='about');document.querySelectorAll('.page').forEach(e=>e.classList.remove('active'));document.getElementById('page-'+p).classList.add('active');
  ['venues','charts','map','about'].forEach(x=>document.getElementById('nav-'+x).classList.toggle('active',p===x));
