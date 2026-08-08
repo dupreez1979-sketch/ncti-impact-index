@@ -207,12 +207,13 @@ tbody tr.grouphdr:hover td{background:var(--navy);}
 .rpt table{width:100%;border-collapse:collapse;font-size:11.5px;margin:6px 0 12px;}
 .rpt th{background:var(--navy);color:#fff;text-align:left;padding:5px 8px;font-size:10px;text-transform:uppercase;letter-spacing:.3px;}
 .rpt td{padding:5px 8px;border-bottom:1px solid #e6e6e6;}
-.rpt tr.grp td{background:#FFF3D0;font-weight:800;color:var(--navy);}
+.rpt tr.grp td{background:#eef1f3;font-weight:800;color:var(--navy);}
 .rpt .right{text-align:right;} .rpt .center{text-align:center;}
 .rpt .settings{display:grid;grid-template-columns:1fr 1fr;gap:5px 22px;font-size:11.5px;margin:6px 0 12px;}
 .rpt .settings b{color:var(--navy);}
 .rpt-foot{color:#6b7a80;font-size:10px;margin-top:16px;border-top:1px solid #ddd;padding-top:10px;}
 @media print{
+ html,body{background:#fff!important;}
  body>*{display:none!important;}
  #reportView{display:block!important;position:static;background:#fff;padding:0;overflow:visible;}
  .no-print{display:none!important;}
@@ -556,8 +557,9 @@ function tierReportSVG(){const W=620,H=64,ax=16;const x=v=>v/10*W;
  return s;}
 function createReport(){
  if(!sel.size){alert('Select some venues in the Venues list first.');return;}
- let n=0,elig=0,sub=0,child=0,homeSub=0,homeN=0,gross=0;const seen=new Set();const byState={};
+ let n=0,elig=0,sub=0,child=0,homeSub=0,homeN=0,gross=0;const seen=new Set();const byState={};const pts=[];
  sel.forEach(i=>{const v=V[i];if(!v)return;n++;const k=areaCode(v);if(k!=null&&!seen.has(k)){seen.add(k);child+=v.cChild||0;}
+   if(v.ll)pts.push(v.ll);
    const s=v.cSub>0?basketFee*v.cSub:0;if(s>0)elig++;sub+=s;gross+=basketFee;
    if(v.state===splitState){homeN++;homeSub+=s;}
    const st=v.state||'Unassigned';(byState[st]=byState[st]||[]).push(v);});
@@ -601,6 +603,8 @@ function createReport(){
        <div style="grid-column:1/-1">Subsidy: <b>${Math.round(MODEL.sub.floor*100)}% → ${Math.round(MODEL.sub.ceil*100)}%</b> across the High band, full at index ${(+MODEL.sub.full).toFixed(1)}+, in 5% steps.</div>
      </div>
      ${tierReportSVG()}
+     <h3>Where these venues are</h3>
+     <div style="margin:6px 0 4px">${ausMapSVG(pts,400)}</div>
      <h3>Venues supported${multi?' (by state)':''}</h3>
      <table><thead>${vhead}</thead><tbody>${vrows}</tbody></table>
      <div class="rpt-foot">Impact scoring from AEDC 2024 (emotional maturity), ABS SEIFA 2021 (disadvantage), ABS Remoteness Areas, ABS Census 2021 and Estimated Resident Population. "Children reached" counts children aged 0–14 in the distinct areas served (each area once). Prepared with the National Children's Theatre Initiative Impact Index.</div>
@@ -631,13 +635,16 @@ function createVenueReport(i){const v=V[i];if(!v)return;const g=v[MODEL.geo]||{}
         <tr><td>Subsidy (${Math.round(subPct*100)}%)</td><td class="right" style="color:#0a8f6e">− ${fmt$(disc)}</td></tr>
         <tr class="grp"><td><b>Your net fee</b></td><td class="right"><b>${fmt$(net)}</b></td></tr>
       </tbody></table>
-      <div style="border:1.5px solid var(--navy);border-radius:8px;padding:12px 16px;background:#FFF3D0;margin:8px 0 4px"><b>The producing company and touring artists are paid the full package fee.</b> The subsidy covers the discount, so the work is fully funded — your venue simply pays the reduced net fee above.</div>`
+      <div style="border:1.5px solid var(--navy);border-radius:8px;padding:12px 16px;background:#fff;margin:8px 0 4px"><b>The producing company and touring artists are paid the full package fee.</b> The subsidy covers the discount, so the work is fully funded — your venue simply pays the reduced net fee above.</div>`
    : `<p>Under the current model, ${esc(area)} sits in the <b>${v.cTier}</b> tier and does not currently attract a subsidy. This summary is provided for context.</p>`;
  const html=`<div class="rpt">
    <div class="rpt-headbar">${logo?`<img class="rpt-logo" src="${logo}">`:''}<div class="rpt-title">Children's Theatre Impact Index</div><div class="rpt-subt">Venue subsidy summary · ${dt}</div></div>
    <div class="rpt-body">
-     <h2 style="font-family:'Charlie Kingdom';font-size:24px;color:var(--navy);margin:0 0 2px">${esc(v.name)}</h2>
-     <div style="color:#6b7a80;font-size:12px;margin-bottom:12px">${[v.state,ra,v.postcode?'postcode '+v.postcode:''].filter(Boolean).join(' · ')}</div>
+     <div style="display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:12px">
+       <div><h2 style="font-family:'Charlie Kingdom';font-size:24px;color:var(--navy);margin:0 0 2px">${esc(v.name)}</h2>
+       <div style="color:#6b7a80;font-size:12px">${[v.state,ra,v.postcode?'postcode '+v.postcode:''].filter(Boolean).join(' · ')}</div></div>
+       ${v.ll?`<div style="text-align:center;flex:none"><div style="width:150px">${ausMapSVG([v.ll],150)}</div><div style="font-size:10px;color:#6b7a80;margin-top:3px">Location in Australia</div></div>`:''}
+     </div>
      <p>This summary explains the subsidy the National Children's Theatre Initiative is offering ${esc(v.name)} — why your community is a priority, how the figure is calculated, and how it is funded. It is intended to make the offer clear as we discuss bringing professional children's theatre to ${esc(area)}.</p>
      <h3>Why your community is a priority</h3>
      <p>The Children's Theatre Impact Index scores every community in Australia from 0 to 10 for the social value that children's theatre can create there, using children's emotional development (AEDC), socio-economic disadvantage (ABS SEIFA) and remoteness.</p>
@@ -648,8 +655,8 @@ function createVenueReport(i){const v=V[i];if(!v)return;const g=v[MODEL.geo]||{}
      <p style="font-size:14px"><b>Index = ${activeParts} = ${v.cIndex!=null?v.cIndex.toFixed(1):'—'}</b></p>
      <h3>The subsidy offer</h3>
      ${offer}
-     <h3>Where the subsidy comes from</h3>
-     <p>The subsidy is pooled from public and philanthropic sources — your state government (supporting venues in ${v.state||'your state'}), Playing Australia (the Australian Government's national performing-arts touring program) and philanthropic partners. The Initiative coordinates these so high-impact communities can host work that would otherwise be out of reach.</p>
+     <h3>Funding</h3>
+     <p>Funding is sourced via the National Children's Theatre Initiative.</p>
      <h3>What it delivers</h3>
      <p>This brings professional children's theatre to approximately <b>${(v.cChild||0).toLocaleString()}</b> children aged 0–14 in ${esc(area)} — supporting their emotional and social development, and giving local families access to high-quality live performance close to home.</p>
      <div class="rpt-foot">Scoring from AEDC 2024 (emotional maturity), ABS SEIFA 2021 (disadvantage), ABS Remoteness Areas and ABS Estimated Resident Population. Prepared with the National Children's Theatre Initiative — Theatre for Every Child.</div>
@@ -924,6 +931,10 @@ function ausLocatorSVG(v){if(!v.ll)return '';const lon=v.ll[1],lat=v.ll[0];
  const px=(lon-AUS.lonmin)*AUS.coslat*AUS.scale,py=(AUS.latmax-lat)*AUS.scale;
  const paths=AUS.states.map(d=>`<path d="${d}" fill="#EDE3C8" stroke="#073B4C" stroke-width="0.7"/>`).join('');
  return `<svg viewBox="0 0 ${AUS.w} ${AUS.h}" width="140" style="border:1.5px solid var(--navy);border-radius:6px;background:#EAF3F6;display:block">${paths}<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="4.6" fill="#EF476F" stroke="#fff" stroke-width="1.6"/></svg>`;}
+function ausMapSVG(pts,w){w=w||300;if(!AUS.states||!AUS.states.length)return '';
+ const paths=AUS.states.map(d=>`<path d="${d}" fill="#EDE3C8" stroke="#073B4C" stroke-width="0.7"/>`).join('');
+ const dots=(pts||[]).map(ll=>{if(!ll)return '';const px=(ll[1]-AUS.lonmin)*AUS.coslat*AUS.scale,py=(AUS.latmax-ll[0])*AUS.scale;return `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="4" fill="#EF476F" stroke="#fff" stroke-width="1.3"/>`;}).join('');
+ return `<svg viewBox="0 0 ${AUS.w} ${AUS.h}" width="${w}" style="border:1.5px solid #073B4C;border-radius:6px;background:#EAF3F6;display:block;margin:0 auto;max-width:100%">${paths}${dots}</svg>`;}
 function areaSummary(v,g){const em=g.em_pct,dec=g.decile,ra=(g.ra||'').replace(' Australia','');
  const emTxt=em!=null?`<b>${(+em).toFixed(1)}%</b> of young children here are developmentally vulnerable or at-risk on the AEDC emotional-maturity domain — ${em>=25.17?'<b>above</b>':'below'} the national average of about 25%. ${em>=25.17?'Higher rates point to greater developmental vulnerability among local children, which lifts the Impact score.':'Lower rates ease the emotional-maturity part of the score.'}`:'Emotional-maturity data is not available for this area.';
  let decTxt='Disadvantage (SEIFA) data is not available for this area.';
