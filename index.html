@@ -187,6 +187,8 @@ tbody tr.grouphdr:hover td{background:var(--navy);}
 .subsec.collapsed .caret{transform:rotate(-90deg);}
 .model.maximized{position:fixed;top:4vh;left:50%;transform:translateX(-50%);width:min(720px,94vw);max-height:92vh;overflow:auto;z-index:5600;padding:20px 24px 22px;border-radius:10px;box-shadow:8px 8px 0 var(--navy);}
 .model.maximized .top{border-bottom:2px solid var(--navy);padding-bottom:12px;}
+.model.floating{position:fixed;top:88px;left:380px;width:320px;max-height:80vh;overflow:auto;z-index:3500;box-shadow:6px 6px 0 var(--navy);border-width:2px;}
+.model.floating .top{cursor:move;user-select:none;}
 #modelbackdrop{position:fixed;inset:0;background:rgba(7,59,76,.42);display:none;z-index:5500;}
 body.aboutmode .siderail,body.aboutmode .railexpand,body.aboutmode #kpis,body.aboutmode #filterCard{display:none!important;}
 .aboutwrap{max-width:940px;margin:0 auto;padding:4px 2px 40px;}
@@ -243,9 +245,9 @@ body.aboutmode .siderail,body.aboutmode .railexpand,body.aboutmode #kpis,body.ab
      <div class="subbody"><div class="presets-bar" id="savedmodels"></div></div></div>
    <div class="subsec collapsed" id="sec-geo"><div class="subhead" onclick="toggleSub(this)">Geography <span class="caret">▾</span></div>
      <div class="subbody"><span class="geo" id="geo"><button data-g="sa2" class="on" onclick="setGeo('sa2')">SA2</button><button data-g="sa3" onclick="setGeo('sa3')">SA3</button></span></div></div>
-   <div class="subsec" id="sec-ind"><div class="subhead" onclick="toggleSub(this)">Indicators <span class="caret">▾</span></div>
+   <div class="subsec collapsed" id="sec-ind"><div class="subhead" onclick="toggleSub(this)">Indicators <span class="caret">▾</span></div>
      <div class="subbody"><div class="ind" id="ind"></div><div class="eff" id="eff"></div></div></div>
-   <div class="subsec collapsed" id="sec-tier"><div class="subhead" onclick="toggleSub(this)">Tier &amp; subsidy settings <span class="caret">▾</span></div>
+   <div class="subsec" id="sec-tier"><div class="subhead" onclick="toggleSub(this)">Tier &amp; subsidy settings <span class="caret">▾</span></div>
      <div class="subbody">
        <div class="tierviz">
          <div class="tvtrack" id="tvtrack">
@@ -276,7 +278,9 @@ body.aboutmode .siderail,body.aboutmode .railexpand,body.aboutmode #kpis,body.ab
  </div>
 </div>
 <div class="card model collapsed" id="basketCard">
- <div class="top"><h3 onclick="toggleCard(this)" style="cursor:pointer;user-select:none;margin:0">Subsidy basket <span class="caret">▾</span></h3></div>
+ <div class="top" onpointerdown="basketDragStart(event)"><h3 onclick="toggleCard(this)" style="cursor:pointer;user-select:none;margin:0">Subsidy basket <span class="caret">▾</span></h3>
+   <div class="modelicons"><button class="iconbtn" id="basketFloatBtn" title="Pop out as a movable note" onclick="event.stopPropagation();toggleBasketFloat()">⤢</button></div>
+ </div>
  <div class="cbody" style="margin-top:8px">
    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;margin-bottom:6px">
      <span class="muted">Fee $</span><input type="number" id="bkFee" value="12500" step="500" style="width:78px" oninput="setBasketFee(this.value)">
@@ -497,7 +501,17 @@ function toggleCard(el){el.closest('.card').classList.toggle('collapsed');}
 function toggleRail(){document.getElementById('mainrow').classList.toggle('railcollapsed');if(map)setTimeout(()=>map.invalidateSize(),80);}
 function toggleSub(el){el.closest('.subsec').classList.toggle('collapsed');}
 function toggleAcc(el){el.closest('.accitem').classList.toggle('open');}
-function setDefaultSubs(){['sec-models','sec-geo','sec-tier'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.add('collapsed');});const i=document.getElementById('sec-ind');if(i)i.classList.remove('collapsed');}
+let basketFloating=false,_basketHome=null;
+function toggleBasketFloat(){const c=document.getElementById('basketCard'),b=document.getElementById('basketFloatBtn');
+ if(!basketFloating){_basketHome={parent:c.parentNode,next:c.nextSibling};document.body.appendChild(c);c.classList.add('floating');c.classList.remove('collapsed');
+   c.style.right='';c.style.left='380px';c.style.top='88px';c.style.width='320px';basketFloating=true;if(b){b.textContent='⤡';b.title='Dock back into the panel';}}
+ else dockBasket();}
+function dockBasket(){const c=document.getElementById('basketCard'),b=document.getElementById('basketFloatBtn');c.classList.remove('floating');c.style.left=c.style.top=c.style.right=c.style.width='';if(_basketHome){_basketHome.parent.insertBefore(c,_basketHome.next);_basketHome=null;}basketFloating=false;if(b){b.textContent='⤢';b.title='Pop out as a movable note';}}
+function basketDragStart(e){if(!basketFloating)return;if(e.target.closest('button'))return;const c=document.getElementById('basketCard');const r=c.getBoundingClientRect();const dx=e.clientX-r.left,dy=e.clientY-r.top;
+ const move=ev=>{c.style.right='';c.style.left=Math.max(4,Math.min(window.innerWidth-80,ev.clientX-dx))+'px';c.style.top=Math.max(4,Math.min(window.innerHeight-44,ev.clientY-dy))+'px';};
+ const up=()=>{document.removeEventListener('pointermove',move);document.removeEventListener('pointerup',up);};
+ document.addEventListener('pointermove',move);document.addEventListener('pointerup',up);}
+function setDefaultSubs(){['sec-models','sec-geo','sec-ind'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.add('collapsed');});const i=document.getElementById('sec-tier');if(i)i.classList.remove('collapsed');}
 let _modelHome=null;
 function toggleMaximize(){const c=document.getElementById('modelcard'),bd=document.getElementById('modelbackdrop'),btn=document.getElementById('maxbtn');
  const on=!c.classList.contains('maximized');
