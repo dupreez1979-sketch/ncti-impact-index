@@ -434,6 +434,7 @@ body.aboutmode .siderail,body.aboutmode .railexpand,body.aboutmode #kpis,body.ab
    <span style="width:1px;height:22px;background:#ccc;margin:0 2px"></span>
    <label style="font-size:12.5px;margin-left:6px"><input type="checkbox" id="mapVenues" checked onchange="paintMarkers()"> show venues</label>
    <label style="font-size:12.5px"><input type="checkbox" id="mapVenuesAll" onchange="paintMarkers()"> all venues (ignore filter)</label>
+   <label id="mapTourWrap" style="font-size:12.5px;display:none;color:var(--pink);font-weight:700"><input type="checkbox" id="mapTourOnly" checked onchange="paintMarkers()"> <span id="mapTourOnlyLbl">only the active tour</span></label>
    <label style="font-size:12.5px"><input type="checkbox" id="mapGaps" onchange="schedulePaint()"> highlight gaps (High, no venue)</label>
    <span class="viewwrap"><span class="muted" style="font-size:11px">View</span><div class="viewswitch"><button data-view="venues" onclick="showPage('venues')">Venues</button><button data-view="map" class="active" onclick="showPage('map')">Map</button><button data-view="charts" onclick="showPage('charts')">Analysis</button></div></span>
  </div>
@@ -673,7 +674,7 @@ async function saveModelToTour(){const t=activeTourObj();if(!t){alert('Select a 
 let tourVenues=[];
 async function loadTourVenues(tourId){tourVenues=[];if(tourId&&sbc){const {data,error}=await sbc.from('tour_venues').select('id,venue_id,fee,subsidy_confirmed').eq('tour_id',tourId);
  if(error)console.warn(error);else tourVenues=(data||[]).map(r=>{const v=V.find(x=>x.id===r.venue_id);return v?{id:r.id,venue_id:r.venue_id,fee:r.fee,confirmed:r.subsidy_confirmed,v}:null;}).filter(Boolean);}
- renderTourVenues();renderTourBar();renderTourPanel();renderBasket();}
+ renderTourVenues();renderTourBar();renderTourPanel();renderBasket();if(curPage==='map'&&map)paintMarkers();}
 async function addSelectedToTour(){const t=activeTourObj();if(!t){alert('Select a tour in the Tours panel first.');return;}if(!sel.size){alert('Tick some venues in the list first.');return;}
  const have=new Set(tourVenues.map(x=>x.venue_id));
  const rows=[...sel].map(i=>V[i]).filter(v=>v&&v.id&&!have.has(v.id)).map(v=>({tour_id:t.id,venue_id:v.id,fee:t.default_fee||basketFee,subsidy_confirmed:v.cTier==='High'}));
@@ -1363,9 +1364,13 @@ function styleSA2(f){const r=computeSA2(f.properties.c);const gap=document.getEl
 function paintMap(){if(sa2Layer)sa2Layer.setStyle(styleSA2);paintScheduled=false;updateLegend();}
 function schedulePaint(){if(!map)return;if(paintScheduled)return;paintScheduled=true;requestAnimationFrame(paintMap);}
 function paintMarkers(){if(!venueLayer)return;venueLayer.clearLayers();
+ const tour=activeTourObj();const wrap=document.getElementById('mapTourWrap');
+ if(wrap){wrap.style.display=tour?'':'none';const lbl=document.getElementById('mapTourOnlyLbl');if(lbl&&tour)lbl.textContent='only "'+tour.name+'"';}
  if(!document.getElementById('mapVenues').checked)return;
- const showAll=document.getElementById('mapVenuesAll')&&document.getElementById('mapVenuesAll').checked;
- const fset=showAll?null:new Set(filtered());
+ const tourOnlyEl=document.getElementById('mapTourOnly');const tourOnly=!!(tour&&tourOnlyEl&&tourOnlyEl.checked);
+ let fset;
+ if(tourOnly){fset=new Set(tourVenues.map(x=>x.v).filter(Boolean));}
+ else{const showAll=document.getElementById('mapVenuesAll')&&document.getElementById('mapVenuesAll').checked;fset=showAll?null:new Set(filtered());}
  V.forEach((v,i)=>{if(!v.ll)return;
    if(fset&&!fset.has(v))return;
    const m=L.circleMarker(v.ll,{radius:5,weight:1.3,color:'#073B4C',fillColor:TIERCOL[v.cTier]||'#999',fillOpacity:1});
