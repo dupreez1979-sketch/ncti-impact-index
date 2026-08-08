@@ -275,7 +275,7 @@ body.aboutmode .siderail,body.aboutmode .railexpand,body.aboutmode #kpis,body.ab
 <aside class="siderail" id="siderail">
 <div class="railhead"><span class="kpihead" style="margin:0">Panels</span><button class="railbtn" onclick="toggleRail()" title="Collapse this frame">◀ Hide</button></div>
 <div class="card model" id="modelcard">
- <div class="top"><h3 onclick="toggleCard(this)" style="cursor:pointer;user-select:none;margin:0">Model controls <span class="caret">▾</span></h3>
+ <div class="top"><h3 onclick="toggleCard(this)" style="cursor:pointer;user-select:none;margin:0">Model <span class="caret">▾</span></h3>
    <div class="modelicons">
      <button class="iconbtn" title="Reset to default model" onclick="event.stopPropagation();resetModel()">⟳</button>
      <button class="iconbtn" id="maxbtn" title="Maximize" onclick="event.stopPropagation();toggleMaximize()">⤢</button>
@@ -319,11 +319,11 @@ body.aboutmode .siderail,body.aboutmode .railexpand,body.aboutmode #kpis,body.ab
  </div>
 </div>
 <div class="card model collapsed" id="tourCard">
- <div class="top" onpointerdown="tourDragStart(event)"><h3 onclick="toggleCard(this)" style="cursor:pointer;user-select:none;margin:0">Tour <span class="caret">▾</span></h3><div class="modelicons"><button class="iconbtn" id="tourFloatBtn" title="Pop out as a movable note" onclick="event.stopPropagation();toggleTourFloat()">⤢</button></div></div>
+ <div class="top" onpointerdown="tourDragStart(event)"><h3 onclick="toggleCard(this)" style="cursor:pointer;user-select:none;margin:0">Tours <span class="caret">▾</span></h3><div class="modelicons"><button class="iconbtn" id="tourFloatBtn" title="Pop out as a movable note" onclick="event.stopPropagation();toggleTourFloat()">⤢</button></div></div>
  <div class="cbody" id="tourBody"></div>
 </div>
 <div class="card model collapsed" id="basketCard">
- <div class="top" onpointerdown="basketDragStart(event)"><h3 onclick="toggleCard(this)" style="cursor:pointer;user-select:none;margin:0">Subsidy basket <span class="caret">▾</span></h3>
+ <div class="top" onpointerdown="basketDragStart(event)"><h3 onclick="toggleCard(this)" style="cursor:pointer;user-select:none;margin:0">Subsidy <span class="caret">▾</span></h3>
    <div class="modelicons"><button class="iconbtn" id="basketFloatBtn" title="Pop out as a movable note" onclick="event.stopPropagation();toggleBasketFloat()">⤢</button></div>
  </div>
  <div class="cbody" style="margin-top:8px">
