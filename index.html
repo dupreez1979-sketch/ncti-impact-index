@@ -142,6 +142,9 @@ tbody tr.grouphdr:hover td{background:var(--navy);}
 .bkgrid .bkl{font-size:10.5px;color:var(--slate);text-transform:uppercase;letter-spacing:.3px;margin-top:3px;}
 @media(max-width:760px){.bkgrid{grid-template-columns:repeat(2,1fr);}}
 .splitrow{display:grid;grid-template-columns:1fr auto minmax(64px,auto);gap:8px;align-items:center;margin:5px 0;font-size:12px;} .splitrow b{text-align:right;white-space:nowrap;} .splitrow input{font-family:inherit;font-size:12px;padding:4px 6px;border:1.5px solid var(--navy);border-radius:5px;background:#fff;color:var(--navy);}
+.fundrow{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin:9px 0;font-size:12.5px;} .fundrow>b{white-space:nowrap;text-align:right;} .fundlbl{font-weight:600;margin-bottom:3px;} .fundrow.total{border-top:1.5px solid var(--navy);padding-top:7px;margin-top:6px;}
+.fundrow select,.fundrow input[type=number]{font-family:inherit;font-size:12px;padding:3px 6px;border:1.5px solid var(--navy);border-radius:5px;background:#fff;color:var(--navy);}
+.fundrow input[type=number]:disabled{opacity:.5;}
 .chip{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:800;border:1px solid var(--navy);}
 .tier-High{background:var(--pink);color:#fff;}.tier-Medium{background:var(--yellow);color:var(--navy);}.tier-Low{background:var(--teal);color:var(--navy);}
 .pill-Yes{background:var(--em);color:var(--navy);padding:1px 8px;border-radius:12px;font-weight:800;font-size:11px;}.pill-No{color:#9AA0A6;font-weight:700;font-size:11px;}
@@ -261,11 +264,11 @@ tbody tr.grouphdr:hover td{background:var(--navy);}
      <button class="btn sec" style="padding:5px 10px;font-size:11.5px" onclick="clearSel()">Clear</button>
    </div>
    <div class="hidden" id="splitPanel" style="margin-top:8px;border-top:1px dashed var(--slate);padding-top:8px">
-     <div class="muted" style="margin-bottom:6px;font-size:11px">Allocate the subsidy required across funders:</div>
-     <div class="splitrow"><span>Home state (NSW)</span><span><input type="number" id="spState" value="20" min="0" max="100" step="5" style="width:52px" oninput="setSplit('state',this.value)">%</span><b id="spStateAmt">$0</b></div>
-     <div class="splitrow"><span>Playing Australia</span><span><input type="number" id="spPa" value="60" min="0" max="100" step="5" style="width:52px" oninput="setSplit('pa',this.value)">%</span><b id="spPaAmt">$0</b></div>
-     <div class="splitrow"><span>Philanthropy</span><span><input type="number" id="spPhil" value="20" min="0" max="100" step="5" style="width:52px" oninput="setSplit('phil',this.value)">%</span><b id="spPhilAmt">$0</b></div>
-     <div class="splitrow" style="border-top:1.5px solid var(--navy);margin-top:4px;padding-top:6px"><span><b>Allocated</b></span><span id="spSum">100%</span><b id="spTot">$0</b></div>
+     <div class="muted" style="margin-bottom:8px;font-size:11px">How the subsidy required is funded:</div>
+     <div class="fundrow"><div><div class="fundlbl">Home state government</div><select id="spState" onchange="setSplitState(this.value)"><option>NSW</option><option>VIC</option><option>QLD</option><option>SA</option><option>WA</option><option>TAS</option><option>NT</option><option>ACT</option></select> <span class="muted" id="spStateNote" style="font-size:10.5px"></span></div><b id="spStateAmt">$0</b></div>
+     <div class="fundrow"><div><div class="fundlbl">Playing Australia</div><span class="muted" style="font-size:10.5px">rest of the country</span></div><b id="spPaAmt">$0</b></div>
+     <div class="fundrow"><div><label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;cursor:pointer"><input type="checkbox" id="spPhilOn" onchange="setSplitPhilOn(this.checked)"> Philanthropy</label><div class="muted" style="font-size:10.5px;margin-top:3px"><input id="spPhilPct" type="number" min="0" max="100" step="5" value="50" style="width:50px" oninput="setSplitPhilPct(this.value)" disabled> % of the rest</div></div><b id="spPhilAmt">$0</b></div>
+     <div class="fundrow total"><b>Total subsidy</b><b id="spTot">$0</b></div>
    </div>
    <div class="muted" style="margin-top:8px;font-size:10.5px">Tick venues in the Venues list. Selections persist across filters. Only High-tier venues draw a subsidy.</div>
  </div>
@@ -352,9 +355,11 @@ function fixSum(changed){let ak=activeKeys();if(!ak.length)return;let s=ak.reduc
 let sortKey='index',sortDir=-1,curPage='venues';
 let pageSize=20,pageNum=1,groupBy='';
 let sel=new Set(),basketFee=12500;
-let splitPct={state:20,pa:60,phil:20};
+let splitState='NSW',splitPhilOn=false,splitPhilPct=50;
 function toggleSplit(btn){const p=document.getElementById('splitPanel');const h=p.classList.toggle('hidden');btn.textContent=h?'Split funding ▾':'Split funding ▴';}
-function setSplit(k,v){splitPct[k]=Math.max(0,+v||0);renderBasket();}
+function setSplitState(v){splitState=v;renderBasket();}
+function setSplitPhilOn(b){splitPhilOn=b;renderBasket();}
+function setSplitPhilPct(v){splitPhilPct=Math.max(0,Math.min(100,+v||0));renderBasket();}
 let collapsedGroups=new Set();
 function setGroup(v){groupBy=v;collapsedGroups.clear();pageNum=1;render();}
 function toggleGroup(k){if(collapsedGroups.has(k))collapsedGroups.delete(k);else collapsedGroups.add(k);render();}
@@ -363,8 +368,10 @@ function selectAllFiltered(check){filtered().forEach(v=>{if(check)sel.add(v._i);
 function clearSel(){sel.clear();render();}
 function setBasketFee(v){basketFee=Math.max(0,+v||0);const e=document.getElementById('bkFee');if(e)e.value=basketFee;renderBasket();}
 function updateSelAll(){const el=document.getElementById('selAll');if(!el)return;const a=filtered();let c=0;a.forEach(v=>{if(sel.has(v._i))c++;});el.checked=a.length>0&&c===a.length;el.indeterminate=c>0&&c<a.length;}
-function renderBasket(){if(!document.getElementById('bkN'))return;let n=0,elig=0,sub=0;const seen=new Set();let child=0;
- sel.forEach(i=>{const v=V[i];if(!v)return;n++;const k=areaCode(v);if(k!=null&&!seen.has(k)){seen.add(k);child+=v.cChild||0;}if(v.cSub>0){elig++;sub+=basketFee*v.cSub;}});
+function renderBasket(){if(!document.getElementById('bkN'))return;let n=0,elig=0,sub=0,child=0,homeSub=0,homeN=0;const seen=new Set();
+ sel.forEach(i=>{const v=V[i];if(!v)return;n++;const k=areaCode(v);if(k!=null&&!seen.has(k)){seen.add(k);child+=v.cChild||0;}
+   const s=v.cSub>0?basketFee*v.cSub:0;if(s>0)elig++;sub+=s;
+   if(v.state===splitState){homeN++;homeSub+=s;}});
  const gross=n*basketFee,pay=gross-sub;
  document.getElementById('bkN').textContent=n;
  document.getElementById('bkElig').textContent=elig;
@@ -372,9 +379,12 @@ function renderBasket(){if(!document.getElementById('bkN'))return;let n=0,elig=0
  document.getElementById('bkGross').textContent=fmt$(gross);
  document.getElementById('bkSub').textContent=fmt$(sub);
  document.getElementById('bkPay').textContent=fmt$(pay);
- const sp=splitPct,el=id=>document.getElementById(id);
- if(el('spStateAmt')){el('spStateAmt').textContent=fmt$(sub*sp.state/100);el('spPaAmt').textContent=fmt$(sub*sp.pa/100);el('spPhilAmt').textContent=fmt$(sub*sp.phil/100);
-  const tot=sp.state+sp.pa+sp.phil;el('spSum').textContent=tot+'%';el('spSum').style.color=tot===100?'var(--slate)':'#EF476F';el('spTot').textContent=fmt$(sub*tot/100);}}
+ const el=id=>document.getElementById(id);
+ if(el('spStateAmt')){const rest=Math.max(0,sub-homeSub);const phil=splitPhilOn?rest*splitPhilPct/100:0;const playing=rest-phil;
+   el('spStateAmt').textContent=fmt$(homeSub);el('spPaAmt').textContent=fmt$(playing);el('spPhilAmt').textContent=fmt$(phil);el('spTot').textContent=fmt$(sub);
+   const note=el('spStateNote');if(note)note.textContent=homeN?('· '+homeN+' selected in '+splitState):('· none selected in '+splitState);
+   const pc=el('spPhilPct');if(pc)pc.disabled=!splitPhilOn;
+   const sst=el('spState');if(sst&&sst.value!==splitState)sst.value=splitState;}}
 function setPageSize(v){pageSize=(v==='all')?Infinity:+v;pageNum=1;render();}
 function gotoPage(n){pageNum=n;render();}
 function renderPager(total,start,end,pages){const el=document.getElementById('pager');if(!el)return;
