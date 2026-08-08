@@ -73,10 +73,10 @@ header h1{font-size:29px;margin:0;} header .sub{color:var(--slate);font-size:13p
 .geo button{font-family:'Charlie Kingdom';font-size:15px;padding:6px 16px;border:1.5px solid var(--navy);border-radius:5px;background:#fff;color:var(--navy);cursor:pointer;}
 .geo button.on{background:var(--navy);color:#fff;}
 .presets-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
-#savedmodels{display:flex;flex-direction:column;gap:8px;align-items:stretch;}
-.modelchip{display:flex;align-items:center;border:1.5px solid var(--navy);border-radius:6px;box-shadow:3px 3px 0 var(--navy);overflow:hidden;background:#fff;}
+#savedmodels{display:flex;flex-direction:column;gap:8px;align-items:stretch;min-width:0;max-width:100%;}
+.modelchip{display:flex;align-items:center;width:100%;max-width:100%;box-sizing:border-box;border:1.5px solid var(--navy);border-radius:6px;box-shadow:3px 3px 0 var(--navy);overflow:hidden;background:#fff;}
 .modelchip.on{background:var(--navy);}
-.modelapply{flex:1;min-width:0;font-family:'Charlie Kingdom';font-size:13px;padding:8px 10px;border:none;background:transparent;color:var(--navy);cursor:pointer;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.modelapply{flex:1 1 0;min-width:0;font-family:'Charlie Kingdom';font-size:13px;padding:8px 10px;border:none;background:transparent;color:var(--navy);cursor:pointer;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .modelchip.on .modelapply{color:#fff;}
 .modelicons2{display:flex;align-items:center;gap:0;flex:none;padding-right:4px;}
 .modelicons2 button,.modelicons2 .modelinfo{border:none;background:transparent;cursor:pointer;font-size:14px;padding:6px 6px;color:var(--slate);line-height:1;}
@@ -167,7 +167,8 @@ tbody tr.grouphdr:hover td{background:var(--navy);}
 .iconbtn{border:1.5px solid var(--navy);background:var(--navy);color:#fff;border-radius:6px;cursor:pointer;font-size:17px;padding:5px 11px;line-height:1;box-shadow:2px 2px 0 rgba(7,59,76,.45);}
 .iconbtn:hover{background:var(--pink);border-color:var(--pink);}
 .tierviz{margin:2px 0 14px;}
-.tvtrack{position:relative;height:44px;border:1.5px solid var(--navy);border-radius:6px;overflow:hidden;background:#fff;user-select:none;touch-action:none;}
+.tvtrack{position:relative;height:58px;border:1.5px solid var(--navy);border-radius:6px;overflow:hidden;background:#fff;user-select:none;touch-action:none;}
+.tvpoint{position:absolute;width:15px;height:15px;margin:-7.5px 0 0 -7.5px;border-radius:50%;background:#fff;border:2px solid var(--navy);box-shadow:0 0 3px rgba(0,0,0,.4);cursor:ns-resize;z-index:5;}
 .tvzone{position:absolute;top:0;bottom:0;}
 .tvticks{position:absolute;inset:0;pointer-events:none;z-index:1;background:repeating-linear-gradient(to right, transparent 0, transparent calc(10% - 1px), rgba(7,59,76,.28) calc(10% - 1px), rgba(7,59,76,.28) 10%);}
 #tvramp{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2;}
@@ -255,11 +256,13 @@ body.aboutmode .siderail,body.aboutmode .railexpand,body.aboutmode #kpis,body.ab
            <svg id="tvramp" viewBox="0 0 100 100" preserveAspectRatio="none"><polygon id="tvrampfill" points=""></polygon></svg>
            <div class="tvhandle" id="tvh_med" title="Drag: where Medium tier starts" onpointerdown="tvDrag('med',event)"></div>
            <div class="tvhandle" id="tvh_high" title="Drag: where High tier starts" onpointerdown="tvDrag('high',event)"></div>
-           <div class="tvmark" id="tvh_full" title="Drag: where 100% subsidy is reached" onpointerdown="tvDrag('full',event)"></div>
+           <div class="tvmark" id="tvh_full" title="Drag left/right: where 100% subsidy is reached" onpointerdown="tvDrag('full',event)"></div>
+           <div class="tvpoint" id="tvp_floor" title="Drag up/down: subsidy floor %" onpointerdown="tvDragY('floor',event)"></div>
+           <div class="tvpoint" id="tvp_full" title="Drag up/down: full subsidy %" onpointerdown="tvDragY('ceil',event)"></div>
          </div>
          <div class="tvaxis"><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span></div>
          <div class="tvkey"><span><i style="background:#5BC0BE"></i>Low</span><span><i style="background:#FFD166"></i>Medium</span><span><i style="background:#EF476F"></i>High</span><span><i style="background:rgba(7,59,76,.3)"></i>subsidy ramp</span></div>
-         <div class="muted" style="font-size:11px;margin-top:4px">Drag the dark handles for the Medium / High cut-offs, and the black line for where 100% subsidy is reached. Or type exact values below.</div>
+         <div class="muted" style="font-size:11px;margin-top:4px">Drag the dark handles left/right for the Medium / High cut-offs and the white line for where 100% subsidy is reached; drag the two round points up/down to set the floor % and full %. Or type exact values below.</div>
        </div>
        <div class="tvfields">
          <div class="fg"><label>High tier at Index ≥</label><input type="number" id="tHigh" value="6.3" step="0.1" min="0" max="10" oninput="setThr()"></div>
@@ -511,7 +514,9 @@ function renderTierViz(){const t=document.getElementById('tvtrack');if(!t)return
  const pos=(id,x)=>{const e=document.getElementById(id);if(e)e.style.left=x+'%';};
  pos('tvh_med',xMed);pos('tvh_high',xHigh);pos('tvh_full',xFull);
  const yF=100-MODEL.sub.floor*100,yC=100-MODEL.sub.ceil*100;
- const poly=document.getElementById('tvrampfill');if(poly)poly.setAttribute('points',`${xHigh},100 ${xHigh},${yF} ${xFull},${yC} 100,${yC} 100,100`);}
+ const poly=document.getElementById('tvrampfill');if(poly)poly.setAttribute('points',`${xHigh},100 ${xHigh},${yF} ${xFull},${yC} 100,${yC} 100,100`);
+ const pf=document.getElementById('tvp_floor');if(pf){pf.style.left=xHigh+'%';pf.style.top=yF+'%';}
+ const pc=document.getElementById('tvp_full');if(pc){pc.style.left=xFull+'%';pc.style.top=yC+'%';}}
 let _tvRAF=false;
 function tvApply(){if(_tvRAF)return;_tvRAF=true;requestAnimationFrame(()=>{_tvRAF=false;recompute();render();});}
 function tvDrag(kind,ev){ev.preventDefault();const track=document.getElementById('tvtrack');if(!track)return;
@@ -519,6 +524,13 @@ function tvDrag(kind,ev){ev.preventDefault();const track=document.getElementById
    if(kind==='med'){v=Math.max(0,Math.min(v,MODEL.thr.high-0.1));MODEL.thr.med=v;const el=document.getElementById('tMed');if(el)el.value=v;}
    else if(kind==='high'){v=Math.max(MODEL.thr.med+0.1,v);MODEL.thr.high=v;if(MODEL.sub.full<v){MODEL.sub.full=v;const ef=document.getElementById('sFull');if(ef)ef.value=v;}const el=document.getElementById('tHigh');if(el)el.value=v;}
    else{v=Math.max(MODEL.thr.high,v);MODEL.sub.full=v;const el=document.getElementById('sFull');if(el)el.value=v;}
+   updateSubnote();renderTierViz();tvApply();};
+ const up=()=>{document.removeEventListener('pointermove',move);document.removeEventListener('pointerup',up);recompute();render();};
+ document.addEventListener('pointermove',move);document.addEventListener('pointerup',up);move(ev);}
+function tvDragY(kind,ev){ev.preventDefault();ev.stopPropagation();const track=document.getElementById('tvtrack');if(!track)return;
+ const move=e=>{const r=track.getBoundingClientRect();const cy=e.touches?e.touches[0].clientY:e.clientY;let p=1-(cy-r.top)/r.height;p=Math.round(p*20)/20;p=Math.max(0,Math.min(1,p));
+   if(kind==='floor'){p=Math.min(p,MODEL.sub.ceil);MODEL.sub.floor=p;const el=document.getElementById('sFloor');if(el)el.value=Math.round(p*100);}
+   else{p=Math.max(p,MODEL.sub.floor);MODEL.sub.ceil=p;const el=document.getElementById('sCeil');if(el)el.value=Math.round(p*100);}
    updateSubnote();renderTierViz();tvApply();};
  const up=()=>{document.removeEventListener('pointermove',move);document.removeEventListener('pointerup',up);recompute();render();};
  document.addEventListener('pointermove',move);document.addEventListener('pointerup',up);move(ev);}
