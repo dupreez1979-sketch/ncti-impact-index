@@ -860,6 +860,7 @@ function exitTour(){const t=activeTourObj();if(!t)return;
  curTour=null;curShow=null;curCompany=null;tourVenues=[];sources=[];
  try{localStorage.setItem('ctii.tour','');}catch(e){}
  if(restore){applyModelObj(restore);modelBeforeTour=null;}
+ resetTourViewDefaults();
  renderTourPanel();renderTourVenues();renderBasket();render();
  toast('Left “'+esc(name)+'”'+(restore?' — your previous model is back.':'.'));}
 function deactivateTour(){exitTour();}
@@ -916,7 +917,7 @@ function restoreFilters(){try{const o=JSON.parse(localStorage.getItem('ctii.filt
 function restoreState(){let pg='venues';
  try{pg=(location.hash.match(/^#\/([a-z]+)/)||[])[1]||localStorage.getItem('ctii.page')||'venues';}catch(e){}
  try{const tid=+localStorage.getItem('ctii.tour')||0;
-  if(tid){const t=TOURS.find(x=>x.id===tid);if(t){const sh=SHOWS.find(s=>s.id===t.show_id);curShow=t.show_id;curCompany=sh?sh.company_id:null;curTour=tid;loadTourVenues(tid).then(()=>{if(t.model)applyTourModel();});}}
+  if(tid){const t=TOURS.find(x=>x.id===tid);if(t){const sh=SHOWS.find(s=>s.id===t.show_id);curShow=t.show_id;curCompany=sh?sh.company_id:null;curTour=tid;applyTourViewDefaults();loadTourVenues(tid).then(()=>{if(t.model)applyTourModel();});}}
  }catch(e){}
  try{const dk=localStorage.getItem('ctii.dock');
   if(window.innerWidth>=600){if(dk&&DOCKCARDS[dk])openDock(dk);else if(dk===null&&window.innerWidth>=1280)openDock('model');}
@@ -933,7 +934,7 @@ async function loadTours(){try{
  }catch(e){console.warn('tours not loaded (run tours.sql):',e);}}
 function selectCompany(id){curCompany=id?+id:null;curShow=null;curTour=null;renderTourPanel();}
 function selectShow(id){curShow=id?+id:null;curTour=null;renderTourPanel();}
-function selectTour(id){curTour=id?+id:null;try{localStorage.setItem('ctii.tour',curTour||'');}catch(e){}loadTourVenues(curTour);const t=activeTourObj();if(t&&t.model){applyTourModel();toast('“'+esc(t.name)+'” is now the active tour — its frozen model has been applied.');}else{renderTourPanel();if(t)toast('“'+esc(t.name)+'” is now the active tour.');}}
+function selectTour(id){curTour=id?+id:null;try{localStorage.setItem('ctii.tour',curTour||'');}catch(e){}loadTourVenues(curTour);const t=activeTourObj();if(t)applyTourViewDefaults();if(t&&t.model){applyTourModel();toast('“'+esc(t.name)+'” is now the active tour — its frozen model has been applied.');}else{renderTourPanel();if(t)toast('“'+esc(t.name)+'” is now the active tour.');}}
 function renderTourPanel(){const el=document.getElementById('tourBody');if(!el)return;
  if(!SESSION){el.innerHTML='<div class="muted" style="font-size:12px">Sign in to build and manage tours.</div>';return;}
  const compOpts='<option value="">— select company —</option>'+COMPANIES.map(c=>`<option value="${c.id}" ${c.id===curCompany?'selected':''}>${esc(c.name)}</option>`).join('');
@@ -1183,7 +1184,7 @@ function renderToursAnalysis(rows,TT){const body=document.getElementById('toursB
  mk('tcTier','doughnut',{labels:['High','Medium','Low'],datasets:[{data:[tierCount.High,tierCount.Medium,tierCount.Low],backgroundColor:[TIERCOL.High,TIERCOL.Medium,TIERCOL.Low],borderColor:'#fff',borderWidth:2}]},{plugins:{legend:{position:'bottom'}}});
  let potential=0,confirmed=0;rows.forEach(r=>{const m=tourModelOf(r.t);r.a.tvs.forEach(x=>{const c=computeWith(x.v,m);if(c.subsidy>0){const amt=(x.fee||0)*c.subsidy;potential+=amt;if(x.confirmed)confirmed+=amt;}});});
  mk('tcConf','bar',{labels:['Confirmed','Full potential'],datasets:[{data:[Math.round(confirmed),Math.round(potential)],backgroundColor:['#EF476F','#5BC0BE'],borderColor:'#073B4C',borderWidth:1}]},{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}});}
-async function loadTourAsActive(tourId){const t=TOURS.find(x=>x.id===tourId);if(!t)return null;const sh=SHOWS.find(s=>s.id===t.show_id);curShow=t.show_id;curCompany=sh?sh.company_id:null;curTour=tourId;try{localStorage.setItem('ctii.tour',tourId);}catch(e){}await loadTourVenues(tourId);if(t.model)applyTourModel();renderTourPanel();return t;}
+async function loadTourAsActive(tourId){const t=TOURS.find(x=>x.id===tourId);if(!t)return null;const sh=SHOWS.find(s=>s.id===t.show_id);curShow=t.show_id;curCompany=sh?sh.company_id:null;curTour=tourId;try{localStorage.setItem('ctii.tour',tourId);}catch(e){}applyTourViewDefaults();await loadTourVenues(tourId);if(t.model)applyTourModel();renderTourPanel();return t;}
 async function openTourFromList(tourId){const t=await loadTourAsActive(tourId);if(t)createTourReport();}
 async function activateTourFromList(tourId){const t=await loadTourAsActive(tourId);if(t)showPage('venues');}
 function toggleBasketFloat(){floatCard('basketCard','basketFloatBtn',380,88,400);renderBasket();}
@@ -1528,11 +1529,15 @@ function closeRepMenu(){document.getElementById('repmenu').classList.remove('ope
 document.addEventListener('click',e=>{if(!e.target.closest('.repmenuwrap'))closeRepMenu();});
 function filtered(){const q=document.getElementById('q').value.toLowerCase();
  let a=V.filter(v=>(!q||(v.name||'').toLowerCase().includes(q))&&(F.tier.size===0||F.tier.has(v.cTier))&&(F.idx.size===0||(v.cIndex!=null&&F.idx.has(bandLabel(v.cIndex))))&&(F.elig.size===0||F.elig.has(v.cElig))&&(F.status.size===0||F.status.has(v.status))&&(F.state.size===0||F.state.has(v.state))&&(F.rem.size===0||F.rem.has(v.cRA)));
+ const tourKeyFns={ontour:v=>{return tvOf(v)?0:1;},tfee:v=>{const tv=tvOf(v);return tv?(tv.fee||0):-1;},tsub:v=>{const tv=tvOf(v);return (tv&&tv.confirmed&&v.cSub>0)?(tv.fee||0)*v.cSub:-1;}};
+ if(tourKeyFns[sortKey]){const f=tourKeyFns[sortKey];a.sort((x,y)=>sortDir*(f(x)-f(y)));return a;}
  const g={index:'cIndex',em_pct:'cEm',decile:'cDec',subsidy:'cSub',tier:'cTier',eligible:'cElig',ra:'cRA',child:'cChild'};const sk=g[sortKey]||sortKey;
  a.sort((x,y)=>{let A=x[sk],B=y[sk];if(typeof A==='string')return sortDir*(''+A).localeCompare(''+B);return sortDir*((A??-999)-(B??-999));});return a;}
 
 const cols=[['name','Venue'],['state','State'],['status','Status'],['ra','Remoteness'],['em_pct','EM %'],['decile','SEIFA dec'],['index','Index'],['tier','Tier'],['subsidy','Subsidy'],['eligible','Eligible'],['child','Children 0–14']];
 let charts={};
+function applyTourViewDefaults(){groupBy='state';collapsedGroups.clear();pageSize=Infinity;pageNum=1;const gb=document.getElementById('groupBy');if(gb)gb.value='state';}
+function resetTourViewDefaults(){groupBy='';collapsedGroups.clear();pageSize=20;pageNum=1;const gb=document.getElementById('groupBy');if(gb)gb.value='';}
 function tvOf(v){return tourVenues.find(x=>x.venue_id===v.id);}
 async function toggleVenueOnTour(i){const t=activeTourObj();if(!t||!SESSION)return;const v=V[i];const tv=tvOf(v);
  if(tv){await removeTourVenue(tv.id);}
@@ -1552,8 +1557,7 @@ function render(){const a=filtered();const _cc=document.getElementById('count');
    <div class="tstat"><div class="tsv" style="color:#06D6A0">${el}</div><div class="tsl">Subsidy eligible</div></div>
    <div class="tstat" title="Children aged 0–14 living in the distinct areas that host these venues — each SA2/SA3 counted once."><div class="tsv" style="color:#118AB2">${totChild.toLocaleString()}</div><div class="tsl">Children 0–14 ${MODEL.geo==='sa3'?'(SA3)':'(SA2)'}</div></div>
    <div class="tstat" title="Of those, children living in High-tier areas."><div class="tsv" style="color:#EF476F">${highChild.toLocaleString()}</div><div class="tsl">In High areas</div></div>`;
- const tourSortable=['ontour','tfee','tsub'];
- document.getElementById('thead').innerHTML='<th style="width:26px;cursor:default"><input type="checkbox" id="selAll" onclick="selectAllFiltered(this.checked)" title="Select all in this view"></th>'+curCols.map(c=>tourSortable.includes(c[0])?`<th style="cursor:default">${c[1]}</th>`:`<th onclick="setSort('${c[0]}')">${c[1]}${sortKey===c[0]?(sortDir<0?' ▾':' ▴'):''}</th>`).join('');
+ document.getElementById('thead').innerHTML='<th style="width:26px;cursor:default"><input type="checkbox" id="selAll" onclick="selectAllFiltered(this.checked)" title="Select all in this view"></th>'+curCols.map(c=>`<th onclick="setSort('${c[0]}')">${c[1]}${sortKey===c[0]?(sortDir<0?' ▾':' ▴'):''}</th>`).join('');
  const tw=document.querySelector('#page-venues .tablewrap');const total=a.length;
  const tourCells=v=>{if(!tourActive)return '';const tv=tvOf(v);const dis=SESSION?'':'disabled';
    const amt=(tv&&tv.confirmed&&v.cSub>0)?fmt$((tv.fee||0)*v.cSub):'';
@@ -1582,7 +1586,7 @@ function render(){const a=filtered();const _cc=document.getElementById('count');
  if(curPage==='map'){schedulePaint();paintMarkers();}
  renderModels();renderTierViz();renderTourPanel();renderTourBar();renderTourVenues();
  renderFilterChips();renderContext();renderTray();saveFilters();}
-function setSort(k){if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=(['name','state','status','ra','tier','eligible'].includes(k))?1:-1;}render();}
+function setSort(k){if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=(['name','state','status','ra','tier','eligible','ontour'].includes(k))?1:-1;}render();}
 function showPage(p){curPage=p;const explorer=(p==='venues'||p==='map'||p==='charts');document.body.classList.toggle('aboutmode',p==='about');document.body.classList.toggle('toursmode',p==='tours');document.querySelectorAll('.page').forEach(e=>e.classList.remove('active'));document.getElementById('page-'+p).classList.add('active');
  document.getElementById('nav-venues').classList.toggle('active',explorer);
  document.getElementById('nav-tours').classList.toggle('active',p==='tours');
