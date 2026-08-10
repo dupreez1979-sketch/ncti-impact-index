@@ -429,6 +429,14 @@ body.aboutmode #filterCard,body.toursmode #filterCard{display:none!important;}
 }
 .dockclosebar{display:none;justify-content:flex-end;margin-bottom:8px;}
 .dockclosebar button{border:1.5px solid var(--navy);background:#fff;border-radius:8px;font-family:inherit;font-weight:800;font-size:12px;padding:6px 12px;color:var(--navy);}
+/* panel sections (Model builder / Saved models / Scenario / Income sources) */
+.psec{border:1.5px solid var(--navy);border-radius:9px;margin:0 0 10px;overflow:hidden;background:#fff;}
+.psechead{display:flex;align-items:center;gap:8px;background:var(--navy);color:#fff;font-family:'Charlie Kingdom';font-size:13px;padding:7px 11px;cursor:pointer;letter-spacing:.3px;user-select:none;}
+.psechead .caret{margin-left:auto;transition:transform .2s;font-size:11px;}
+.psec.collapsed .psecbody{display:none;}
+.psec.collapsed .psechead .caret{transform:rotate(-90deg);}
+.psecbody{padding:10px 11px;}
+.psecbody .subsec{margin-bottom:6px;}
 /* tour steps */
 .tsteps{list-style:none;margin:10px 0 4px;padding:0;font-size:12px;}
 .tsteps li{display:flex;gap:9px;align-items:center;padding:7px 6px;border-bottom:1px solid #Eee6cf;cursor:pointer;border-radius:6px;}
@@ -465,8 +473,9 @@ body.aboutmode #filterCard,body.toursmode #filterCard{display:none!important;}
    </div>
  </div>
  <div class="cbody">
-   <div class="subsec collapsed" id="sec-models"><div class="subhead" onclick="toggleSub(this)">Saved models <span class="caret">▾</span></div>
-     <div class="subbody"><div class="presets-bar" id="savedmodels"></div></div></div>
+  <div class="psec" id="ps-builder">
+   <div class="psechead" onclick="togglePsec(this)">Model builder <span class="caret">▾</span></div>
+   <div class="psecbody">
    <div class="subsec collapsed" id="sec-geo"><div class="subhead" onclick="toggleSub(this)">Geography <span class="caret">▾</span></div>
      <div class="subbody"><span class="geo" id="geo"><button data-g="sa2" class="on" onclick="setGeo('sa2')">SA2</button><button data-g="sa3" onclick="setGeo('sa3')">SA3</button></span></div></div>
    <div class="subsec collapsed" id="sec-ind"><div class="subhead" onclick="toggleSub(this)">Indicators <span class="caret">▾</span></div>
@@ -499,6 +508,14 @@ body.aboutmode #filterCard,body.toursmode #filterCard{display:none!important;}
        </div>
        <div class="muted" id="subnote" style="margin-top:8px"></div>
      </div></div>
+   <button class="btn" style="width:100%;margin-top:4px;padding:7px 10px;font-size:12px" onclick="saveCurrentModel()">＋ Save this model…</button>
+   <div class="muted" style="font-size:10.5px;margin-top:5px">Stores the current settings in Saved models below, so you can re-apply or freeze them to a tour later.</div>
+   </div>
+  </div>
+  <div class="psec collapsed" id="ps-saved">
+   <div class="psechead" onclick="togglePsec(this)">Saved models <span class="caret">▾</span></div>
+   <div class="psecbody"><div class="presets-bar" id="savedmodels"></div></div>
+  </div>
  </div>
 </div>
 <div class="card model" id="basketCard">
@@ -506,6 +523,9 @@ body.aboutmode #filterCard,body.toursmode #filterCard{display:none!important;}
    <div class="modelicons"><button class="iconbtn" id="basketFloatBtn" title="Pop out as a movable window" onclick="event.stopPropagation();toggleBasketFloat()">⤢</button><button class="iconbtn" title="Close" onclick="event.stopPropagation();closeDock()">✕</button></div>
  </div>
  <div class="cbody" style="margin-top:8px">
+  <div class="psec" id="ps-scenario">
+   <div class="psechead" onclick="togglePsec(this)"><span id="bkSecTitle">Scenario builder</span> <span class="caret">▾</span></div>
+   <div class="psecbody">
    <div id="bkFeeRow" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;margin-bottom:6px">
      <span class="muted">Fee $</span><input type="number" id="bkFee" value="12500" step="500" style="width:78px" oninput="setBasketFee(this.value)">
      <button class="preset" style="font-size:10px;padding:3px 6px" onclick="setBasketFee(12500)">12.5k</button>
@@ -519,13 +539,14 @@ body.aboutmode #filterCard,body.toursmode #filterCard{display:none!important;}
    <div class="statline"><span class="sl">Gross fees</span><span class="sv" id="bkGross">$0</span></div>
    <div class="statline"><span class="sl">Subsidy required</span><span class="sv" style="color:var(--pink)" id="bkSub">$0</span></div>
    <div class="statline"><span class="sl">Venues pay</span><span class="sv" id="bkPay">$0</span></div>
-   <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
-     <button class="btn" style="padding:5px 10px;font-size:11.5px" onclick="createReport()">Report (PDF)</button>
-     <button class="btn sec" style="padding:5px 10px;font-size:11.5px" onclick="toggleSplit(this)">Income sources ▾</button>
-     <button class="btn sec" style="padding:5px 10px;font-size:11.5px" onclick="clearSel()">Clear</button>
+   <button class="btn sec" style="padding:4px 10px;font-size:11px;margin-top:8px" id="bkClearBtn" onclick="clearSel()">Clear selection</button>
    </div>
-   <div class="hidden" id="splitPanel" style="margin-top:8px;border-top:1px dashed var(--slate);padding-top:8px"><div id="sourcesBox"></div></div>
-   <div class="muted" style="margin-top:8px;font-size:10.5px">Tick venues in the Venues list. Selections persist across filters. Only High-tier venues draw a subsidy.</div>
+  </div>
+  <div class="psec collapsed" id="ps-sources">
+   <div class="psechead" onclick="togglePsec(this)">Income sources <span class="caret">▾</span></div>
+   <div class="psecbody"><div id="splitPanel"><div id="sourcesBox"></div></div></div>
+  </div>
+  <div class="muted" style="margin-top:2px;font-size:10.5px">Tick venues in the Venues list — selections persist across filters. Only High-tier venues draw a subsidy. The funder PDF is under <b>Report ▾</b> in the toolbar.</div>
  </div>
 </div>
 <div class="card model" id="tourCard">
@@ -709,7 +730,7 @@ let pageSize=20,pageNum=1,groupBy='';
 let sel=new Set(),basketFee=12500;
 let sources=[],_srcSeq=0;
 const SRC_PRESETS={pa:'Playing Australia',phil:'Philanthropy',gov:'Other government funding',other:'Other source'};
-function toggleSplit(btn){const p=document.getElementById('splitPanel');const h=p.classList.toggle('hidden');btn.textContent=h?'Income sources ▾':'Income sources ▴';}
+function togglePsec(el){el.closest('.psec').classList.toggle('collapsed');}
 function addSource(kind){_srcSeq++;if(kind==='state')sources.push({id:_srcSeq,kind:'state',state:'NSW',name:'State touring grant',amount:0,overridden:false});else sources.push({id:_srcSeq,kind:'manual',name:SRC_PRESETS[kind]||'Other source',amount:0});renderBasket();persistSourcesIfTour();}
 function removeSource(id){sources=sources.filter(s=>s.id!==id);renderBasket();persistSourcesIfTour();}
 function setSourceName(id,v){const s=sources.find(x=>x.id===id);if(s)s.name=v;persistSourcesIfTour();}
@@ -736,7 +757,9 @@ function renderBasket(){if(!document.getElementById('bkN'))return;const tour=act
  const pay=gross-sub;
  const setT=(id,t)=>{const e=document.getElementById(id);if(e)e.textContent=t;};
  setT('bkNL',tour?'Tour venues':'Venues selected');setT('bkEligL',tour?'Subsidised':'Subsidy-eligible');
+ setT('bkSecTitle',tour?'Tour subsidy':'Scenario builder');
  const feeRow=document.getElementById('bkFeeRow');if(feeRow)feeRow.style.display=tour?'none':'';
+ const cb=document.getElementById('bkClearBtn');if(cb)cb.style.display=tour?'none':'';
  const link=document.getElementById('bkLink');if(link)link.innerHTML=tour?`<div class="bklinkbox">Linked to tour <b>${esc(tour.name)}</b> — venues, fees &amp; income sources come from the tour. Edit them in the Tours / Tour venues panels.</div>`:'';
  document.getElementById('bkN').textContent=n;
  document.getElementById('bkElig').textContent=elig;
