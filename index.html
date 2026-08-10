@@ -382,30 +382,51 @@ body.aboutmode #filterCard,body.toursmode #filterCard{display:none!important;}
  .dockwrap.open{position:fixed;right:10px;left:auto;top:70px;bottom:10px;width:min(420px,92vw);overflow:auto;}
  .topnav{order:3;width:100%;justify-content:flex-start;}
 }
-@media(max-width:599px){ /* mobile */
- body{padding-bottom:64px;}
- .topbar{padding:8px 12px;}
- .topnav{display:none;}
- .hero{font-size:26px;}
- #mobtabs{display:flex;}
- .wbrail{display:none;}
- .dockwrap.open{position:fixed;inset:0;width:auto;z-index:2500;background:var(--cream);padding:14px 12px 80px;}
- .dockwrap.open .card{display:block;margin-bottom:14px;}
- .dockwrap .dockclosebar{display:flex!important;}
- .tablewrap{display:none;}
- #cardlist{display:block;}
- .xbar .viewswitch button{padding:6px 10px;font-size:12px;}
- #selTray{bottom:70px;width:94vw;}
- #filterCard.opendrawer{position:fixed;left:0;right:0;bottom:64px;top:auto;z-index:2200;border-radius:16px 16px 0 0;max-height:70vh;overflow:auto;margin:0;box-shadow:0 -6px 0 rgba(7,59,76,.25);}
- .kpirow .tstat{padding:5px 10px;}
- .chartsgrid{grid-template-columns:1fr;}
- #map{height:62vh;}
- .aboutwrap{padding:0 4px;}
-}
+/* card list (mobile venue rows) — base rule BEFORE the media query so mobile can override */
 #cardlist{display:none;}
 .vcard{border:1.5px solid var(--navy);border-radius:10px;background:#fff;padding:9px 12px;margin-bottom:8px;display:flex;align-items:center;gap:9px;font-size:12.5px;}
 .vcard .vc-name{flex:1;min-width:0;font-weight:700;color:var(--navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .vcard .vc-meta{font-size:11px;color:var(--slate);white-space:nowrap;}
+@media(max-width:599px){ /* mobile */
+ body{padding-bottom:64px;}
+ .wrap{padding:0 12px;}
+ .topbar{padding:8px 12px;gap:8px;}
+ .topnav{display:none;}
+ .hero{font-size:24px;}
+ header{margin:10px 0 8px;}
+ #mobtabs{display:flex;}
+ .ctxbar{width:100%;margin-left:0;order:3;}
+ .ctxchip{font-size:10.5px;padding:3px 9px;max-width:48%;}
+ /* workbench stays IN CONTEXT on mobile: horizontal strip above the content */
+ .wbrail{display:flex;flex-direction:row;position:static;width:auto;flex:none;gap:8px;padding:0 0 10px;overflow-x:auto;}
+ .wbbtn{flex:1 1 0;min-width:0;height:38px;flex-direction:row;gap:6px;padding:0 8px;font-size:14px;box-shadow:2px 2px 0 var(--navy);}
+ .wbbtn .wblbl{margin-top:0;font-size:9.5px;}
+ /* panels open as a bottom sheet over the content — never a separate page */
+ .dockwrap.open{position:fixed;left:0;right:0;bottom:64px;top:auto;width:auto;max-height:76vh;overflow:auto;z-index:2400;background:var(--cream);border-top:2px solid var(--navy);border-radius:16px 16px 0 0;padding:10px 12px 16px;box-shadow:0 -6px 0 rgba(7,59,76,.22);}
+ .dockwrap .dockclosebar{display:flex!important;}
+ .dockwrap.open .card{box-shadow:none;border-radius:10px;}
+ .tablewrap,#venueTableCard{display:none;}
+ #cardlist{display:block;}
+ .xbar{gap:8px;}
+ .xbar .viewswitch button{padding:6px 12px;font-size:12px;}
+ .xbar .xspacer{display:none;}
+ #groupByWrap{font-size:11.5px;}
+ #selTray{bottom:72px;width:94vw;padding:9px 12px;gap:8px;font-size:11.5px;}
+ #selTray .traybtn{padding:6px 10px;font-size:11.5px;}
+ #filterCard.opendrawer{position:fixed;left:0;right:0;bottom:64px;top:auto;z-index:2450;border-radius:16px 16px 0 0;max-height:72vh;overflow:auto;margin:0;box-shadow:0 -6px 0 rgba(7,59,76,.25);}
+ .filters{grid-template-columns:1fr!important;}
+ .kpirow{gap:7px;}
+ .kpirow .tstat{padding:5px 10px;flex:1 1 44%;}
+ .kpirow .tstat .tsv{font-size:19px;}
+ .chartsgrid{grid-template-columns:1fr;}
+ #map{height:60vh;}
+ .aboutwrap{padding:0 4px;}
+ .toursfilters{gap:9px;}
+ .toursfilters label{width:100%;}
+ .tourskpis .tk{flex:1 1 44%;min-width:0;padding:8px 10px;}
+ #toasts{left:10px;right:10px;bottom:72px;}
+ .toast{max-width:none;}
+}
 .dockclosebar{display:none;justify-content:flex-end;margin-bottom:8px;}
 .dockclosebar button{border:1.5px solid var(--navy);background:#fff;border-radius:8px;font-family:inherit;font-weight:800;font-size:12px;padding:6px 12px;color:var(--navy);}
 /* tour steps */
@@ -524,7 +545,7 @@ body.aboutmode #filterCard,body.toursmode #filterCard{display:none!important;}
  <div class="repmenuwrap"><button class="btn" style="padding:6px 14px;font-size:12px" onclick="toggleRepMenu(event)">Report ▾</button><div class="repmenu" id="repmenu"></div></div>
 </div>
 <div class="card" id="filterCard" style="padding:10px 14px 12px">
- <div class="chead" onclick="toggleCard(this)"><h3 style="margin:0">Filters</h3><span class="caret">▾</span></div>
+ <div class="chead" style="cursor:default"><h3 style="margin:0">Filters</h3><span style="margin-left:auto;display:flex;gap:6px"><button class="iconbtn" title="Reset all filters" onclick="resetF()">⟳</button><button class="iconbtn" title="Close" onclick="toggleFilterDrawer()">✕</button></span></div>
  <div class="filters cbody" id="filtersBody" style="padding:0;margin:10px 0 0">
  <div class="fg"><label>Search venue</label><input type="text" id="q" placeholder="type a name…" oninput="render()"></div>
  <div class="fg"><label>Tier</label><div class="ms" id="mTier"></div></div>
@@ -533,11 +554,11 @@ body.aboutmode #filterCard,body.toursmode #filterCard{display:none!important;}
  <div class="fg"><label>Status</label><div class="ms" id="mStatus"></div></div>
  <div class="fg"><label>State</label><div class="ms" id="mState"></div></div>
  <div class="fg"><label>Remoteness</label><div class="ms" id="mRem"></div></div>
- <div class="fg"><label>&nbsp;</label><button class="btn sec" onclick="resetF()">Reset filters</button></div>
+ <div class="fg"><label>&nbsp;</label><button class="btn" onclick="toggleFilterDrawer()">Done</button></div>
  </div>
 </div>
 <div class="page active" id="page-venues">
-<span id="tourBar" style="display:none"></span><div id="cardlist"></div><div class="card" style="overflow:hidden"><div class="tablewrap"><table><thead><tr id="thead"></tr></thead><tbody id="tbody"></tbody></table></div></div>
+<span id="tourBar" style="display:none"></span><div id="cardlist"></div><div class="card" id="venueTableCard" style="overflow:hidden"><div class="tablewrap"><table><thead><tr id="thead"></tr></thead><tbody id="tbody"></tbody></table></div></div>
  <div class="pager" id="pager"></div>
  <div class="muted" style="margin-top:8px">Click any venue for its profile, the formula under the current model, and the fee calculator.</div></div>
 <div class="page" id="page-charts"><div style="margin:14px 2px 12px;font-size:12.5px;color:var(--slate);font-weight:700">Analysis of filtered venues</div><div class="chartsgrid">
@@ -663,7 +684,6 @@ body.aboutmode #filterCard,body.toursmode #filterCard{display:none!important;}
 <div id="mobtabs">
  <button data-mt="explore" class="on" onclick="showPage('venues')"><span class="mi">◉</span>Explore</button>
  <button data-mt="tours" onclick="showPage('tours')"><span class="mi">➤</span>Tours</button>
- <button data-mt="wb" onclick="toggleMobileWorkbench()"><span class="mi">⚙</span>Workbench</button>
  <button data-mt="about" onclick="showPage('about')"><span class="mi">✦</span>About</button>
 </div>
 <div id="reportView"><div class="rpt-toolbar no-print"><button class="btn" onclick="window.print()">Print / Save as PDF</button><button class="btn sec" onclick="closeReport()">Close</button></div><div id="reportBody"></div></div>
@@ -701,7 +721,7 @@ function resolveSources(sub,stateSub,list){list=list||sources;let other=0;const 
 let collapsedGroups=new Set();
 function setGroup(v){groupBy=v;collapsedGroups.clear();pageNum=1;render();}
 function toggleGroup(k){if(collapsedGroups.has(k))collapsedGroups.delete(k);else collapsedGroups.add(k);render();}
-function toggleSel(i){if(sel.has(i))sel.delete(i);else sel.add(i);renderBasket();updateSelAll();renderTourBar();}
+function toggleSel(i){if(sel.has(i))sel.delete(i);else sel.add(i);renderBasket();updateSelAll();renderTourBar();renderTray();}
 function selectAllFiltered(check){filtered().forEach(v=>{if(check)sel.add(v._i);else sel.delete(v._i);});render();}
 function clearSel(){sel.clear();render();}
 function setBasketFee(v){basketFee=Math.max(0,+v||0);const e=document.getElementById('bkFee');if(e)e.value=basketFee;renderBasket();}
@@ -762,6 +782,7 @@ let dockOpen=null;
 function openDock(name){if(!DOCKCARDS[name])return;
  const card=document.getElementById(DOCKCARDS[name]);
  if(card.classList.contains('floating')){card.style.zIndex=1250;return;}
+ if(dockOpen===name&&document.getElementById('dockwrap').classList.contains('open')){closeDock();return;}
  dockOpen=name;
  document.getElementById('dockwrap').classList.add('open');
  Object.entries(DOCKCARDS).forEach(([n,id])=>{const c=document.getElementById(id);if(c&&!c.classList.contains('floating'))c.classList.toggle('dockon',n===name);
@@ -814,9 +835,6 @@ function renderTray(){const el=document.getElementById('selTray');if(!el)return;
   <button class="traybtn pri" onclick="${addAct}">${t?('Add to '+esc(t.name)+' ▸'):'Add to tour ▸'}</button>
   <button class="trayclear" onclick="clearSel()">Clear</button>`;
  el.classList.add('on');}
-function toggleMobileWorkbench(){const dw=document.getElementById('dockwrap');
- if(dw.classList.contains('open'))closeDock();else openDock(localStorage.getItem('ctii.dock')||'model');
- document.querySelectorAll('#mobtabs button').forEach(b=>b.classList.toggle('on',b.dataset.mt==='wb'&&dw.classList.contains('open')));}
 // ---------- persistence & routing ----------
 function saveFilters(){try{const o={q:document.getElementById('q')?document.getElementById('q').value:''};Object.keys(F).forEach(k=>o[k]=[...F[k]]);localStorage.setItem('ctii.filters',JSON.stringify(o));}catch(e){}}
 function restoreFilters(){try{const o=JSON.parse(localStorage.getItem('ctii.filters')||'null');if(!o)return;
@@ -1039,17 +1057,6 @@ function renderToursPage(){const head=document.getElementById('toursHead');if(!h
  const toursForSel=list.slice().sort((a,b)=>(''+a.name).localeCompare(b.name));
  const tourOpts=`<option value="">All tours</option>`+toursForSel.map(t=>`<option value="${t.id}" ${''+t.id===tuTour?'selected':''}>${esc(t.name)}</option>`).join('');
  head.innerHTML=`
-  <div class="toursfilters">
-    <label>Company <select onchange="setTuFilter('company',this.value)">${compOpts}</select></label>
-    <label>Work <select onchange="setTuFilter('show',this.value)">${showOpts}</select></label>
-    <label>Tour <select onchange="setTuFilter('tour',this.value)">${tourOpts}</select></label>
-    <label class="chk"><input type="checkbox" ${tuConfOnly?'checked':''} onchange="setTuFilter('conf',this.checked)"> Confirmed subsidy only</label>
-    <span class="viewwrap"><span class="muted" style="font-size:11px">View</span><div class="viewswitch">
-      <button data-tv="list" class="${toursView==='list'?'active':''}" onclick="setToursView('list')">List</button>
-      <button data-tv="map" class="${toursView==='map'?'active':''}" onclick="setToursView('map')">Map</button>
-      <button data-tv="analysis" class="${toursView==='analysis'?'active':''}" onclick="setToursView('analysis')">Analysis</button>
-    </div></span>
-  </div>
   <div class="tourskpis">
     <div class="tk"><div class="tkv">${TT.tours}</div><div class="tkl">Tours</div></div>
     <div class="tk"><div class="tkv">${TT.venues}</div><div class="tkl">Venue engagements</div></div>
@@ -1057,6 +1064,20 @@ function renderToursPage(){const head=document.getElementById('toursHead');if(!h
     <div class="tk"><div class="tkv pink">${fmt$(TT.subsidy)}</div><div class="tkl">Subsidy (confirmed)</div></div>
     <div class="tk"><div class="tkv">${fmt$(TT.gross-TT.subsidy)}</div><div class="tkl">Presenter contribution</div></div>
     <div class="tk"><div class="tkv" style="color:#118AB2">${TT.child.toLocaleString()}</div><div class="tkl">Children 0–14 reached</div></div>
+  </div>
+  <div class="xbar">
+    <div class="toursfilters" style="margin:0">
+      <label>Company <select onchange="setTuFilter('company',this.value)">${compOpts}</select></label>
+      <label>Work <select onchange="setTuFilter('show',this.value)">${showOpts}</select></label>
+      <label>Tour <select onchange="setTuFilter('tour',this.value)">${tourOpts}</select></label>
+      <label class="chk"><input type="checkbox" ${tuConfOnly?'checked':''} onchange="setTuFilter('conf',this.checked)"> Confirmed only</label>
+    </div>
+    <span class="xspacer"></span>
+    <div class="viewswitch">
+      <button data-tv="list" class="${toursView==='list'?'active':''}" onclick="setToursView('list')">List</button>
+      <button data-tv="map" class="${toursView==='map'?'active':''}" onclick="setToursView('map')">Map</button>
+      <button data-tv="analysis" class="${toursView==='analysis'?'active':''}" onclick="setToursView('analysis')">Analysis</button>
+    </div>
   </div>`;
  if(toursView==='map')renderToursMap(rows);
  else if(toursView==='analysis')renderToursAnalysis(rows,TT);
@@ -1483,7 +1504,7 @@ function render(){const a=filtered();const _cc=document.getElementById('count');
    renderPager(total,start,end,pages);
    document.getElementById('tbody').innerHTML=rows.map(v=>rowHtml(v)+(editingId===v._i?editorRowHtml(v):'')).join('');}
  const cl=document.getElementById('cardlist');
- if(cl&&curPage==='venues'&&window.innerWidth<600){const rows=a.slice(0,80);
+ if(cl&&curPage==='venues'){const rows=a.slice(0,80);
    cl.innerHTML=rows.map(v=>`<div class="vcard" onclick="openD(${v._i})"><input type="checkbox" ${sel.has(v._i)?'checked':''} onclick="event.stopPropagation();toggleSel(${v._i})"><span class="vc-name">${esc(v.name)}</span><span class="chip tier-${v.cTier}" style="font-size:9px;padding:1px 7px">${v.cTier}</span><span class="vc-meta">${v.cIndex!=null?v.cIndex.toFixed(1):'—'}${v.cSub?' · '+Math.round(v.cSub*100)+'%':''}</span></div>`).join('')+(a.length>80?`<div class="muted" style="font-size:11px;text-align:center;padding:6px">Showing first 80 of ${a.length} — refine the filters</div>`:'');}
  renderBasket();updateSelAll();
  if(curPage==='charts')drawCharts(a);
