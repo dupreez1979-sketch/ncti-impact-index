@@ -213,7 +213,8 @@ tbody tr.grouphdr:hover td{background:var(--navy);}
 .card.collapsed .cbody{display:none;}
 .card.collapsed .caret{transform:rotate(-90deg);}
 .modelicons{display:flex;gap:6px;align-items:center;}
-.iconbtn{border:1.5px solid var(--navy);background:var(--navy);color:#fff;border-radius:6px;cursor:pointer;font-size:17px;padding:5px 11px;line-height:1;box-shadow:2px 2px 0 rgba(7,59,76,.45);}
+.iconbtn{border:1.5px solid var(--navy);background:var(--navy);color:#fff;border-radius:6px;cursor:pointer;font-size:14px;padding:0;width:32px;height:27px;display:inline-flex;align-items:center;justify-content:center;line-height:1;box-shadow:2px 2px 0 rgba(7,59,76,.45);}
+.iconbtn svg{width:13px;height:13px;}
 .iconbtn:hover{background:var(--pink);border-color:var(--pink);}
 .tierviz{margin:2px 0 14px;}
 .tvtrack{position:relative;height:58px;border:1.5px solid var(--navy);border-radius:6px;overflow:hidden;background:#fff;user-select:none;touch-action:none;}
@@ -236,7 +237,7 @@ tbody tr.grouphdr:hover td{background:var(--navy);}
 .subsec.collapsed .caret{transform:rotate(-90deg);}
 .model.maximized{position:fixed;top:4vh;left:50%;transform:translateX(-50%);width:min(720px,94vw);max-height:92vh;overflow:auto;z-index:5600;padding:20px 24px 22px;border-radius:10px;box-shadow:8px 8px 0 var(--navy);}
 .model.maximized .top{border-bottom:2px solid var(--navy);padding-bottom:12px;}
-.model.floating{position:fixed;top:88px;left:380px;width:320px;max-height:80vh;overflow:auto;z-index:3500;box-shadow:6px 6px 0 var(--navy);border-width:2px;}
+.model.floating{position:fixed;top:88px;left:380px;width:320px;max-height:92vh;overflow:auto;z-index:3500;box-shadow:6px 6px 0 var(--navy);border-width:2px;resize:both;min-width:280px;min-height:150px;max-width:96vw;}
 .model.floating .top{cursor:move;user-select:none;}
 #reportView{display:none;position:fixed;inset:0;background:#e9edf0;z-index:7000;overflow:auto;padding:0 0 40px;}
 #reportView.open{display:block;}
@@ -429,6 +430,10 @@ body.aboutmode #filterCard,body.toursmode #filterCard{display:none!important;}
 }
 .dockclosebar{display:none;justify-content:flex-end;margin-bottom:8px;}
 .dockclosebar button{border:1.5px solid var(--navy);background:#fff;border-radius:8px;font-family:inherit;font-weight:800;font-size:12px;padding:6px 12px;color:var(--navy);}
+/* dock/main splitter */
+#dockSplit{flex:0 0 7px;width:7px;cursor:col-resize;border-radius:4px;background:transparent;align-self:stretch;display:none;transition:background .15s;}
+#dockSplit:hover,#dockSplit.dragging{background:var(--teal);}
+@media(min-width:1280px){.dockwrap.open+#dockSplit{display:block;}}
 /* panel sections (Model builder / Saved models / Scenario / Income sources) */
 .psec{border:1.5px solid var(--navy);border-radius:9px;margin:0 0 10px;overflow:hidden;background:#fff;}
 .psechead{display:flex;align-items:center;gap:8px;background:var(--navy);color:#fff;font-family:'Charlie Kingdom';font-size:13px;padding:7px 11px;cursor:pointer;letter-spacing:.3px;user-select:none;}
@@ -555,6 +560,7 @@ body.aboutmode #filterCard,body.toursmode #filterCard{display:none!important;}
  <div class="cbody" id="tourVenuesBody" style="margin-top:8px;border-top:1px dashed var(--slate);padding-top:8px"></div>
 </div>
 </div>
+<div id="dockSplit" title="Drag to resize the panel"></div>
 <div class="maincol">
 <div class="topstats kpirow" id="kpis"></div>
 <div class="xbar" id="exploreBar">
@@ -789,12 +795,21 @@ function toggleRail(){document.getElementById('mainrow').classList.toggle('railc
 function toggleSub(el){el.closest('.subsec').classList.toggle('collapsed');}
 function toggleAcc(el){el.closest('.accitem').classList.toggle('open');}
 function floatCard(cardId,btnId,left,top,w){const c=document.getElementById(cardId),b=document.getElementById(btnId);
- if(!c.classList.contains('floating')){c._home={parent:c.parentNode,next:c.nextSibling};document.body.appendChild(c);c.classList.add('floating');c.classList.remove('collapsed');c.style.right='';c.style.left=left+'px';c.style.top=top+'px';c.style.width=(w||320)+'px';if(b){b.innerHTML='<svg width="11" height="11" viewBox="0 0 24 24" style="display:block" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3.5h6l-1.2 6.2 3.4 3.3H6.8l3.4-3.3z" fill="currentColor" stroke="currentColor" stroke-width="1.4"/><line x1="12" y1="13.5" x2="12" y2="21"/></svg>';b.title='Pin back into the panel';}}
+ if(!c.classList.contains('floating')){c._home={parent:c.parentNode,next:c.nextSibling};document.body.appendChild(c);c.classList.add('floating');c.classList.remove('collapsed');c.style.right='';c.style.left=left+'px';c.style.top=top+'px';c.style.width=(w||320)+'px';if(b){b.innerHTML='<svg viewBox="0 0 24 24" style="display:block" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3.5h6l-1.2 6.2 3.4 3.3H6.8l3.4-3.3z" fill="currentColor" stroke="currentColor" stroke-width="1.4"/><line x1="12" y1="13.5" x2="12" y2="21"/></svg>';b.title='Pin back into the panel';}}
  else dockCard(cardId,btnId);}
 function closePanel(name){const c=document.getElementById(DOCKCARDS[name]);
  if(c&&c.classList.contains('floating')){const btn=document.getElementById({model:'modelFloatBtn',basket:'basketFloatBtn',tour:'tourFloatBtn'}[name]);dockCard(DOCKCARDS[name],btn?btn.id:null);}
  closeDock();}
 function toggleTourVenuesFloat(){openTourFullEditor();}
+function applyDockW(){try{const wpx=+localStorage.getItem('ctii.dockw')||0;const dw=document.getElementById('dockwrap');if(wpx&&dw){dw.style.width=wpx+'px';dw.style.flex='0 0 '+wpx+'px';}}catch(e){}}
+(function(){const sp=document.getElementById('dockSplit');if(!sp)return;
+ sp.addEventListener('pointerdown',e=>{e.preventDefault();const dw=document.getElementById('dockwrap');const startX=e.clientX,startW=dw.getBoundingClientRect().width;sp.classList.add('dragging');
+  const move=ev=>{const w=Math.max(270,Math.min(640,startW+(ev.clientX-startX)));dw.style.width=w+'px';dw.style.flex='0 0 '+w+'px';};
+  const up=ev=>{sp.classList.remove('dragging');document.removeEventListener('pointermove',move);document.removeEventListener('pointerup',up);
+   try{localStorage.setItem('ctii.dockw',Math.round(dw.getBoundingClientRect().width));}catch(err){}
+   if(typeof renderTierViz==='function')setTimeout(renderTierViz,30);if(map)setTimeout(()=>map.invalidateSize(),60);};
+  document.addEventListener('pointermove',move);document.addEventListener('pointerup',up);});})();
+
 function dockCard(cardId,btnId){const c=document.getElementById(cardId),b=document.getElementById(btnId);c.classList.remove('floating');c.style.left=c.style.top=c.style.right=c.style.width='';if(c._home){c._home.parent.insertBefore(c,c._home.next);c._home=null;}if(b){b.textContent='⛶';b.title='Pop out as a movable window';}
  const name=Object.keys(DOCKCARDS).find(n=>DOCKCARDS[n]===cardId);if(name)openDock(name,true);}
 function cardDragStart(cardId,e){const c=document.getElementById(cardId);if(!c.classList.contains('floating'))return;if(e.target.closest('button'))return;const r=c.getBoundingClientRect();const dx=e.clientX-r.left,dy=e.clientY-r.top;
@@ -809,7 +824,7 @@ function openDock(name,force){if(!DOCKCARDS[name])return;
  if(card.classList.contains('floating')){card.style.zIndex=(window._topZ=(window._topZ||3500)+1);card.style.boxShadow='0 0 0 3px var(--pink)';setTimeout(()=>card.style.boxShadow='',600);return;}
  const _isOpen=dockOpen===name&&document.getElementById('dockwrap').classList.contains('open');if(_isOpen){if(!force){closeDock();return;}card.style.boxShadow='0 0 0 3px var(--pink)';setTimeout(()=>card.style.boxShadow='',600);return;}
  dockOpen=name;
- document.getElementById('dockwrap').classList.add('open');
+ document.getElementById('dockwrap').classList.add('open');applyDockW();
  Object.entries(DOCKCARDS).forEach(([n,id])=>{const c=document.getElementById(id);if(c&&!c.classList.contains('floating'))c.classList.toggle('dockon',n===name);
    const b=document.getElementById('wb-'+n);if(b)b.classList.toggle('on',n===name);});
  try{localStorage.setItem('ctii.dock',name);}catch(e){}
@@ -1071,7 +1086,7 @@ function tourModelOf(t){return (t&&t.model)?t.model:MODEL;}
 function tourAgg(t,confOnly){const m=tourModelOf(t);const geo=m.geo||'sa2';const tvs=ALLTV.filter(x=>x.tour_id===t.id);
  let venues=0,confirmed=0,subsidy=0,gross=0,child=0;const seen=new Set();const pts=[];
  tvs.forEach(x=>{const v=x.v;if(!v)return;const c=computeWith(v,m);const isSub=x.confirmed&&c.subsidy>0;const incl=confOnly?isSub:true;
-   if(v.ll)pts.push({ll:v.ll,sub:isSub});
+   if(v.ll)pts.push({ll:v.ll,sub:isSub,name:v.name});
    if(!incl)return;venues++;const fee=x.fee||0;gross+=fee;if(isSub){confirmed++;subsidy+=fee*c.subsidy;}
    const code=geo==='sa3'?v.sa3code:v.sa2code;const ch=v[geo==='sa3'?'childSA3':'childSA2'];
    if(code!=null&&!seen.has(code)){seen.add(code);child+=ch?ch.t:0;}});
@@ -1136,12 +1151,23 @@ function renderToursList(rows){const body=document.getElementById('toursBody');i
  h+=`<div class="pager"><label>Show <select onchange="setTuSize(this.value)">${opts}</select> per page</label> <span>${total?`Showing <b>${start+1}–${end}</b> of <b>${total}</b> tours`:'No tours'}</span>${pg}</div>`;
  h+='<div class="muted" style="margin-top:8px">Click any tour to open it as the active tour on the Venues tab; use <b>Report</b> for its subsidy PDF. Each tour’s subsidy is calculated under its own saved model.</div>';
  body.innerHTML=h;}
-function renderToursMap(rows){const body=document.getElementById('toursBody');if(!body)return;const pts=[];rows.forEach(r=>r.a.pts.forEach(p=>pts.push(p)));
- let h='<div class="card" style="padding:16px">';
- h+=`<div style="margin:2px 0 6px">${ausTourMap(pts,560)}</div>`;
- h+='<div class="rpt-legend"><span><i style="background:#EF476F"></i>Subsidised venue</span><span><i style="background:#118AB2"></i>On tour (no subsidy)</span></div>';
- h+=`<div class="muted" style="margin-top:8px">${pts.length} venue engagement${pts.length!=1?'s':''} across ${rows.length} tour${rows.length!=1?'s':''}. Each dot is a venue on a tour; pink dots draw a confirmed subsidy. Overlapping dots mean multiple tours reach the same place.</div>`;
- h+='</div>';body.innerHTML=h;}
+let toursMapObj=null;
+function renderToursMap(rows){const body=document.getElementById('toursBody');if(!body)return;
+ const pts=[];rows.forEach(r=>r.a.pts.forEach(p=>pts.push({ll:p.ll,sub:p.sub,name:p.name||'',tour:r.t.name})));
+ let h='<div class="card" style="padding:0;overflow:hidden"><div id="tourmap" style="height:calc(100vh - 320px);min-height:420px"></div></div>';
+ h+=`<div class="muted" style="margin-top:8px">${pts.length} venue engagement${pts.length!=1?'s':''} across ${rows.length} tour${rows.length!=1?'s':''}. Each dot is a venue on a tour — <b style="color:#EF476F">pink</b> draws a confirmed subsidy, <b style="color:#118AB2">blue</b> is on tour without subsidy. Overlapping dots mean multiple tours reach the same place.</div>`;
+ body.innerHTML=h;
+ if(toursMapObj){try{toursMapObj.remove();}catch(e){}toursMapObj=null;}
+ setTimeout(()=>{try{
+  toursMapObj=L.map('tourmap',{preferCanvas:true}).setView([-27,134],4);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:12,attribution:'© OpenStreetMap © CARTO'}).addTo(toursMapObj);
+  const lg=L.layerGroup().addTo(toursMapObj);
+  const draw=sub=>pts.filter(p=>!!p.sub===sub&&p.ll).forEach(p=>{L.circleMarker(p.ll,{radius:6,weight:1.5,color:'#073B4C',fillColor:sub?'#EF476F':'#118AB2',fillOpacity:1}).bindTooltip(`${p.name?p.name+' — ':''}${p.tour}${sub?' · subsidised':''}`).addTo(lg);});
+  draw(false);draw(true);
+  const lc=L.control({position:'bottomright'});lc.onAdd=()=>L.DomUtil.create('div');lc.addTo(toursMapObj);
+  lc.getContainer().innerHTML='<div class="maplegend"><b>Tour venues</b><br><i style="background:#EF476F"></i>Subsidised<br><i style="background:#118AB2"></i>On tour (no subsidy)</div>';
+  setTimeout(()=>toursMapObj.invalidateSize(),60);
+ }catch(e){console.warn('tours map',e);}},30);}
 function renderToursAnalysis(rows,TT){const body=document.getElementById('toursBody');if(!body)return;
  body.innerHTML=`<div class="chartsgrid">
    <div class="card chartbox"><h3>Subsidy by company</h3><canvas id="tcCompany"></canvas></div>
