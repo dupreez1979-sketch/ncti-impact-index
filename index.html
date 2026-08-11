@@ -1406,6 +1406,70 @@ function rptHBars(items,max,fmt){const W=620,BH=22,GAP=8,LW=210;fmt=fmt||(v=>fmt
   out+=`<rect x="${LW}" y="${y}" width="${bw}" height="${BH}" rx="3" fill="${x.color||'#118AB2'}" stroke="#073B4C" stroke-width="1"/>`;
   out+=`<text x="${LW+bw+8}" y="${y+BH/2+4}" font-size="11" font-weight="bold" fill="#073B4C" font-family="Inter,sans-serif">${fmt(x.value||0)}</text>`;});
  return `<svg width="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" style="max-width:620px">${out}</svg>`;}
+function modelReportName(){const t=activeTourObj();const tm=t?(stagedModel||t.model):null;
+ if(t&&tm&&cfgEq(MODEL,tm))return {name:'Frozen model — '+t.name,desc:'This model is frozen to the tour “'+t.name+'” so its numbers stay stable.'};
+ const m=(typeof MODELS!=='undefined'?MODELS:[]).find(x=>cfgEq(MODEL,x.config));
+ return m?{name:m.name,desc:m.description||''}:{name:'Custom model (unsaved)',desc:''};}
+function createModelReport(){
+ const nm=modelReportName();
+ const dt=new Date().toLocaleDateString('en-AU',{day:'numeric',month:'long',year:'numeric'});
+ const logo=(document.querySelector('.brandlogo')||{}).src||'';
+ const den=activeKeys().reduce((a,k)=>a+MODEL.pct[k],0)||1;
+ const weights=IND.filter(([k])=>MODEL.on[k]).map(([k,l,col])=>({label:l,value:Math.round(MODEL.pct[k]/den*100),color:col}));
+ const offInd=IND.filter(([k])=>!MODEL.on[k]).map(([k,l])=>l);
+ // venue outcomes under this model
+ const scored=V.filter(v=>v.cIndex!=null);
+ const hiV=scored.filter(v=>v.cTier==='High'),medV=scored.filter(v=>v.cTier==='Medium'),loV=scored.filter(v=>v.cTier==='Low');
+ const elig=scored.filter(v=>v.cSub>0);
+ const childHigh=uniqueChild(hiV),childAll=uniqueChild(scored);
+ // subsidy ladder
+ const ladder={};elig.forEach(v=>{const pc=Math.round(v.cSub*100);ladder[pc]=(ladder[pc]||0)+1;});
+ const ladderRows=Object.keys(ladder).map(Number).sort((a,b)=>a-b).map(pc=>({label:pc+'% subsidy',value:ladder[pc],color:'#EF476F'}));
+ // index distribution
+ const bands=[];for(let b=0;b<10;b++){const n=scored.filter(v=>v.cIndex>=b&&v.cIndex<b+1).length;bands.push({label:b+'–'+(b+1),value:n,color:idxColor(b+0.5)});}
+ // national areas
+ let aHi=0,aMed=0,aLo=0,aCh=0;for(const code in SA2LOOK){const r=computeSA2(code);if(!r)continue;if(r.tier==='High'){aHi++;aCh+=r.ch||0;}else if(r.tier==='Medium')aMed++;else aLo++;}
+ const fmtsub=[['Emotional maturity','em','min(10, EM% ÷ 25.17 × 5) — EM% is the share of children developmentally vulnerable or at-risk on the AEDC emotional-maturity domain (2024); 25.17% is the national average.'],
+  ['Disadvantage (SEIFA)','seifa','11 − IRSD decile — the ABS SEIFA 2021 decile flipped, so the most disadvantaged 10% of areas score 10.'],
+  ['Remoteness','rem','Major Cities 0 · Inner Regional 2.5 · Outer Regional 5 · Remote 7.5 · Very Remote 10 (ABS Remoteness Areas).'],
+  ['Vulnerable 2+ AEDC domains (DV2)','dv2','min(10, DV2% ÷ 12.46 × 5) — DV2% is the share vulnerable on two or more AEDC domains (2024); 12.46% is the national average.']].filter(x=>MODEL.on[x[1]]);
+ const html=`<div class="rpt">
+   <div class="rpt-headbar">${logo?`<img class="rpt-logo" src="${logo}">`:''}<div class="rpt-title">${esc(nm.name)}</div><div class="rpt-subt">Impact Index model — technical specification · ${dt}</div></div>
+   <div class="rpt-body">
+     ${nm.desc?`<p>${esc(nm.desc)}</p>`:''}
+     <p>This document specifies how the model scores every Australian community 0–10 for children's-theatre impact, how scores become priority tiers and subsidy rates, and what the model produces across the venue network.</p>
+     <div class="rpt-hero">
+       <div><div class="h">${MODEL.geo.toUpperCase()}</div><div class="l">Geography</div></div>
+       <div><div class="h">${weights.length}</div><div class="l">Indicators in use</div></div>
+       <div><div class="h pink">${elig.length}</div><div class="l">Venues subsidised</div></div>
+       <div><div class="h">${childHigh.toLocaleString()}</div><div class="l">Children 0–14 in High venue areas</div></div>
+     </div>
+     <h3>Indicator weights</h3>
+     ${rptDonut(weights.map(w2=>({label:w2.label,value:w2.value,color:w2.color})))}
+     ${offInd.length?`<p style="font-size:11px;color:#6b7a80">Switched off in this model: ${offInd.join(' · ')}.</p>`:''}
+     <h3>How each indicator is scored (0–10)</h3>
+     <table><thead><tr><th>Indicator</th><th>Sub-score formula</th></tr></thead><tbody>
+     ${fmtsub.map(x=>`<tr><td style="white-space:nowrap"><b>${x[0]}</b></td><td style="font-size:11.5px">${x[2]}</td></tr>`).join('')}
+     </tbody></table>
+     <p style="font-size:11.5px">The Impact Index is the weighted average of the active sub-scores. Where an indicator has no data for an area, it is skipped and the remaining weights re-balance.</p>
+     <h3>Tiers &amp; subsidy</h3>
+     <div class="settings">
+       <div>Priority tiers: <b>High ≥ ${(+MODEL.thr.high).toFixed(1)}</b>, Medium ≥ ${(+MODEL.thr.med).toFixed(1)}</div>
+       <div>Subsidy: <b>${Math.round(MODEL.sub.floor*100)}% → ${Math.round(MODEL.sub.ceil*100)}%</b>, full at index ${(+MODEL.sub.full).toFixed(1)}+, 5% steps, High tier only</div>
+     </div>
+     ${tierReportSVG()}
+     <h3>What this model produces — venues</h3>
+     ${rptDonut([{label:'High',value:hiV.length,color:'#EF476F'},{label:'Medium',value:medV.length,color:'#FFD166'},{label:'Low',value:loV.length,color:'#5BC0BE'}])}
+     <p style="font-size:11.5px"><b>${elig.length}</b> of ${scored.length} scored venues qualify for subsidy. Their communities hold <b>${childHigh.toLocaleString()}</b> of the <b>${childAll.toLocaleString()}</b> children 0–14 across all venue communities.</p>
+     ${ladderRows.length?`<h3>Subsidy ladder — venues at each rate</h3>${rptHBars(ladderRows,null,v2=>v2+' venue'+(v2!=1?'s':''))}`:''}
+     <h3>Venue index distribution</h3>
+     ${rptHBars(bands,null,v2=>v2+' venue'+(v2!=1?'s':''))}
+     <h3>Across the nation</h3>
+     <p style="font-size:12px">Under this model, <b>${aHi.toLocaleString()}</b> SA2 communities score High (home to ~<b>${aCh.toLocaleString()}</b> children 0–14), <b>${aMed.toLocaleString()}</b> Medium and <b>${aLo.toLocaleString()}</b> Low.</p>
+     <div class="rpt-foot">Data: AEDC 2024 (emotional maturity, DV2), ABS SEIFA 2021 (IRSD), ABS Remoteness Areas, ABS Census 2021 &amp; Estimated Resident Population. Prepared with the National Children's Theatre Initiative — Theatre for Every Child.</div>
+   </div>
+ </div>`;
+ document.getElementById('reportBody').innerHTML=html;document.getElementById('reportView').classList.add('open');document.getElementById('reportView').scrollTop=0;}
 function createReport(){
  if(!sel.size){toast('Select some venues in the Venues list first.',null,true);return;}
  let n=0,elig=0,sub=0,child=0,gross=0;const seen=new Set();const byState={};const pts=[];const stateSub={};
@@ -1848,6 +1912,7 @@ function toggleRepMenu(ev){ev.stopPropagation();const m=document.getElementById(
  if(!m.classList.contains('open')){const t=activeTourObj();
   m.innerHTML=`<button onclick="closeRepMenu();createReport()" ${sel.size?'':'disabled'}>Funder subsidy report<span class="rm-sub">${sel.size?sel.size+' selected venue'+(sel.size>1?'s':''):'tick venues in the list first'}</span></button>
    <button onclick="closeRepMenu();createTourReport()" ${t?'':'disabled'}>Tour report<span class="rm-sub">${t?esc(t.name):'activate a tour first'}</span></button>
+   <button onclick="closeRepMenu();createModelReport()">Model report<span class="rm-sub">technical document for the model in use</span></button>
    <button disabled>Venue report<span class="rm-sub">open a venue from the list — the report button is in its profile</span></button>`;}
  m.classList.toggle('open');}
 function closeRepMenu(){document.getElementById('repmenu').classList.remove('open');}
