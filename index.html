@@ -734,12 +734,12 @@ body.tourmode tr.ontourrow td{background:#FFF0F4;}
 const SB_URL="https://ezvpiobtzftmrqxdnebh.supabase.co", SB_KEY="sb_publishable_8gY1ugFsn9jDQPHKu81PPA_Z_xERC-c";
 let DATA={venues:[],params:{}}, V=[], P={};
 let SA2GEO={type:'FeatureCollection',features:[]}, SA2LOOK={}, AUS={w:200,h:185,states:[],lonmin:112.5,latmax:-9.5,coslat:0.9,scale:5};
-const IND=[['em','Emotional Maturity','#06D6A0'],['seifa','SEIFA (Disadvantage)','#118AB2'],['rem','Remoteness','#9B5DE5']];
+const IND=[['em','Emotional Maturity','#06D6A0'],['seifa','SEIFA (Disadvantage)','#118AB2'],['rem','Remoteness','#9B5DE5'],['dv2','Vulnerable 2+ AEDC domains (DV2)','#F79256']];
 const TIERCOL={High:'#EF476F',Medium:'#FFD166',Low:'#5BC0BE'};
 const fmt$=n=>'$'+Math.round(n).toLocaleString();
-let MODEL={geo:'sa2',on:{em:true,seifa:true,rem:true},pct:{em:40,seifa:40,rem:20},
+let MODEL={geo:'sa2',on:{em:true,seifa:true,rem:true,dv2:false},pct:{em:40,seifa:40,rem:20,dv2:0},
  thr:{high:6.3,med:3.8}, sub:{floor:0.5,ceil:1.0,full:8.0}};
-function activeKeys(){return ['em','seifa','rem'].filter(k=>MODEL.on[k]);}
+function activeKeys(){return ['em','seifa','rem','dv2'].filter(k=>MODEL.on[k]);}
 function areaCode(v){return MODEL.geo==='sa3'?v.sa3code:v.sa2code;}
 function uniqueChild(list){const seen=new Set();let s=0;for(const v of list){const k=areaCode(v);if(k==null||seen.has(k))continue;seen.add(k);s+=v.cChild||0;}return s;}
 function round5(x){return Math.round(x/5)*5;}
@@ -864,7 +864,7 @@ function closeDock(){dockOpen=null;document.getElementById('dockwrap').classList
 function openTourFullEditor(){showPage('venues');}
 function toggleRail(){}
 function applyModelObj(c){if(!c)return;
- MODEL.geo=c.geo||'sa2';MODEL.on={em:!!c.on.em,seifa:!!c.on.seifa,rem:!!c.on.rem};MODEL.pct={em:+c.pct.em||0,seifa:+c.pct.seifa||0,rem:+c.pct.rem||0};MODEL.thr={high:+c.thr.high,med:+c.thr.med};MODEL.sub={floor:+c.sub.floor,ceil:+c.sub.ceil,full:+c.sub.full};
+ MODEL.geo=c.geo||'sa2';MODEL.on={em:!!c.on.em,seifa:!!c.on.seifa,rem:!!c.on.rem,dv2:!!c.on.dv2};MODEL.pct={em:+c.pct.em||0,seifa:+c.pct.seifa||0,rem:+c.pct.rem||0,dv2:+c.pct.dv2||0};MODEL.thr={high:+c.thr.high,med:+c.thr.med};MODEL.sub={floor:+c.sub.floor,ceil:+c.sub.ceil,full:+c.sub.full};
  document.querySelectorAll('#geo button').forEach(b=>b.classList.toggle('on',b.dataset.g===MODEL.geo));
  const gv=(i,val)=>{const e=document.getElementById(i);if(e&&val!=null&&!isNaN(val))e.value=val;};
  gv('tHigh',MODEL.thr.high);gv('tMed',MODEL.thr.med);gv('sFloor',Math.round(MODEL.sub.floor*100));gv('sCeil',Math.round(MODEL.sub.ceil*100));gv('sFull',MODEL.sub.full);
@@ -878,7 +878,7 @@ function exitTour(){const t=activeTourObj();if(!t)return;
  renderTourPanel();renderTourVenues();renderBasket();render();
  toast('Left “'+esc(name)+'”'+(restore?' — your previous model is back.':'.'));}
 function deactivateTour(){exitTour();}
-function cfgEq(a,b){if(!a||!b)return false;try{return (a.geo||'sa2')===(b.geo||'sa2')&&['em','seifa','rem'].every(k=>!!a.on[k]===!!b.on[k]&&(+a.pct[k]||0)===(+b.pct[k]||0))&&+a.thr.high===+b.thr.high&&+a.thr.med===+b.thr.med&&+a.sub.floor===+b.sub.floor&&+a.sub.ceil===+b.sub.ceil&&+a.sub.full===+b.sub.full;}catch(e){return false;}}
+function cfgEq(a,b){if(!a||!b)return false;try{return (a.geo||'sa2')===(b.geo||'sa2')&&['em','seifa','rem','dv2'].every(k=>!!a.on[k]===!!b.on[k]&&(+a.pct[k]||0)===(+b.pct[k]||0))&&+a.thr.high===+b.thr.high&&+a.thr.med===+b.thr.med&&+a.sub.floor===+b.sub.floor&&+a.sub.ceil===+b.sub.ceil&&+a.sub.full===+b.sub.full;}catch(e){return false;}}
 function renderContext(){const t=activeTourObj();
  const mEl=document.getElementById('ctxModelTxt'),tEl=document.getElementById('ctxTourTxt');
  if(!mEl)return;
@@ -990,7 +990,7 @@ function editTour(){const t=activeTourObj();if(!t)return;openModel('Edit tour',t
 function deleteTour(){const t=activeTourObj();if(!t)return;openConfirm('Delete tour?','Deleting “'+t.name+'” removes its venue list. This cannot be undone.','Delete',async()=>{const {error}=await sbc.from('tours').delete().eq('id',t.id);if(error){toast(error.message,null,true);return;}TOURS=TOURS.filter(x=>x.id!==t.id);curTour=null;renderTourPanel();});}
 function applyTourModel(){const t=activeTourObj();if(!t||!t.model)return;const c=t.model;
  if(!modelBeforeTour)modelBeforeTour=JSON.parse(JSON.stringify(MODEL));
- MODEL.geo=c.geo||'sa2';MODEL.on={em:!!c.on.em,seifa:!!c.on.seifa,rem:!!c.on.rem};MODEL.pct={em:+c.pct.em||0,seifa:+c.pct.seifa||0,rem:+c.pct.rem||0};MODEL.thr={high:+c.thr.high,med:+c.thr.med};MODEL.sub={floor:+c.sub.floor,ceil:+c.sub.ceil,full:+c.sub.full};
+ MODEL.geo=c.geo||'sa2';MODEL.on={em:!!c.on.em,seifa:!!c.on.seifa,rem:!!c.on.rem,dv2:!!c.on.dv2};MODEL.pct={em:+c.pct.em||0,seifa:+c.pct.seifa||0,rem:+c.pct.rem||0,dv2:+c.pct.dv2||0};MODEL.thr={high:+c.thr.high,med:+c.thr.med};MODEL.sub={floor:+c.sub.floor,ceil:+c.sub.ceil,full:+c.sub.full};
  document.querySelectorAll('#geo button').forEach(b=>b.classList.toggle('on',b.dataset.g===MODEL.geo));
  const gv=(i,val)=>{const e=document.getElementById(i);if(e&&val!=null&&!isNaN(val))e.value=val;};
  gv('tHigh',MODEL.thr.high);gv('tMed',MODEL.thr.med);gv('sFloor',Math.round(MODEL.sub.floor*100));gv('sCeil',Math.round(MODEL.sub.ceil*100));gv('sFull',MODEL.sub.full);
@@ -1273,7 +1273,7 @@ function createReport(){
 function createVenueReport(i){const v=V[i];if(!v)return;const g=v[MODEL.geo]||{};
  const feeEl=document.getElementById('fee');const fee=feeEl?(parseFloat(feeEl.value)||basketFee):basketFee;
  const subPct=v.cSub||0,disc=fee*subPct,net=fee-disc;
- const submap={em:g.em_sub,seifa:g.seifa_sub,rem:g.rem_sub};
+ const submap={em:g.em_sub,seifa:g.seifa_sub,rem:g.rem_sub,dv2:g.dv2_sub};
  const den=activeKeys().reduce((a,k)=>a+MODEL.pct[k],0)||1;
  const activeParts=IND.filter(([k])=>MODEL.on[k]&&submap[k]!=null).map(([k])=>`${(+submap[k]).toFixed(1)}×${Math.round(MODEL.pct[k]/den*100)}%`).join(' + ')||'—';
  const dt=new Date().toLocaleDateString('en-AU',{day:'numeric',month:'long',year:'numeric'});
@@ -1284,6 +1284,7 @@ function createVenueReport(i){const v=V[i];if(!v)return;const g=v[MODEL.geo]||{}
  if(MODEL.on.em)measures+=mrow("Children's emotional development",(g.em_pct!=null?(+g.em_pct).toFixed(1)+'% of local children developmentally vulnerable or at-risk (AEDC)':'—'),g.em_sub);
  if(MODEL.on.seifa)measures+=mrow('Socio-economic disadvantage','SEIFA decile '+(g.decile==null?'—':g.decile)+' (1 = most disadvantaged nationally)',g.seifa_sub);
  if(MODEL.on.rem)measures+=mrow('Remoteness',(ra||'—'),g.rem_sub);
+ if(MODEL.on.dv2)measures+=mrow('Broad developmental vulnerability',(g.dv2_pct!=null?(+g.dv2_pct).toFixed(1)+'% of local children developmentally vulnerable on two or more AEDC domains':'—'),g.dv2_sub);
  const wtxt=IND.filter(([k])=>MODEL.on[k]).map(([k,l])=>`${l.split(' ')[0]} ${Math.round(MODEL.pct[k]/den*100)}%`).join(' · ')||'—';
  const offer=subPct>0
    ? `<p>Because ${esc(area)} is a <b>${v.cTier}-priority</b> community, it qualifies for a subsidy of <b>${Math.round(subPct*100)}%</b> on the presenter fee.</p>
@@ -1406,7 +1407,7 @@ let MODELS=[];
 function fmtDate(iso){try{return new Date(iso).toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'});}catch(e){return '';}}
 function modelEq(c){if(!c)return false;const M=MODEL;
  if((c.geo||'sa2')!==M.geo)return false;
- for(const k of ['em','seifa','rem']){if(!!(c.on&&c.on[k])!==!!M.on[k])return false;if((+((c.pct&&c.pct[k])||0))!==(+M.pct[k]))return false;}
+ for(const k of ['em','seifa','rem','dv2']){if(!!(c.on&&c.on[k])!==!!M.on[k])return false;if((+((c.pct&&c.pct[k])||0))!==(+M.pct[k]))return false;}
  if(c.thr&&(+c.thr.high!==+M.thr.high||+c.thr.med!==+M.thr.med))return false;
  if(c.sub&&(+c.sub.floor!==+M.sub.floor||+c.sub.ceil!==+M.sub.ceil||+c.sub.full!==+M.sub.full))return false;
  return true;}
@@ -1458,8 +1459,8 @@ function submitName(){if(!_mmCb)return;
  const desc=document.getElementById('mm_desc').value.trim();
  const cb=_mmCb;_mmCb=null;document.getElementById('modelmodal').classList.remove('open');cb(val,desc);}
 
-function computeWith(v,m){const g=v[m.geo||'sa2'];if(!g)return{index:null,tier:'—',subsidy:0,elig:'No'};const map={em:g.em_sub,seifa:g.seifa_sub,rem:g.rem_sub};
- let num=0,den=0;for(const k of ['em','seifa','rem']){if(m.on[k]&&map[k]!=null){num+=m.pct[k]*map[k];den+=m.pct[k];}}
+function computeWith(v,m){const g=v[m.geo||'sa2'];if(!g)return{index:null,tier:'—',subsidy:0,elig:'No'};const map={em:g.em_sub,seifa:g.seifa_sub,rem:g.rem_sub,dv2:g.dv2_sub};
+ let num=0,den=0;for(const k of ['em','seifa','rem','dv2']){if(m.on[k]&&map[k]!=null){num+=m.pct[k]*map[k];den+=m.pct[k];}}
  if(den===0)return{index:null,tier:'—',subsidy:0,elig:'No'};
  const idx=Math.round(num/den*10)/10;const tier=idx>=m.thr.high?'High':idx>=m.thr.med?'Medium':'Low';
  let sub=0;if(tier==='High'){const span=m.sub.full-m.thr.high;const frac=span<=0?1:Math.min(1,Math.max(0,(idx-m.thr.high)/span));sub=round5pct(m.sub.floor+(m.sub.ceil-m.sub.floor)*frac);}
@@ -1474,7 +1475,7 @@ function buildInd(){document.getElementById('ind').innerHTML=IND.map(([k,label,c
    <span class="dot" style="background:${col}"></span>${label}</div>
  <input type="range" id="sl_${k}" min="0" max="100" step="5" value="${MODEL.pct[k]}" oninput="setW('${k}',this.value)" ${MODEL.on[k]?'':'disabled'}>
  <div class="wv" id="wv_${k}" style="color:${col}">${MODEL.pct[k]}%</div>`).join('');updateEff();}
-function syncSliders(){['em','seifa','rem'].forEach(k=>{const sl=document.getElementById('sl_'+k),wv=document.getElementById('wv_'+k);if(sl){sl.value=MODEL.pct[k];sl.disabled=!MODEL.on[k];}if(wv)wv.textContent=MODEL.pct[k]+'%';});updateEff();}
+function syncSliders(){['em','seifa','rem','dv2'].forEach(k=>{const sl=document.getElementById('sl_'+k),wv=document.getElementById('wv_'+k);if(sl){sl.value=MODEL.pct[k];sl.disabled=!MODEL.on[k];}if(wv)wv.textContent=MODEL.pct[k]+'%';});updateEff();}
 function updateEff(){const eff=IND.map(([k,label])=>MODEL.on[k]?`${label.split(' ')[0]} ${MODEL.pct[k]}%`:null).filter(Boolean).join(' · ');
  const off=IND.filter(([k])=>!MODEL.on[k]).map(([k,l])=>l.split(' ')[0]);
  const tot=activeKeys().reduce((a,k)=>a+MODEL.pct[k],0);
@@ -1484,7 +1485,7 @@ const PRESETS={em_seifa:{on:{em:true,seifa:true,rem:false},pct:{em:50,seifa:50,r
 function applyPreset(key){const p=PRESETS[key];MODEL.on={...p.on};MODEL.pct={...p.pct};
  if(p.high!=null){MODEL.thr.high=p.high;const e=document.getElementById('tHigh');if(e)e.value=p.high;}
  buildInd();updateSubnote();recompute();render();}
-function markActivePreset(){for(const key in PRESETS){const p=PRESETS[key];const m=['em','seifa','rem'].every(k=>MODEL.on[k]===p.on[k]&&MODEL.pct[k]===p.pct[k]);const b=document.getElementById('ps_'+key);if(b)b.classList.toggle('on',m);}}
+function markActivePreset(){for(const key in PRESETS){const p=PRESETS[key];const m=['em','seifa','rem','dv2'].every(k=>!!MODEL.on[k]===!!p.on[k]&&(+MODEL.pct[k]||0)===(+p.pct[k]||0));const b=document.getElementById('ps_'+key);if(b)b.classList.toggle('on',m);}}
 function setGeo(g){MODEL.geo=g;document.querySelectorAll('#geo button').forEach(b=>b.classList.toggle('on',b.dataset.g===g));recompute();render();}
 function setW(k,val){if(!MODEL.on[k])return;val=Math.max(0,Math.min(100,round5(+val)));MODEL.pct[k]=val;
  let others=activeKeys().filter(o=>o!==k);let rem=100-val;let os=others.reduce((a,o)=>a+MODEL.pct[o],0);
@@ -1503,7 +1504,7 @@ function setThr(){const h=parseFloat(document.getElementById('tHigh').value),m=p
 function setSub(){const f=parseFloat(document.getElementById('sFloor').value),c=parseFloat(document.getElementById('sCeil').value),u=parseFloat(document.getElementById('sFull').value);
  if(!isNaN(f))MODEL.sub.floor=f/100;if(!isNaN(c))MODEL.sub.ceil=c/100;if(!isNaN(u))MODEL.sub.full=u;updateSubnote();recompute();render();}
 function updateSubnote(){document.getElementById('subnote').innerHTML=`Subsidy applies to <b>High</b> venues only: ramps from <b>${Math.round(MODEL.sub.floor*100)}%</b> at Index ${MODEL.thr.high.toFixed(1)} up to <b>${Math.round(MODEL.sub.ceil*100)}%</b> at Index ${MODEL.sub.full.toFixed(1)}+ , in 5% steps.`;}
-function resetModel(){MODEL={geo:'sa2',on:{em:true,seifa:true,rem:true},pct:{em:40,seifa:40,rem:20},thr:{high:6.3,med:3.8},sub:{floor:0.5,ceil:1.0,full:8.0}};
+function resetModel(){MODEL={geo:'sa2',on:{em:true,seifa:true,rem:true,dv2:false},pct:{em:40,seifa:40,rem:20,dv2:0},thr:{high:6.3,med:3.8},sub:{floor:0.5,ceil:1.0,full:8.0}};
  document.querySelectorAll('#geo button').forEach(b=>b.classList.toggle('on',b.dataset.g==='sa2'));
  const gv=(id,val)=>{const e=document.getElementById(id);if(e)e.value=val;};
  gv('tHigh',6.3);gv('tMed',3.8);gv('sFloor',50);gv('sCeil',100);gv('sFull',8.0);
@@ -1649,7 +1650,7 @@ function areaSummary(v,g){const em=g.em_pct,dec=g.decile,ra=(g.ra||'').replace('
  let decTxt='Disadvantage (SEIFA) data is not available for this area.';
  if(dec!=null){const band=dec<=3?'among the more socio-economically disadvantaged areas in Australia':dec<=7?'around the middle of the national distribution':'among the more advantaged areas in Australia';
    decTxt=`It sits in the <b>${ordinal(dec)} SEIFA decile</b> (1 = most disadvantaged 10% nationally), placing it ${band}.`;}
- const parts=[['emotional-maturity vulnerability',g.em_sub,MODEL.on.em],['socio-economic disadvantage',g.seifa_sub,MODEL.on.seifa],['remoteness',g.rem_sub,MODEL.on.rem]].filter(p=>p[2]&&p[1]!=null).sort((a,b)=>b[1]-a[1]);
+ const parts=[['emotional-maturity vulnerability',g.em_sub,MODEL.on.em],['socio-economic disadvantage',g.seifa_sub,MODEL.on.seifa],['remoteness',g.rem_sub,MODEL.on.rem],['broad developmental vulnerability (DV2)',g.dv2_sub,MODEL.on.dv2]].filter(p=>p[2]&&p[1]!=null).sort((a,b)=>b[1]-a[1]);
  let why='';
  if(parts.length){const drivers=parts.filter(p=>p[1]>=6).map(p=>p[0]);
    why=`Under the current model the Impact Index is <b>${v.cIndex!=null?v.cIndex.toFixed(1):'—'} / 10</b> (${v.cTier} priority). `+(drivers.length?`The score is lifted mainly by ${drivers.join(' and ')}.`:`No single factor is extreme; the score reflects a moderate mix of ${parts.map(p=>p[0]).join(', ')}.`);}
@@ -1665,7 +1666,7 @@ function areaSummary(v,g){const em=g.em_pct,dec=g.decile,ra=(g.ra||'').replace('
    <p>${emTxt}</p><p>${decTxt}</p>${kids?`<p>${kids}</p>`:''}<p>${why}</p>${cen}
    <p class="muted" style="margin-top:8px">Sources: AEDC 2024 (emotional-maturity domain), ABS SEIFA 2021 (IRSD), ABS Remoteness Areas, ABS ERP 2024 (child population), ABS Census 2021 General Community Profile (medians, family, education, labour force, cultural &amp; housing).</p></div>`;}
 function openD(i){curIdx=i;const v=V[i];const g=v[MODEL.geo];let den=activeKeys().reduce((a,k)=>a+MODEL.pct[k],0);
- const submap={em:g.em_sub,seifa:g.seifa_sub,rem:g.rem_sub};
+ const submap={em:g.em_sub,seifa:g.seifa_sub,rem:g.rem_sub,dv2:g.dv2_sub};
  const meta={em:'EM '+(g.em_pct!=null?(+g.em_pct).toFixed(1)+'% at-risk/vuln':'—'),seifa:'SEIFA decile '+(g.decile??'—'),rem:(g.ra||'').replace(' Australia','')};
  const rows=IND.map(([k,label,col])=>{const on=MODEL.on[k];const sub=submap[k];const contrib=(on&&den&&sub!=null)?MODEL.pct[k]/den*sub:0;
   return `<div class="comprow"><div class="top"><span>${label} <span class="muted">(${meta[k]})</span>${on?'':' <span style="color:#EF476F">· OFF</span>'}</span><span>${sub!=null?(+sub).toFixed(1):'—'} / 10</span></div>
@@ -1713,8 +1714,8 @@ function passFilter(r){if(!r)return true;return (F.tier.size===0||F.tier.has(r.t
 const STATEBYDIGIT={'1':'NSW','2':'VIC','3':'QLD','4':'SA','5':'WA','6':'TAS','7':'NT','8':'ACT','9':'OT'};
 function sa2State(code){return STATEBYDIGIT[String(code)[0]];}
 function computeSA2(code){const L=SA2LOOK[code];if(!L)return null;
- const sub=MODEL.geo==='sa3'?{em:L.e3,seifa:L.d3,rem:L.r3}:{em:L.e2,seifa:L.d2,rem:L.r2};
- let num=0,den=0;for(const k of ['em','seifa','rem']){if(MODEL.on[k]&&sub[k]!=null){num+=MODEL.pct[k]*sub[k];den+=MODEL.pct[k];}}
+ const sub=MODEL.geo==='sa3'?{em:L.e3,seifa:L.d3,rem:L.r3,dv2:L.v3}:{em:L.e2,seifa:L.d2,rem:L.r2,dv2:L.v2};
+ let num=0,den=0;for(const k of ['em','seifa','rem','dv2']){if(MODEL.on[k]&&sub[k]!=null){num+=MODEL.pct[k]*sub[k];den+=MODEL.pct[k];}}
  if(den===0)return null;const idx=Math.round(num/den*10)/10;const tier=idx>=MODEL.thr.high?'High':idx>=MODEL.thr.med?'Medium':'Low';
  return {idx,tier,hv:L.hv,ch:L.ch,st:sa2State(code)};}
 function idxColor(x){x=Math.max(0,Math.min(10,x));const s=[[0,[91,192,190]],[5,[255,209,102]],[10,[239,71,111]]];let a=s[0],b=s[2];for(let i=0;i<s.length-1;i++){if(x>=s[i][0]&&x<=s[i+1][0]){a=s[i];b=s[i+1];break;}}const t=(x-a[0])/((b[0]-a[0])||1);const c=a[1].map((v,i)=>Math.round(v+(b[1][i]-v)*t));return `rgb(${c[0]},${c[1]},${c[2]})`;}
@@ -1760,12 +1761,12 @@ async function boot(){
  try{
   const [venues,scores,cfg,geo]=await Promise.all([
     sbAll('venue_full','*'),
-    sbAll('sa2_scores','sa2_code,e2,d2,r2,e3,d3,r3,ch,hv'),
+    sbAll('sa2_scores','sa2_code,e2,d2,r2,e3,d3,r3,v2,v3,ch,hv'),
     sbOne('app_config?select=key,value'),
     fetch(SB_URL+'/storage/v1/object/public/geo/sa2_boundaries.geojson').then(r=>{if(!r.ok)throw new Error('geojson → '+r.status);return r.json();})
   ]);
   V=venues; V.forEach((v,i)=>v._i=i); DATA.venues=V;
-  SA2LOOK={}; scores.forEach(s=>{SA2LOOK[s.sa2_code]={e2:+s.e2,d2:+s.d2,r2:+s.r2,e3:+s.e3,d3:+s.d3,r3:+s.r3,ch:s.ch==null?null:+s.ch,hv:+s.hv};});
+  SA2LOOK={}; scores.forEach(s=>{SA2LOOK[s.sa2_code]={e2:+s.e2,d2:+s.d2,r2:+s.r2,e3:+s.e3,d3:+s.d3,r3:+s.r3,v2:s.v2==null?null:+s.v2,v3:s.v3==null?null:+s.v3,ch:s.ch==null?null:+s.ch,hv:+s.hv};});
   const cf={}; (cfg||[]).forEach(r=>cf[r.key]=r.value); if(cf.aus_locator)AUS=cf.aus_locator; if(cf.params){P=cf.params; if(P.medThr!=null){MODEL.thr.med=+P.medThr; const e=document.getElementById('tMed'); if(e)e.value=P.medThr;}}
   DATA.params=P; SA2GEO=geo;
   document.getElementById('loading').style.display='none';
