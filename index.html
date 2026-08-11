@@ -283,7 +283,7 @@ body.toursmode .siderail,body.toursmode .railexpand,body.toursmode #kpis{display
 .ahero{font-family:'Charlie Kingdom';font-size:40px;line-height:1.03;color:var(--navy);text-transform:uppercase;margin:0 0 14px;}
 .ahero .pink{color:var(--pink);}
 .aboutwrap .lead{font-size:15px;color:var(--slate);line-height:1.6;margin:0 0 6px;max-width:760px;}
-.objgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.objgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;}
 .objcard{border:1.5px solid var(--navy);border-radius:8px;box-shadow:5px 5px 0 var(--navy);padding:16px 18px;color:#fff;}
 .objn{font-family:'Charlie Kingdom';font-size:14px;opacity:.85;}
 .objt{font-family:'Charlie Kingdom';font-size:19px;margin:4px 0 8px;}
@@ -779,11 +779,12 @@ body.aboutmode .sitefoot{margin-top:26px;}
 <div class="page" id="page-about">
  <div class="aboutwrap">
    <p class="lead">The Index scores every community in Australia for the social value that children's theatre can create there — a single number from 0 to 10, so touring and subsidy can be directed to where they matter most.</p>
-   <div class="kicker" style="margin-top:32px">The three measures</div>
+   <div class="kicker" style="margin-top:32px">The measures</div>
    <div class="objgrid">
-     <div class="objcard" style="background:#06D6A0"><div class="objn">01</div><div class="objt">Emotional maturity</div><div class="objd">Where young children are developmentally vulnerable on the AEDC emotional-maturity domain — the clearest place-based signal of developmental need.</div></div>
-     <div class="objcard" style="background:#118AB2"><div class="objn">02</div><div class="objt">Disadvantage</div><div class="objd">SEIFA socio-economic disadvantage — the communities with the least access to professional live performance.</div></div>
-     <div class="objcard" style="background:#9B5DE5"><div class="objn">03</div><div class="objt">Remoteness</div><div class="objd">Distance from cultural infrastructure, lifting the score for isolated communities. Switched off in some models.</div></div>
+     <div class="objcard" style="background:#06D6A0"><div class="objn">01</div><div class="objt">Emotional Maturity (EM)</div><div class="objd">Where young children are developmentally vulnerable on the AEDC emotional-maturity domain — the clearest place-based signal of developmental need.</div></div>
+     <div class="objcard" style="background:#118AB2"><div class="objn">02</div><div class="objt">Disadvantage (D)</div><div class="objd">SEIFA socio-economic disadvantage — the communities with the least access to professional live performance.</div></div>
+     <div class="objcard" style="background:#9B5DE5"><div class="objn">03</div><div class="objt">Remoteness (R)</div><div class="objd">Distance from cultural infrastructure, lifting the score for isolated communities. Switched off in some models.</div></div>
+     <div class="objcard" style="background:#F79256"><div class="objn">04</div><div class="objt">Developmentally Vulnerable (DV2)</div><div class="objd">Children vulnerable on two or more AEDC domains — broad developmental need. An optional measure, off in the default model.</div></div>
    </div>
    <div class="kicker" style="margin-top:32px">The detail</div>
    <div class="acc">
@@ -792,18 +793,20 @@ body.aboutmode .sitefoot{margin-top:26px;}
        <p>Every community in the country is scored from <b>0 to 10</b> — higher means a greater opportunity for impact. The guiding vision is simple: <b>Theatre for Every Child</b>. The Index turns that ambition into evidence, so touring routes and subsidy can be directed transparently rather than by habit or proximity.</p>
      </div></div>
      <div class="accitem open"><div class="acch" onclick="toggleAcc(this)"><span>2 · How the score is calculated</span><span class="caret">▾</span></div><div class="accb">
-       <p>The Index blends <b>three measures</b>, each converted to its own 0–10 sub-score, then averaged using weights you control:</p>
+       <p>The Index blends up to <b>four measures</b>, each converted to its own 0–10 sub-score, then averaged using weights you control:</p>
        <ul>
-         <li><b>Emotional maturity</b> — the local rate of children developmentally vulnerable or at-risk on the AEDC emotional-maturity domain, scaled against the national average (~25%). An average area scores 5; much higher rates approach 10.</li>
-         <li><b>Disadvantage</b> — the area's SEIFA decile, flipped so the most disadvantaged 10% of areas score 10 and the least disadvantaged score 1.</li>
-         <li><b>Remoteness</b> — 0 for major cities, rising through 2.5 (inner regional), 5 (outer regional) and 7.5 (remote) to 10 (very remote).</li>
+         <li><b>Emotional Maturity (EM)</b> — the local rate of children developmentally vulnerable or at-risk on the AEDC emotional-maturity domain, scaled against the national average (~25%). An average area scores 5; much higher rates approach 10.</li>
+         <li><b>Disadvantage (D)</b> — the area's SEIFA decile, flipped so the most disadvantaged 10% of areas score 10 and the least disadvantaged score 1.</li>
+         <li><b>Remoteness (R)</b> — 0 for major cities, rising through 2.5 (inner regional), 5 (outer regional) and 7.5 (remote) to 10 (very remote).</li>
+         <li><b>Developmentally Vulnerable (DV2)</b> — the share of children vulnerable on <i>two or more</i> AEDC domains, scaled against the national average (~12.5%). Off in the default model; available for models targeting compounded need.</li>
        </ul>
-       <p>The default weighting is <b>40% emotional maturity, 40% disadvantage, 20% remoteness</b>. Every weight is adjustable, and any indicator can be switched off — the remaining weights rebalance to 100%.</p>
+       <p>The default weighting is <b>EM 40%, D 40%, R 20%</b> with DV2 off. Every weight is adjustable, and any indicator can be switched on or off — the remaining weights rebalance to 100%. Where a measure has no data for an area, it is skipped and the rest rebalance.</p>
      </div></div>
      <div class="accitem open"><div class="acch" onclick="toggleAcc(this)"><span>3 · The three indicators — and why</span><span class="caret">▾</span></div><div class="accb">
        <p><b>Emotional maturity (child wellbeing).</b> Children's theatre's clearest social contribution is to emotional and social development. The AEDC emotional-maturity domain is the best national, place-based measure of where young children are struggling, so it sits at the heart of the Index.</p>
        <p><b>Disadvantage (access).</b> Families in disadvantaged areas have the least access to professional live performance — cost, distance and fewer local venues. SEIFA points the Index toward communities the market underserves.</p>
        <p><b>Remoteness (isolation).</b> Remote communities have the thinnest cultural infrastructure of all; remoteness lifts their score to reflect the extra value of reaching them.</p>
+       <p><b>Developmentally Vulnerable (breadth).</b> Where emotional maturity measures one dimension of need, DV2 identifies children struggling across two or more developmental domains at once — compounded vulnerability. It is kept out of the default model to avoid double-counting AEDC data, and switched on when a model deliberately targets breadth of need.</p>
        <p><b>Why we sometimes remove remoteness.</b> Remoteness and disadvantage often move together, so counting both can double-weight the same places. Turning remoteness off — a 50/50 emotional-maturity and disadvantage model — isolates developmental need and disadvantage on their own terms. The sandbox lets you compare both views.</p>
      </div></div>
      <div class="accitem"><div class="acch" onclick="toggleAcc(this)"><span>4 · Geography: SA2 and SA3</span><span class="caret">▾</span></div><div class="accb">
@@ -817,16 +820,17 @@ body.aboutmode .sitefoot{margin-top:26px;}
      <div class="accitem"><div class="acch" onclick="toggleAcc(this)"><span>5 · Tiers and the subsidy model</span><span class="caret">▾</span></div><div class="accb">
        <p>Scores band into three priority tiers — <b>High, Medium, Low</b> — at thresholds you set (default High ≥ 6.3, Medium ≥ 3.8).</p>
        <p>Subsidy applies to <b>High-tier</b> areas only, and ramps up within the band: from a floor (default 50%) at the High threshold to <b>full subsidy (100%)</b> near the top of the scale (default index 8.0+), in 5% steps — so the highest-impact places attract the deepest support.</p>
-       <p>When you cost a package of venues, the total subsidy can be split across funders: the <b>home state</b> government covers its own state's venues, <b>Playing Australia</b> covers the rest of the country, and <b>philanthropy</b> can optionally take a share of that remainder.</p>
+       <p>When a tour or scenario is costed, its subsidy is funded through <b>income sources</b> you assemble: state touring grants (calculated automatically from each state's venues, and editable), Playing Australia, philanthropy and other contributions — with the <b>Children's Theatre Investment Fund</b> carrying whatever balance remains. The split flows through to every report.</p>
      </div></div>
      <div class="accitem"><div class="acch" onclick="toggleAcc(this)"><span>6 · The modelling sandbox and saved models</span><span class="caret">▾</span></div><div class="accb">
        <p>There is no single "correct" weighting — different funders and purposes justify different emphases. The dashboard is a <b>sandbox</b>: change the weights, geography, thresholds and subsidy shape, and every area and venue re-scores instantly.</p>
-       <p>This keeps the model transparent and lets you stress-test how sensitive the priorities are to each choice. Useful configurations can be <b>saved as named models</b> (with a description and date) so agreed scenarios can be compared side by side.</p>
+       <p>This keeps the model transparent and lets you stress-test how sensitive the priorities are to each choice. Useful configurations can be <b>saved as named models</b> so agreed scenarios can be compared side by side — and when a tour is built, the model in force is <b>frozen to that tour</b>, so negotiated subsidy figures stay stable even as the live model evolves.</p>
      </div></div>
      <div class="accitem"><div class="acch" onclick="toggleAcc(this)"><span>7 · Where the data comes from</span><span class="caret">▾</span></div><div class="accb">
        <p>Everything is drawn from official, public sources at the SA2/SA3 level:</p>
        <ul>
-         <li><b>Emotional maturity</b> — Australian Early Development Census (AEDC) 2024, emotional-maturity domain.</li>
+         <li><b>Emotional Maturity</b> — Australian Early Development Census (AEDC) 2024, emotional-maturity domain.</li>
+         <li><b>Developmentally Vulnerable (DV2)</b> — AEDC 2024 summary measure: vulnerable on two or more domains.</li>
          <li><b>Disadvantage</b> — ABS SEIFA 2021, Index of Relative Socio-economic Disadvantage (IRSD).</li>
          <li><b>Remoteness</b> — ABS Remoteness Areas (ASGS 2021).</li>
          <li><b>Children in the area</b> — ABS Estimated Resident Population by age (0–4, 5–9, 10–14).</li>
@@ -836,8 +840,9 @@ body.aboutmode .sitefoot{margin-top:26px;}
      </div></div>
      <div class="accitem"><div class="acch" onclick="toggleAcc(this)"><span>8 · How it is used and deployed</span><span class="caret">▾</span></div><div class="accb">
        <p>The Index supports three decisions: <b>where to tour, where to subsidise, and how to make the case</b> to funders.</p>
-       <p>Venues are mapped against the national picture so <b>gaps</b> — high-impact communities with no current venue — are visible. The subsidy basket lets you select venues, apply an assumed fee, and see the total investment and funding split.</p>
-       <p>The tool is a <b>live web application</b>: the data lives in a database, so venues, saved models and scenarios can be edited in place and shared by link, and the figures can be refreshed as new ABS and AEDC releases arrive.</p>
+       <p>Venues are mapped against the national picture so <b>gaps</b> — high-impact communities with no current venue — are visible. From there, <b>tours</b> are built directly in the venue list: tick venues onto a tour, set per-venue fees, confirm subsidy, and save. The <b>Tours</b> page tracks the whole portfolio — every company, work and tour, with committed subsidy and children reached.</p>
+       <p>Four print-ready <b>reports</b> carry the case outward: a funder subsidy report, a per-tour proposal, a venue-facing offer letter, and a technical specification of any model.</p>
+       <p>The tool is a <b>live web application</b> with sign-in for invited users — viewers see everything, administrators edit — and every change to the data is recorded in an audit log. Figures refresh as new ABS and AEDC releases arrive.</p>
      </div></div>
    </div>
    <p class="sources">Sources: AEDC 2024 · ABS SEIFA 2021 (IRSD) · ABS Remoteness Areas (ASGS 2021) · ABS Estimated Resident Population · ABS Census 2021. Built for the National Children's Theatre Initiative.</p>
