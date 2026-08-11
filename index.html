@@ -503,6 +503,9 @@ body.aboutmode .sitefoot{margin-top:26px;}
 .skspin{width:13px;height:13px;border:2px solid #E3DAC2;border-top-color:var(--pink);border-radius:50%;animation:skspinr .8s linear infinite;flex:0 0 auto;}
 @keyframes skspinr{to{transform:rotate(360deg)}}
 .loaderr{max-width:560px;border:2px solid var(--pink);border-radius:12px;background:#fff;padding:20px 22px;box-shadow:5px 5px 0 var(--navy);}
+/* archived tours */
+.archbadge{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:20px;border:1.2px solid var(--slate);color:var(--slate);background:#F1EDE0;font-size:9.5px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;vertical-align:middle;}
+.tourstable tr.archrow td{opacity:.62;}
 /* users admin */
 .userstable{width:100%;border-collapse:collapse;font-size:12.5px;}
 .userstable th{background:var(--navy);color:#fff;font-size:10px;text-transform:uppercase;letter-spacing:.3px;padding:7px 9px;text-align:left;position:sticky;top:0;}
@@ -1120,7 +1123,7 @@ let _rsz;window.addEventListener('resize',()=>{clearTimeout(_rsz);_rsz=setTimeou
 let COMPANIES=[],SHOWS=[],TOURS=[],curCompany=null,curShow=null,curTour=null,modelBeforeTour=null;
 function activeTourObj(){return TOURS.find(t=>t.id===curTour)||null;}
 async function loadTours(){try{
-  const [c,s,t]=await Promise.all([sbAll('companies','id,name,address'),sbAll('shows','id,company_id,title'),sbAll('tours','id,show_id,name,model,sources,default_fee')]);
+  const [c,s,t]=await Promise.all([sbAll('companies','id,name,address'),sbAll('shows','id,company_id,title'),sbAll('tours','id,show_id,name,model,sources,default_fee,archived')]);
   COMPANIES=c;SHOWS=s;TOURS=t;COMPANIES.sort((a,b)=>(''+a.name).localeCompare(b.name));renderTourPanel();
  }catch(e){console.warn('tours not loaded (run tours.sql):',e);}}
 function selectCompany(id){curCompany=id?+id:null;curShow=null;curTour=null;renderTourPanel();}
@@ -1310,7 +1313,7 @@ function createTourReport(){const t=activeTourObj();if(!t){toast('Select a tour 
  document.getElementById('reportBody').innerHTML=html;document.getElementById('reportView').classList.add('open');document.getElementById('reportView').scrollTop=0;}
 // ---------- Tours database / impact report page ----------
 let ALLTV=[];
-let toursView='list',tuPage=1,tuSize=20,tuCompany='',tuShow='',tuTour='',tuConfOnly=false;
+let toursView='list',tuPage=1,tuSize=20,tuCompany='',tuShow='',tuTour='',tuConfOnly=false,tuArchived=false;
 async function loadAllTourVenues(){try{const data=await sbAll('tour_venues','id,tour_id,venue_id,fee,subsidy_confirmed');ALLTV=(data||[]).map(r=>{const v=V.find(x=>x.id===r.venue_id);return v?{id:r.id,tour_id:r.tour_id,fee:r.fee,confirmed:r.subsidy_confirmed,v}:null;}).filter(Boolean);}catch(e){console.warn('all tour_venues not loaded:',e);ALLTV=[];}}
 function tourModelOf(t){return (t&&t.model)?t.model:MODEL;}
 function tourAgg(t,confOnly){const m=tourModelOf(t);const geo=m.geo||'sa2';const tvs=ALLTV.filter(x=>x.tour_id===t.id);
@@ -1322,19 +1325,21 @@ function tourAgg(t,confOnly){const m=tourModelOf(t);const geo=m.geo||'sa2';const
    if(code!=null&&!seen.has(code)){seen.add(code);child+=ch?ch.t:0;}});
  return {venues,confirmed,subsidy,gross,child,pts,tvs};}
 function filteredTours(){let list=TOURS.slice();
+ if(!tuArchived)list=list.filter(t=>!t.archived);
  if(tuCompany){const showIds=new Set(SHOWS.filter(s=>s.company_id===+tuCompany).map(s=>s.id));list=list.filter(t=>showIds.has(t.show_id));}
  if(tuShow)list=list.filter(t=>t.show_id===+tuShow);
  if(tuTour)list=list.filter(t=>t.id===+tuTour);
  return list;}
 let tuFiltOpen=false,tuSortK='subsidy',tuSortD=-1;
 function toggleTourFilters(){tuFiltOpen=!tuFiltOpen;renderToursPage();}
-function resetTuFilters(){tuCompany='';tuShow='';tuTour='';tuConfOnly=false;tuPage=1;renderToursPage();}
-function tuFiltCount(){return (tuCompany?1:0)+(tuShow?1:0)+(tuTour?1:0)+(tuConfOnly?1:0);}
+function resetTuFilters(){tuCompany='';tuShow='';tuTour='';tuConfOnly=false;tuArchived=false;tuPage=1;renderToursPage();}
+function tuFiltCount(){return (tuCompany?1:0)+(tuShow?1:0)+(tuTour?1:0)+(tuConfOnly?1:0)+(tuArchived?1:0);}
 function tuChips(){let h='';
  if(tuCompany){const c=COMPANIES.find(x=>''+x.id===''+tuCompany);h+=`<span class="fchip2" onclick="setTuFilter('company','')">Company: <b>${esc(c?c.name:'?')}</b> ✕</span>`;}
  if(tuShow){const sh=SHOWS.find(x=>''+x.id===''+tuShow);h+=`<span class="fchip2" onclick="setTuFilter('show','')">Work: <b>${esc(sh?sh.title:'?')}</b> ✕</span>`;}
  if(tuTour){const t=TOURS.find(x=>''+x.id===''+tuTour);h+=`<span class="fchip2" onclick="setTuFilter('tour','')">Tour: <b>${esc(t?t.name:'?')}</b> ✕</span>`;}
  if(tuConfOnly)h+=`<span class="fchip2" onclick="setTuFilter('conf',false)">Confirmed only ✕</span>`;
+ if(tuArchived)h+=`<span class="fchip2" onclick="setTuFilter('arch',false)">Including archived ✕</span>`;
  return h;}
 function setTuSort(k){if(tuSortK===k)tuSortD*=-1;else{tuSortK=k;tuSortD=(['company','work','tour'].includes(k))?1:-1;}renderToursPage();}
 function openNewTour(){if(!EDIT)return;
@@ -1363,11 +1368,19 @@ async function createNewTour(){const msg=document.getElementById('ntMsg');msg.te
  try{
   if(cid==='__new'){const {data,error}=await sbc.from('companies').insert({name:cNew}).select('id,name,address').single();if(error)throw error;COMPANIES.push(data);COMPANIES.sort((a,b2)=>(''+a.name).localeCompare(b2.name));cid=data.id;}
   if(wid==='__new'){const {data,error}=await sbc.from('shows').insert({company_id:+cid,title:wNew}).select('id,company_id,title').single();if(error)throw error;SHOWS.push(data);wid=data.id;}
-  const {data,error}=await sbc.from('tours').insert({show_id:+wid,name,default_fee:12500}).select('id,show_id,name,model,sources,default_fee').single();if(error)throw error;
+  const {data,error}=await sbc.from('tours').insert({show_id:+wid,name,default_fee:12500,archived:false}).select('id,show_id,name,model,sources,default_fee,archived').single();if(error)throw error;
   TOURS.push(data);closeNewTour();renderToursPage();
   toast('“'+esc(name)+'” created — click it in the list to start building.');
  }catch(e){msg.textContent=e.message;}
  b.disabled=false;b.textContent='Create tour';}
+function toggleArchiveTour(id){if(!EDIT)return;const t=TOURS.find(x=>x.id===id);if(!t)return;
+ const go=async()=>{const {error}=await sbc.from('tours').update({archived:!t.archived}).eq('id',id);
+  if(error){toast(error.message,null,true);return;}
+  t.archived=!t.archived;
+  if(t.archived&&curTour===id){curTour=null;tourVenues=[];stagedModel=null;stagedSources=null;try{localStorage.setItem('ctii.tour','');}catch(e){}render();}
+  renderToursPage();toast(t.archived?'“'+esc(t.name)+'” archived — hidden unless you show archived tours.':'“'+esc(t.name)+'” restored.');};
+ if(t.archived){go();return;}
+ openConfirm('Archive this tour?','“'+t.name+'” will be hidden from the Tours list and left out of the headline totals. Nothing is deleted — tick “Show archived tours” in Filters to see it again.','Archive',go);}
 function deleteTourById(id){if(!EDIT)return;const t=TOURS.find(x=>x.id===id);if(!t)return;
  const sh=SHOWS.find(x=>x.id===t.show_id);const co=sh?COMPANIES.find(c=>c.id===sh.company_id):null;
  openConfirm('Delete tour?','Deleting “'+((co?co.name+' · ':'')+t.name)+'” removes its venue list, fees and frozen model. This cannot be undone.','Delete',async()=>{
@@ -1379,7 +1392,7 @@ async function toursPageReport(){const id=tuTour?+tuTour:(curTour||0);
  if(!id){toast('Pick a tour first — use the Tour filter, or activate one from the list.',null,true);if(!tuFiltOpen)toggleTourFilters();return;}
  await openTourFromList(id);}
 function setToursView(v){toursView=v;renderToursPage();}
-function setTuFilter(which,val){if(which==='company'){tuCompany=val;tuShow='';tuTour='';}else if(which==='show'){tuShow=val;tuTour='';}else if(which==='tour')tuTour=val;else if(which==='conf')tuConfOnly=val;tuPage=1;renderToursPage();}
+function setTuFilter(which,val){if(which==='company'){tuCompany=val;tuShow='';tuTour='';}else if(which==='show'){tuShow=val;tuTour='';}else if(which==='tour')tuTour=val;else if(which==='conf')tuConfOnly=val;else if(which==='arch')tuArchived=val;tuPage=1;renderToursPage();}
 function setTuSize(v){tuSize=(v==='all')?Infinity:+v;tuPage=1;renderToursPage();}
 function tuGoto(n){tuPage=n;renderToursPage();}
 function renderToursPage(){const head=document.getElementById('toursHead');if(!head)return;
@@ -1412,8 +1425,7 @@ function renderToursPage(){const head=document.getElementById('toursHead');if(!h
       <button data-tv="analysis" class="${toursView==='analysis'?'active':''}" onclick="setToursView('analysis')">Analysis</button>
     </div>
     <button class="btn sec" style="padding:6px 12px;font-size:12px" onclick="toggleTourFilters()">Filters${tuFiltCount()?' ('+tuFiltCount()+')':''}</button>
-    <button class="btn" style="padding:6px 14px;font-size:12px" onclick="toursPageReport()">Report ▸</button>
-    ${EDIT?`<button class="btn" style="padding:6px 14px;font-size:12px;background:var(--pink);border-color:var(--pink)" onclick="openNewTour()">＋ New tour</button>`:''}
+    ${EDIT?`<button class="btn sec" style="padding:6px 12px;font-size:12px" onclick="openNewTour()">＋ New tour</button>`:''}
   </div>
   <div class="card" id="tourFilterCard" style="padding:10px 14px 12px;margin-bottom:18px;display:${tuFiltOpen?'block':'none'}">
     <div class="chead" style="cursor:default"><h3 style="margin:0">Filters</h3><span style="margin-left:auto;display:flex;gap:6px"><button class="iconbtn" title="Reset all filters" onclick="resetTuFilters()">⟳</button><button class="iconbtn" title="Close" onclick="toggleTourFilters()">✕</button></span></div>
@@ -1422,6 +1434,7 @@ function renderToursPage(){const head=document.getElementById('toursHead');if(!h
       <div class="fg"><label>Work</label><select onchange="setTuFilter('show',this.value)" style="font-family:inherit;font-size:13px;padding:7px;border:1.5px solid var(--navy);border-radius:5px;background:#fff;color:var(--navy)">${showOpts}</select></div>
       <div class="fg"><label>Tour</label><select onchange="setTuFilter('tour',this.value)" style="font-family:inherit;font-size:13px;padding:7px;border:1.5px solid var(--navy);border-radius:5px;background:#fff;color:var(--navy)">${tourOpts}</select></div>
       <div class="fg"><label>Subsidy</label><label style="display:flex;align-items:center;gap:6px;font-size:13px;text-transform:none;letter-spacing:0;color:var(--navy)"><input type="checkbox" ${tuConfOnly?'checked':''} onchange="setTuFilter('conf',this.checked)"> Confirmed only</label></div>
+      <div class="fg"><label>Archived</label><label style="display:flex;align-items:center;gap:6px;font-size:13px;text-transform:none;letter-spacing:0;color:var(--navy)"><input type="checkbox" ${tuArchived?'checked':''} onchange="setTuFilter('arch',this.checked)"> Show archived tours</label></div>
       <div class="fg"><label>&nbsp;</label><button class="btn" onclick="toggleTourFilters()">Done</button></div>
     </div>
   </div>`;
@@ -1436,7 +1449,7 @@ function renderToursList(rows){const body=document.getElementById('toursBody');i
  const start=(tuSize===Infinity)?0:(tuPage-1)*tuSize;const end=(tuSize===Infinity)?total:Math.min(total,start+tuSize);const pageRows=rows.slice(start,end);
  let h=`<div class="card" style="overflow:hidden"><div class="tablewrap" style="max-height:none;overflow:visible"><table class="tourstable"><thead><tr>${[['company','Company',''],['work','Work',''],['tour','Tour',''],['venues','Venues','center'],['confirmed','Subsidised','center'],['subsidy','Subsidy','right'],['presenter','Presenter','right'],['children','Children','center']].map(c=>`<th class="${c[2]}" style="cursor:pointer" onclick="setTuSort('${c[0]}')">${c[1]}${tuSortK===c[0]?(tuSortD<0?' ▾':' ▴'):''}</th>`).join('')}<th></th></tr></thead><tbody>`;
  if(!pageRows.length)h+='<tr><td colspan="9" style="padding:16px;color:var(--slate)">No tours match these filters.</td></tr>';
- pageRows.forEach(r=>{h+=`<tr onclick="activateTourFromList(${r.t.id})" style="cursor:pointer" title="Open as the active tour on the Venues tab"><td>${esc(r.co?r.co.name:'—')}</td><td>${esc(r.sh?r.sh.title:'—')}</td><td><b>${esc(r.t.name)}</b></td><td class="center">${r.a.venues}</td><td class="center">${r.a.confirmed}</td><td class="right" style="color:var(--pink);font-weight:700">${fmt$(r.a.subsidy)}</td><td class="right">${fmt$(r.a.gross-r.a.subsidy)}</td><td class="center" style="color:#118AB2">${r.a.child.toLocaleString()}</td><td class="center" style="white-space:nowrap"><button class="btn sec" style="padding:3px 8px;font-size:11px" onclick="event.stopPropagation();openTourFromList(${r.t.id})">Report</button>${EDIT?`<button class="iconbtn" style="margin-left:6px" title="Delete this tour" onclick="event.stopPropagation();deleteTourById(${r.t.id})">🗑</button>`:''}</td></tr>`;});
+ pageRows.forEach(r=>{h+=`<tr class="${r.t.archived?'archrow':''}" onclick="activateTourFromList(${r.t.id})" style="cursor:pointer" title="Open as the active tour on the Venues tab"><td>${esc(r.co?r.co.name:'—')}</td><td>${esc(r.sh?r.sh.title:'—')}</td><td><b>${esc(r.t.name)}</b>${r.t.archived?'<span class="archbadge">Archived</span>':''}</td><td class="center">${r.a.venues}</td><td class="center">${r.a.confirmed}</td><td class="right" style="color:var(--pink);font-weight:700">${fmt$(r.a.subsidy)}</td><td class="right">${fmt$(r.a.gross-r.a.subsidy)}</td><td class="center" style="color:#118AB2">${r.a.child.toLocaleString()}</td><td class="center" style="white-space:nowrap"><button class="btn sec" style="padding:3px 8px;font-size:11px" onclick="event.stopPropagation();openTourFromList(${r.t.id})">Report</button>${EDIT?`<button class="iconbtn" style="margin-left:6px" title="${r.t.archived?'Restore this tour':'Archive this tour'}" onclick="event.stopPropagation();toggleArchiveTour(${r.t.id})">${r.t.archived?'↩':'📦'}</button><button class="iconbtn" style="margin-left:6px" title="Delete this tour" onclick="event.stopPropagation();deleteTourById(${r.t.id})">🗑</button>`:''}</td></tr>`;});
  h+='</tbody></table></div></div>';
  const opts=[20,50,100].map(n=>`<option value="${n}" ${tuSize===n?'selected':''}>${n}</option>`).join('')+`<option value="all" ${tuSize===Infinity?'selected':''}>All</option>`;
  let pg='';if(pages>1){pg=`<div class="pbtns"><button onclick="tuGoto(1)" ${tuPage===1?'disabled':''}>« First</button><button onclick="tuGoto(${tuPage-1})" ${tuPage===1?'disabled':''}>‹ Prev</button><span style="padding:0 6px">Page <b>${tuPage}</b> of <b>${pages}</b></span><button onclick="tuGoto(${tuPage+1})" ${tuPage===pages?'disabled':''}>Next ›</button><button onclick="tuGoto(${pages})" ${tuPage===pages?'disabled':''}>Last »</button></div>`;}
