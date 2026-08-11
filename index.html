@@ -304,6 +304,8 @@ body.toursmode .siderail,body.toursmode .railexpand,body.toursmode #kpis{display
 .accb p{margin:0 0 10px;} .accb ul{margin:6px 0 12px;padding-left:20px;} .accb li{margin:5px 0;} .accb b{color:var(--navy);}
 .hidden{display:none;}
 .about p{margin:0 0 8px;} .about b{color:var(--navy);}
+.formula{font-family:'SF Mono','Consolas',monospace;font-size:12.5px;background:#fff;border:1.5px solid var(--navy);border-radius:8px;padding:12px 14px;margin:10px 0;line-height:1.9;color:var(--navy);overflow-x:auto;white-space:nowrap;}
+.formula b{color:var(--pink);}
 .cgrid{display:grid;grid-template-columns:1fr auto;gap:3px 14px;font-size:12.5px;} .cgrid .cl{color:var(--slate);} .cgrid .cv{font-weight:700;text-align:right;color:var(--navy);}
 /* ============ UX REDESIGN LAYER ============ */
 /* context chips */
@@ -801,6 +803,17 @@ body.aboutmode .sitefoot{margin-top:26px;}
          <li><b>Developmentally Vulnerable (DV2)</b> — the share of children vulnerable on <i>two or more</i> AEDC domains, scaled against the national average (~12.5%). Off in the default model; available for models targeting compounded need.</li>
        </ul>
        <p>The default weighting is <b>EM 40%, D 40%, R 20%</b> with DV2 off. Every weight is adjustable, and any indicator can be switched on or off — the remaining weights rebalance to 100%. Where a measure has no data for an area, it is skipped and the rest rebalance.</p>
+       <p style="margin-top:12px">Precisely:</p>
+       <div class="formula">
+        EM<sub>sub</sub>&nbsp; = min(10, EM% ÷ 25.17 × 5)<br>
+        D<sub>sub</sub>&nbsp;&nbsp; = 11 − IRSD decile<br>
+        R<sub>sub</sub>&nbsp;&nbsp; = {Major Cities 0 · Inner Reg. 2.5 · Outer Reg. 5 · Remote 7.5 · Very Remote 10}<br>
+        DV2<sub>sub</sub> = min(10, DV2% ÷ 12.46 × 5)<br><br>
+        <b>Index</b>&nbsp;&nbsp; = Σ(w<sub>i</sub> × sub<sub>i</sub>) ÷ Σ(w<sub>i</sub>)&nbsp;&nbsp;&nbsp;for active indicators with data, to 1 decimal<br><br>
+        <b>Subsidy</b> = floor + (ceiling − floor) × (Index − High) ÷ (Full − High)<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; High tier only · clamped 0–1 · rounded to 5% steps
+       </div>
+       <p style="font-size:12.5px;color:#4A5859">25.17% and 12.46% are the 2024 national rates for the two AEDC measures, so a score of 5 always means "at the national average". EM and DV2 are ratio scales, SEIFA is rank-based (deciles) and remoteness is an ordered classification with imposed equal steps — a deliberate compromise for a single combined score.</p>
      </div></div>
      <div class="accitem open"><div class="acch" onclick="toggleAcc(this)"><span>3 · The three indicators — and why</span><span class="caret">▾</span></div><div class="accb">
        <p><b>Emotional maturity (child wellbeing).</b> Children's theatre's clearest social contribution is to emotional and social development. The AEDC emotional-maturity domain is the best national, place-based measure of where young children are struggling, so it sits at the heart of the Index.</p>
@@ -843,6 +856,18 @@ body.aboutmode .sitefoot{margin-top:26px;}
        <p>Venues are mapped against the national picture so <b>gaps</b> — high-impact communities with no current venue — are visible. From there, <b>tours</b> are built directly in the venue list: tick venues onto a tour, set per-venue fees, confirm subsidy, and save. The <b>Tours</b> page tracks the whole portfolio — every company, work and tour, with committed subsidy and children reached.</p>
        <p>Four print-ready <b>reports</b> carry the case outward: a funder subsidy report, a per-tour proposal, a venue-facing offer letter, and a technical specification of any model.</p>
        <p>The tool is a <b>live web application</b> with sign-in for invited users — viewers see everything, administrators edit — and every change to the data is recorded in an audit log. Figures refresh as new ABS and AEDC releases arrive.</p>
+     </div></div>
+     <div class="accitem"><div class="acch" onclick="toggleAcc(this)"><span>9 · Limitations — what the Index does not claim</span><span class="caret">▾</span></div><div class="accb">
+       <p>The Index is a targeting instrument, and honesty about its edges matters as much as its strengths:</p>
+       <ul>
+         <li><b>Opportunity, not outcome.</b> A high score says the conditions for impact are strong — it does not measure what a performance actually achieves. Evaluating delivered impact is a separate exercise.</li>
+         <li><b>Places, not people.</b> Every measure is area-level. A high-scoring community contains advantaged families and a low-scoring one contains struggling ones; the Index says nothing about any individual child.</li>
+         <li><b>Geography changes the answer.</b> SA2 and SA3 give different scores, tiers and reach for the same venue. Neither is more correct — they answer slightly different questions — which is why the toggle is explicit and every figure carries its geography.</li>
+         <li><b>Reach is residence, not attendance.</b> "Children 0–14 reached" counts children living in the areas served, each area once. It is not a ticket-sales forecast.</li>
+         <li><b>The data has a date.</b> AEDC is 2024; SEIFA and Census are 2021. Fast-changing communities may have moved since. AEDC also suppresses very small areas, so a handful of communities (mostly remote) carry fewer measures.</li>
+         <li><b>Thresholds are choices, not discoveries.</b> "High ≥ 6.3" and "50% → 100%" are calibrated policy settings, recorded with every saved model — the precision of the numbers should not be mistaken for empirical derivation.</li>
+       </ul>
+       <p>A full technical specification of any model — formulas, parameters and outcomes — is available via <b>Report → Model report</b>.</p>
      </div></div>
    </div>
    <p class="sources">Sources: AEDC 2024 · ABS SEIFA 2021 (IRSD) · ABS Remoteness Areas (ASGS 2021) · ABS Estimated Resident Population · ABS Census 2021. Built for the National Children's Theatre Initiative.</p>
