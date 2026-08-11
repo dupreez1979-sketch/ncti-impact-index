@@ -508,7 +508,7 @@ body.tourmode #mapAllWrap{display:none;}
    <div class="subsec collapsed" id="sec-geo"><div class="subhead" onclick="toggleSub(this)">Geography <span class="caret">▾</span></div>
      <div class="subbody"><span class="geo" id="geo"><button data-g="sa2" class="on" onclick="setGeo('sa2')">SA2</button><button data-g="sa3" onclick="setGeo('sa3')">SA3</button></span></div></div>
    <div class="subsec collapsed" id="sec-ind"><div class="subhead" onclick="toggleSub(this)">Indicators <span class="caret">▾</span></div>
-     <div class="subbody"><div class="ind" id="ind"></div><div class="eff" id="eff"></div></div></div>
+     <div class="subbody"><div class="ind" id="ind"></div></div></div>
    <div class="subsec" id="sec-tier"><div class="subhead" onclick="toggleSub(this)">Tier &amp; subsidy settings <span class="caret">▾</span></div>
      <div class="subbody">
        <div class="tierviz">
@@ -526,7 +526,7 @@ body.tourmode #mapAllWrap{display:none;}
          </div>
          <div class="tvaxis"><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span></div>
          <div class="tvkey"><span><i style="background:#5BC0BE"></i>Low</span><span><i style="background:#FFD166"></i>Medium</span><span><i style="background:#EF476F"></i>High</span><span><i style="background:rgba(7,59,76,.3)"></i>subsidy ramp</span></div>
-         <div class="muted" style="font-size:11px;margin-top:4px">Drag the dark handles left/right for the Medium / High cut-offs and the white line for where 100% subsidy is reached; drag the two round points up/down to set the floor % and full %. Or type exact values below.</div>
+         
        </div>
        <div class="tvfields">
          <div class="fg"><label>High tier at Index ≥</label><input type="number" id="tHigh" value="6.3" step="0.1" min="0" max="10" oninput="setThr()"></div>
@@ -535,11 +535,11 @@ body.tourmode #mapAllWrap{display:none;}
          <div class="fg"><label>Full subsidy %</label><input type="number" id="sCeil" value="100" step="5" min="0" max="100" oninput="setSub()"></div>
          <div class="fg"><label>Full subsidy at Index ≥</label><input type="number" id="sFull" value="8.0" step="0.1" min="0" max="10" oninput="setSub()"></div>
        </div>
-       <div class="muted" id="subnote" style="margin-top:8px"></div>
+       
      </div></div>
    <button class="btn" style="width:100%;margin-top:4px;padding:7px 10px;font-size:12px" onclick="saveCurrentModel()">＋ Save this model…</button>
    <div id="tourFreezeBox"></div>
-   <div class="muted" style="font-size:10.5px;margin-top:5px">Stores the current settings in Saved models above, so you can re-apply or freeze them to a tour later.</div>
+   
    </div>
   </div>
  </div>
@@ -843,8 +843,8 @@ function renderBasket(){if(!document.getElementById('bkN'))return;const tour=act
  document.getElementById('bkPay').textContent=fmt$(pay);
  const box=document.getElementById('sourcesBox');
  if(box){const R=resolveSources(sub,stateSub);
-   let h='<div class="muted" style="margin-bottom:8px;font-size:11px">How the subsidy is funded — add the sources that make it up:</div>';
-   h+=`<div class="fundrow"><div><div class="fundlbl">Children's Theatre Investment Fund</div><span class="muted" style="font-size:10.5px">balance not covered by other sources</span></div><b>${fmt$(R.fund)}</b></div>`;
+   let h='';
+   h+=`<div class="fundrow"><div><div class="fundlbl">Children's Theatre Investment Fund</div></div><b>${fmt$(R.fund)}</b></div>`;
    sources.forEach(s=>{const amt=srcAmt(s,stateSub);
      if(s.kind==='state')h+=`<div class="srcrow"><input class="srcname" value="${esc(s.name)}" onchange="setSourceName(${s.id},this.value)"><select onchange="setSourceState(${s.id},this.value)">${stateOpts(s.state)}</select><span class="srcamt">$<input type="number" value="${Math.round(amt)}" step="500" min="0" onchange="setSourceAmount(${s.id},this.value)" title="Auto from ${s.state}; edit to override"></span><button class="srcx" title="Remove" onclick="removeSource(${s.id})">✕</button></div>`;
      else h+=`<div class="srcrow"><input class="srcname" value="${esc(s.name)}" onchange="setSourceName(${s.id},this.value)"><span class="srcamt">$<input type="number" value="${s.amount||0}" step="500" min="0" onchange="setSourceAmount(${s.id},this.value)"></span><button class="srcx" title="Remove" onclick="removeSource(${s.id})">✕</button></div>`;});
@@ -1748,11 +1748,7 @@ function buildInd(){document.getElementById('ind').innerHTML=IND.map(([k,label,c
  <input type="range" id="sl_${k}" min="0" max="100" step="5" value="${MODEL.pct[k]}" oninput="setW('${k}',this.value)" ${MODEL.on[k]?'':'disabled'}>
  <div class="wv" id="wv_${k}" style="color:${col}">${MODEL.pct[k]}%</div>`).join('');updateEff();}
 function syncSliders(){['em','seifa','rem','dv2'].forEach(k=>{const sl=document.getElementById('sl_'+k),wv=document.getElementById('wv_'+k);if(sl){sl.value=MODEL.pct[k];sl.disabled=!MODEL.on[k];}if(wv)wv.textContent=MODEL.pct[k]+'%';});updateEff();}
-function updateEff(){const eff=IND.map(([k,label])=>MODEL.on[k]?`${label.split(' ')[0]} ${MODEL.pct[k]}%`:null).filter(Boolean).join(' · ');
- const off=IND.filter(([k])=>!MODEL.on[k]).map(([k,l])=>l.split(' ')[0]);
- const tot=activeKeys().reduce((a,k)=>a+MODEL.pct[k],0);
- document.getElementById('eff').innerHTML=`<b>Active model:</b> ${MODEL.geo.toUpperCase()} · weights (total ${tot}%) → ${eff||'none (all indicators off)'}`+(off.length?` · <span style="color:#EF476F">off: ${off.join(', ')}</span>`:'');
- IND.forEach(([k])=>{document.getElementById('row_'+k)?.classList.toggle('off',!MODEL.on[k]);});}
+function updateEff(){IND.forEach(([k])=>{document.getElementById('row_'+k)?.classList.toggle('off',!MODEL.on[k]);});}
 const PRESETS={em_seifa:{on:{em:true,seifa:true,rem:false},pct:{em:50,seifa:50,rem:0},high:7},all:{on:{em:true,seifa:true,rem:true},pct:{em:40,seifa:40,rem:20},high:6.3},em_only:{on:{em:true,seifa:false,rem:false},pct:{em:100,seifa:0,rem:0}}};
 function applyPreset(key){const p=PRESETS[key];MODEL.on={em:!!p.on.em,seifa:!!p.on.seifa,rem:!!p.on.rem,dv2:!!p.on.dv2};MODEL.pct={em:+p.pct.em||0,seifa:+p.pct.seifa||0,rem:+p.pct.rem||0,dv2:+p.pct.dv2||0};
  if(p.high!=null){MODEL.thr.high=p.high;const e=document.getElementById('tHigh');if(e)e.value=p.high;}
@@ -1775,7 +1771,7 @@ function setThr(){const h=parseFloat(document.getElementById('tHigh').value),m=p
  if(!isNaN(h))MODEL.thr.high=h;if(!isNaN(m))MODEL.thr.med=m;updateSubnote();recompute();render();}
 function setSub(){const f=parseFloat(document.getElementById('sFloor').value),c=parseFloat(document.getElementById('sCeil').value),u=parseFloat(document.getElementById('sFull').value);
  if(!isNaN(f))MODEL.sub.floor=f/100;if(!isNaN(c))MODEL.sub.ceil=c/100;if(!isNaN(u))MODEL.sub.full=u;updateSubnote();recompute();render();}
-function updateSubnote(){document.getElementById('subnote').innerHTML=`Subsidy applies to <b>High</b> venues only: ramps from <b>${Math.round(MODEL.sub.floor*100)}%</b> at Index ${MODEL.thr.high.toFixed(1)} up to <b>${Math.round(MODEL.sub.ceil*100)}%</b> at Index ${MODEL.sub.full.toFixed(1)}+ , in 5% steps.`;}
+function updateSubnote(){}
 function resetModel(){MODEL={geo:'sa2',on:{em:true,seifa:true,rem:true,dv2:false},pct:{em:40,seifa:40,rem:20,dv2:0},thr:{high:6.3,med:3.8},sub:{floor:0.5,ceil:1.0,full:8.0}};
  document.querySelectorAll('#geo button').forEach(b=>b.classList.toggle('on',b.dataset.g==='sa2'));
  const gv=(id,val)=>{const e=document.getElementById(id);if(e)e.value=val;};
