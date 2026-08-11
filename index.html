@@ -503,6 +503,12 @@ body.aboutmode .sitefoot{margin-top:26px;}
 .skspin{width:13px;height:13px;border:2px solid #E3DAC2;border-top-color:var(--pink);border-radius:50%;animation:skspinr .8s linear infinite;flex:0 0 auto;}
 @keyframes skspinr{to{transform:rotate(360deg)}}
 .loaderr{max-width:560px;border:2px solid var(--pink);border-radius:12px;background:#fff;padding:20px 22px;box-shadow:5px 5px 0 var(--navy);}
+/* model star */
+.modelstar{background:none;border:none;cursor:pointer;font-size:14px;line-height:1;color:#B9B2A0;padding:0 2px 0 0;flex:0 0 auto;}
+.modelstar.on{color:#F0A202;}
+.modelstar:hover{color:#F0A202;}
+.modelchip.on .modelstar{color:rgba(255,255,255,.55);}
+.modelchip.on .modelstar.on{color:#FFD166;}
 /* archived tours */
 .archbadge{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:20px;border:1.2px solid var(--slate);color:var(--slate);background:#F1EDE0;font-size:9.5px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;vertical-align:middle;}
 .tourstable tr.archrow td{opacity:.62;}
@@ -1614,6 +1620,17 @@ function createModelReport(){
      ${ladderRows.length?`<h3>Subsidy ladder — venues at each rate</h3>${rptHBars(ladderRows,null,v2=>v2+' venue'+(v2!=1?'s':''))}`:''}
      <h3>Venue index distribution</h3>
      ${rptHBars(bands,null,v2=>v2+' venue'+(v2!=1?'s':''))}
+     ${(()=>{if(!elig.length)return '';
+       const byS={};elig.forEach(v=>{const st=v.state||'Unassigned';(byS[st]=byS[st]||[]).push(v);});
+       const sts=Object.keys(byS).sort();
+       let rows='';
+       sts.forEach(st=>{const arr=byS[st].slice().sort((a,b)=>(b.cIndex||0)-(a.cIndex||0));
+         const ch=uniqueChild(arr);
+         rows+=`<tr class="grp"><td colspan="4">${esc(st)} — ${arr.length} venue${arr.length!=1?'s':''} · ${ch.toLocaleString()} children 0–14</td></tr>`;
+         arr.forEach(v=>{rows+=`<tr><td>${esc(v.name)}</td><td class="center">${v.cIndex!=null?v.cIndex.toFixed(1):'—'}</td><td class="center">${v.cTier}</td><td class="right"><b>${Math.round(v.cSub*100)}%</b></td></tr>`;});});
+       return `<h3>Venues subsidised under this model</h3>
+        <p style="font-size:11.5px;color:#6b7a80;margin-bottom:6px">The ${elig.length} venue${elig.length!=1?'s':''} that would attract a subsidy, grouped by state and ordered by Impact Index.</p>
+        <table><thead><tr><th>Venue</th><th class="center">Index</th><th>Tier</th><th class="right">Subsidy</th></tr></thead><tbody>${rows}</tbody></table>`;})()}
      <h3>Across the nation</h3>
      <p style="font-size:12px">Under this model, <b>${aHi.toLocaleString()}</b> SA2 communities score High (home to ~<b>${aCh.toLocaleString()}</b> children 0–14), <b>${aMed.toLocaleString()}</b> Medium and <b>${aLo.toLocaleString()}</b> Low.</p>
      <div class="rpt-foot">Data: AEDC 2024 (emotional maturity, DV2), ABS SEIFA 2021 (IRSD), ABS Remoteness Areas, ABS Census 2021 &amp; Estimated Resident Population. Prepared with the National Children's Theatre Initiative — Theatre for Every Child.</div>
@@ -2015,12 +2032,32 @@ function modelEq(c){if(!c)return false;const M=MODEL;
  if(c.thr&&(+c.thr.high!==+M.thr.high||+c.thr.med!==+M.thr.med))return false;
  if(c.sub&&(+c.sub.floor!==+M.sub.floor||+c.sub.ceil!==+M.sub.ceil||+c.sub.full!==+M.sub.full))return false;
  return true;}
+function sortModels(){MODELS.sort((a,b)=>{if(!!b.starred!==!!a.starred)return b.starred?1:-1;const ao=a.ord==null?9999:a.ord,bo=b.ord==null?9999:b.ord;if(ao!==bo)return ao-bo;return (''+a.name).localeCompare(b.name);});}
+async function toggleStar(id){if(!EDIT){toast('Only admins can change models.',null,true);return;}
+ const m=MODELS.find(x=>x.id===id);if(!m)return;
+ const {error}=await sbc.from('models').update({starred:!m.starred}).eq('id',id);
+ if(error){toast(error.message,null,true);return;}
+ m.starred=!m.starred;sortModels();renderModels();
+ toast(m.starred?'\u201c'+esc(m.name)+'\u201d starred \u2014 moved to the top.':'\u201c'+esc(m.name)+'\u201d unstarred.');}
+async function moveModel(id,dir){if(!EDIT)return;
+ const group=MODELS.filter(x=>!!x.starred===!!(MODELS.find(y=>y.id===id)||{}).starred);
+ const i=group.findIndex(x=>x.id===id);const j=i+dir;
+ if(i<0||j<0||j>=group.length)return;
+ const a=group[i],b=group[j];
+ const ao=a.ord==null?9999:a.ord,bo=b.ord==null?9999:b.ord;
+ a.ord=bo;b.ord=ao;
+ if(a.ord===b.ord){a.ord=bo+(dir>0?1:-1);}
+ sortModels();renderModels();
+ const r1=await sbc.from('models').update({sort_order:a.ord}).eq('id',a.id);
+ const r2=await sbc.from('models').update({sort_order:b.ord}).eq('id',b.id);
+ if((r1&&r1.error)||(r2&&r2.error))toast('Order saved locally but not to the database.',null,true);}
 function renderModels(){const el=document.getElementById('savedmodels');if(!el)return;
  let h='';
  if(!MODELS.length)h+='<span class="muted" style="font-size:11px;margin-right:4px">No saved models yet.</span>';
  MODELS.forEach(m=>{const on=modelEq(m.config);
   const tip='Created '+(m.date||'—')+(m.description?('\n\n'+m.description):'');
-  h+=`<span class="modelchip ${on?'on':''}"><button class="modelapply" onclick="applyModel(${m.id})" title="Apply: ${esc(m.name)}">${esc(m.name)}</button><span class="modelicons2"><span class="modelinfo" title="${esc(tip)}">ⓘ</span>${EDIT?`<button title="Edit name &amp; description" onclick="event.stopPropagation();renameModel(${m.id})">✎</button><button title="Delete" onclick="event.stopPropagation();deleteModel(${m.id})">✕</button>`:''}</span></span>`;});
+  const grp=MODELS.filter(x=>!!x.starred===!!m.starred);const gi=grp.findIndex(x=>x.id===m.id);
+  h+=`<span class="modelchip ${on?'on':''}">${EDIT?`<button class="modelstar ${m.starred?'on':''}" title="${m.starred?'Unstar — return to the ordinary list':'Star — pin this model to the top'}" onclick="event.stopPropagation();toggleStar(${m.id})">${m.starred?'★':'☆'}</button>`:(m.starred?'<span class="modelstar on" title="Starred">★</span>':'')}<button class="modelapply" onclick="applyModel(${m.id})" title="Apply: ${esc(m.name)}">${esc(m.name)}</button><span class="modelicons2"><span class="modelinfo" title="${esc(tip)}">ⓘ</span>${EDIT?`<button title="Move up" ${gi<=0?'disabled style="opacity:.3"':''} onclick="event.stopPropagation();moveModel(${m.id},-1)">▲</button><button title="Move down" ${gi>=grp.length-1?'disabled style="opacity:.3"':''} onclick="event.stopPropagation();moveModel(${m.id},1)">▼</button><button title="Edit name &amp; description" onclick="event.stopPropagation();renameModel(${m.id})">✎</button><button title="Delete" onclick="event.stopPropagation();deleteModel(${m.id})">✕</button>`:''}</span></span>`;});
  el.innerHTML=h;}
 function applyModel(id){const m=MODELS.find(x=>x.id===id);if(!m||!m.config)return;const c=m.config;
  MODEL.geo=c.geo||'sa2';MODEL.on={em:!!c.on.em,seifa:!!c.on.seifa,rem:!!c.on.rem,dv2:!!c.on.dv2};
@@ -2048,7 +2085,7 @@ function autoModelDesc(){const den=activeKeys().reduce((a,k)=>a+MODEL.pct[k],0)|
 function uniqueModelName(base){const names=new Set((typeof MODELS!=='undefined'?MODELS:[]).map(m=>m.name));
  if(!names.has(base))return base;let i=2;while(names.has(base+' ('+i+')'))i++;return base+' ('+i+')';}
 function saveCurrentModel(){if(!EDIT){toast('Only admins can save models.',null,true);return;}openModel('Save model',uniqueModelName(autoModelName()),autoModelDesc(),'Save',doSaveModel,{sub:'Named automatically from the current settings \u2014 edit either field if you prefer.'});}
-async function doSaveModel(name,desc){const {data,error}=await sbc.from('models').insert({name:name,description:desc||null,config:MODEL}).select('id,name,description,config,created_at').single();
+async function doSaveModel(name,desc){const maxOrd=MODELS.reduce((a,m)=>Math.max(a,m.ord==null?0:m.ord),0);const {data,error}=await sbc.from('models').insert({name:name,description:desc||null,config:MODEL,starred:false,sort_order:maxOrd+10}).select('id,name,description,config,created_at').single();
  if(error){toast('Save failed: '+error.message,null,true);return;}
  MODELS.push({id:data.id,name:data.name,description:data.description,config:data.config,date:fmtDate(data.created_at)});MODELS.sort((a,b)=>(''+a.name).localeCompare(b.name));renderModels();}
 function renameModel(id){if(!EDIT)return;const m=MODELS.find(x=>x.id===id);if(!m)return;
@@ -2442,7 +2479,7 @@ async function boot(){
   buildInd();updateSubnote();recompute();initFilters();restoreFilters();render();renderAuth();
   setProgress(78);
   loadGeometry();
-  try{MODELS=(await sbAll('models','id,name,description,config,is_preset,created_at')).map(m=>({id:m.id,name:m.name,description:m.description,config:m.config,date:fmtDate(m.created_at)}));MODELS.sort((a,b)=>(''+a.name).localeCompare(b.name));renderModels();}catch(mErr){console.warn('models not loaded (create the table with models.sql):',mErr);}
+  try{MODELS=(await sbAll('models','id,name,description,config,is_preset,created_at,starred,sort_order')).map(m=>({id:m.id,name:m.name,description:m.description,config:m.config,date:fmtDate(m.created_at),starred:!!m.starred,ord:m.sort_order==null?9999:+m.sort_order}));sortModels();renderModels();}catch(mErr){console.warn('models not loaded (create the table with models.sql):',mErr);}
   setProgress(90);
   await loadTours();loadAllTourVenues();restoreState();
   setProgress(100);
