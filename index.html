@@ -42,7 +42,7 @@ header h1{font-size:29px;margin:0;} header .sub{color:var(--slate);font-size:13p
 .tourskpis .tkv.pink{color:var(--pink);}
 .tourskpis .tkl{font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:#4A5859;margin-top:5px;}
 .tourstable{width:100%;border-collapse:collapse;font-size:13px;}
-.tourstable th{background:var(--navy);color:#fff;font-size:10px;text-transform:uppercase;letter-spacing:.3px;padding:8px 10px;text-align:left;white-space:nowrap;}
+.tourstable th{position:sticky;top:0;z-index:3;background:var(--navy);color:#fff;font-size:10px;text-transform:uppercase;letter-spacing:.3px;padding:8px 10px;text-align:left;white-space:nowrap;}
 .tourstable th.center{text-align:center;}.tourstable th.right{text-align:right;}
 .tourstable td{padding:7px 10px;border-bottom:1px solid #Eee6cf;}
 .tourstable td.center{text-align:center;}.tourstable td.right{text-align:right;font-variant-numeric:tabular-nums;}
@@ -152,9 +152,9 @@ input[type=text],input[type=number]{font-family:inherit;font-size:13px;padding:7
 .chartsgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;} .chartsgrid canvas{max-height:300px;}
 .chartbox{padding:10px 12px;} .chartbox h3{font-size:14px;margin:2px 0 6px;}
 table{width:100%;border-collapse:collapse;font-size:12.5px;}
-thead th{position:sticky;top:0;background:var(--navy);color:#fff;font-size:11px;text-transform:uppercase;letter-spacing:.3px;padding:8px;text-align:left;cursor:pointer;white-space:nowrap;}
+thead th{position:sticky;top:0;z-index:3;background:var(--navy);color:#fff;font-size:11px;text-transform:uppercase;letter-spacing:.3px;padding:8px;text-align:left;cursor:pointer;white-space:nowrap;}
 tbody td{padding:7px 8px;border-bottom:1px solid #Eee6cf;} tbody tr{cursor:pointer;} tbody tr:hover{background:#FFF3D0;}
-.tablewrap{max-height:560px;overflow:auto;} .right{text-align:right;}.center{text-align:center;}
+.tablewrap{overflow:visible;} .right{text-align:right;}.center{text-align:center;}
 .pager{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:10px 2px 2px;font-size:13px;color:var(--slate);}
 .pager select{font-family:inherit;font-size:13px;padding:5px 7px;border:1.5px solid var(--navy);border-radius:5px;background:#fff;color:var(--navy);}
 .pager .pbtns{display:flex;gap:6px;margin-left:auto;align-items:center;}
@@ -421,7 +421,7 @@ body.aboutmode #filterCard,body.toursmode #filterCard{display:none!important;}
  .dockwrap.open .card{box-shadow:none;border-radius:10px;border-width:0;}
  /* venue table -> cards; other tables (tours, users) scroll sideways instead of vanishing */
  #venueTableCard{display:none;}
- .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+ .tablewrap{overflow-x:auto;overflow-y:visible;-webkit-overflow-scrolling:touch;}
  .tourstable{min-width:640px;}
  #cardlist{display:block;}
  .vcard{padding:8px 10px;font-size:12px;gap:7px;}
@@ -899,7 +899,7 @@ body.aboutmode .sitefoot{margin-top:26px;}
 const SB_URL="https://ezvpiobtzftmrqxdnebh.supabase.co", SB_KEY="sb_publishable_8gY1ugFsn9jDQPHKu81PPA_Z_xERC-c";
 let DATA={venues:[],params:{}}, V=[], P={};
 let SA2GEO={type:'FeatureCollection',features:[]}, SA2LOOK={}, AUS={w:200,h:185,states:[],lonmin:112.5,latmax:-9.5,coslat:0.9,scale:5};
-const IND=[['em','Emotional Maturity','#06D6A0'],['seifa','SEIFA (Disadvantage)','#118AB2'],['rem','Remoteness','#9B5DE5'],['dv2','Vulnerable 2+ AEDC domains (DV2)','#F79256']];
+const IND=[['em','Emotional Maturity (EM)','#06D6A0','EM'],['seifa','Disadvantage (D)','#118AB2','D'],['rem','Remoteness (R)','#9B5DE5','R'],['dv2','Developmentally Vulnerable (DV2)','#F79256','DV2']];
 const TIERCOL={High:'#EF476F',Medium:'#FFD166',Low:'#5BC0BE'};
 const fmt$=n=>'$'+Math.round(n).toLocaleString();
 let MODEL={geo:'sa2',on:{em:true,seifa:true,rem:true,dv2:false},pct:{em:40,seifa:40,rem:20,dv2:0},
@@ -1254,7 +1254,7 @@ function createTourReport(){const t=activeTourObj();if(!t){toast('Select a tour 
  const pay=gross-sub;
  const states=Object.keys(byState).sort();const multi=true;const R=resolveSources(sub,stateSub);
  const den=activeKeys().reduce((a,k)=>a+MODEL.pct[k],0)||1;
- const wtxt=IND.filter(([k])=>MODEL.on[k]).map(([k,l])=>`${l.split(' ')[0]} ${Math.round(MODEL.pct[k]/den*100)}%`).join(' · ')||'—';
+ const wtxt=IND.filter(([k])=>MODEL.on[k]).map(([k,l,c,code])=>`${code} ${Math.round(MODEL.pct[k]/den*100)}%`).join(' · ')||'—';
  const dt=new Date().toLocaleDateString('en-AU',{day:'numeric',month:'long',year:'numeric'});
  const logo=(document.querySelector('.brandlogo')||{}).src||'';
  let vrows='';
@@ -1425,7 +1425,7 @@ function renderToursList(rows){const body=document.getElementById('toursBody');i
  rows=rows.slice().sort((x,y)=>{const A=kf(x),B=kf(y);if(typeof A==='string')return tuSortD*(''+A).localeCompare(''+B);return tuSortD*(A-B);});
  const total=rows.length;const size=(tuSize===Infinity)?(total||1):tuSize;const pages=Math.max(1,Math.ceil(total/size));if(tuPage>pages)tuPage=pages;
  const start=(tuSize===Infinity)?0:(tuPage-1)*tuSize;const end=(tuSize===Infinity)?total:Math.min(total,start+tuSize);const pageRows=rows.slice(start,end);
- let h=`<div class="card" style="overflow:hidden"><div class="tablewrap"><table class="tourstable"><thead><tr>${[['company','Company',''],['work','Work',''],['tour','Tour',''],['venues','Venues','center'],['confirmed','Subsidised','center'],['subsidy','Subsidy','right'],['presenter','Presenter','right'],['children','Children','center']].map(c=>`<th class="${c[2]}" style="cursor:pointer" onclick="setTuSort('${c[0]}')">${c[1]}${tuSortK===c[0]?(tuSortD<0?' ▾':' ▴'):''}</th>`).join('')}<th></th></tr></thead><tbody>`;
+ let h=`<div class="card" style="overflow:hidden"><div class="tablewrap" style="max-height:none;overflow:visible"><table class="tourstable"><thead><tr>${[['company','Company',''],['work','Work',''],['tour','Tour',''],['venues','Venues','center'],['confirmed','Subsidised','center'],['subsidy','Subsidy','right'],['presenter','Presenter','right'],['children','Children','center']].map(c=>`<th class="${c[2]}" style="cursor:pointer" onclick="setTuSort('${c[0]}')">${c[1]}${tuSortK===c[0]?(tuSortD<0?' ▾':' ▴'):''}</th>`).join('')}<th></th></tr></thead><tbody>`;
  if(!pageRows.length)h+='<tr><td colspan="9" style="padding:16px;color:var(--slate)">No tours match these filters.</td></tr>';
  pageRows.forEach(r=>{h+=`<tr onclick="activateTourFromList(${r.t.id})" style="cursor:pointer" title="Open as the active tour on the Venues tab"><td>${esc(r.co?r.co.name:'—')}</td><td>${esc(r.sh?r.sh.title:'—')}</td><td><b>${esc(r.t.name)}</b></td><td class="center">${r.a.venues}</td><td class="center">${r.a.confirmed}</td><td class="right" style="color:var(--pink);font-weight:700">${fmt$(r.a.subsidy)}</td><td class="right">${fmt$(r.a.gross-r.a.subsidy)}</td><td class="center" style="color:#118AB2">${r.a.child.toLocaleString()}</td><td class="center" style="white-space:nowrap"><button class="btn sec" style="padding:3px 8px;font-size:11px" onclick="event.stopPropagation();openTourFromList(${r.t.id})">Report</button>${EDIT?`<button class="iconbtn" style="margin-left:6px" title="Delete this tour" onclick="event.stopPropagation();deleteTourById(${r.t.id})">🗑</button>`:''}</td></tr>`;});
  h+='</tbody></table></div></div>';
@@ -1540,10 +1540,10 @@ function createModelReport(){
  const bands=[];for(let b=0;b<10;b++){const n=scored.filter(v=>v.cIndex>=b&&v.cIndex<b+1).length;bands.push({label:b+'–'+(b+1),value:n,color:idxColor(b+0.5)});}
  // national areas
  let aHi=0,aMed=0,aLo=0,aCh=0;for(const code in SA2LOOK){const r=computeSA2(code);if(!r)continue;if(r.tier==='High'){aHi++;aCh+=r.ch||0;}else if(r.tier==='Medium')aMed++;else aLo++;}
- const fmtsub=[['Emotional maturity','em','min(10, EM% ÷ 25.17 × 5) — EM% is the share of children developmentally vulnerable or at-risk on the AEDC emotional-maturity domain (2024); 25.17% is the national average.'],
-  ['Disadvantage (SEIFA)','seifa','11 − IRSD decile — the ABS SEIFA 2021 decile flipped, so the most disadvantaged 10% of areas score 10.'],
-  ['Remoteness','rem','Major Cities 0 · Inner Regional 2.5 · Outer Regional 5 · Remote 7.5 · Very Remote 10 (ABS Remoteness Areas).'],
-  ['Vulnerable 2+ AEDC domains (DV2)','dv2','min(10, DV2% ÷ 12.46 × 5) — DV2% is the share vulnerable on two or more AEDC domains (2024); 12.46% is the national average.']].filter(x=>MODEL.on[x[1]]);
+ const fmtsub=[['Emotional Maturity (EM)','em','min(10, EM% ÷ 25.17 × 5) — EM% is the share of children developmentally vulnerable or at-risk on the AEDC emotional-maturity domain (2024); 25.17% is the national average.'],
+  ['Disadvantage (D)','seifa','11 − IRSD decile — the ABS SEIFA 2021 decile flipped, so the most disadvantaged 10% of areas score 10.'],
+  ['Remoteness (R)','rem','Major Cities 0 · Inner Regional 2.5 · Outer Regional 5 · Remote 7.5 · Very Remote 10 (ABS Remoteness Areas).'],
+  ['Developmentally Vulnerable (DV2)','dv2','min(10, DV2% ÷ 12.46 × 5) — DV2% is the share vulnerable on two or more AEDC domains (2024); 12.46% is the national average.']].filter(x=>MODEL.on[x[1]]);
  const html=`<div class="rpt">
    <div class="rpt-headbar">${logo?`<img class="rpt-logo" src="${logo}">`:''}<div class="rpt-title">${esc(nm.name)}</div><div class="rpt-subt">Impact Index model — technical specification · ${dt}</div></div>
    <div class="rpt-body">
@@ -1591,7 +1591,7 @@ function createReport(){
  const pay=gross-sub;const R=resolveSources(sub,stateSub);
  const states=Object.keys(byState).sort();const multi=states.length>1;
  const den=activeKeys().reduce((a,k)=>a+MODEL.pct[k],0)||1;
- const wtxt=IND.filter(([k])=>MODEL.on[k]).map(([k,l])=>`${l.split(' ')[0]} ${Math.round(MODEL.pct[k]/den*100)}%`).join(' · ')||'—';
+ const wtxt=IND.filter(([k])=>MODEL.on[k]).map(([k,l,c,code])=>`${code} ${Math.round(MODEL.pct[k]/den*100)}%`).join(' · ')||'—';
  const dt=new Date().toLocaleDateString('en-AU',{day:'numeric',month:'long',year:'numeric'});
  const logo=(document.querySelector('.brandlogo')||{}).src||'';
  let vrows='';
@@ -1647,11 +1647,11 @@ function createVenueReport(i){const v=V[i];if(!v)return;const g=v[MODEL.geo]||{}
  const area=v.sa2name||'this community',ra=(g.ra||'').replace(' Australia','');
  const mrow=(l,d,sub)=>`<tr><td><b>${l}</b><br><span style="color:#6b7a80">${d}</span></td><td class="right">${sub!=null?(+sub).toFixed(1)+' / 10':'—'}</td></tr>`;
  let measures='';
- if(MODEL.on.em)measures+=mrow("Children's emotional development",(g.em_pct!=null?(+g.em_pct).toFixed(1)+'% of local children developmentally vulnerable or at-risk (AEDC)':'—'),g.em_sub);
- if(MODEL.on.seifa)measures+=mrow('Socio-economic disadvantage','SEIFA decile '+(g.decile==null?'—':g.decile)+' (1 = most disadvantaged nationally)',g.seifa_sub);
- if(MODEL.on.rem)measures+=mrow('Remoteness',(ra||'—'),g.rem_sub);
- if(MODEL.on.dv2)measures+=mrow('Broad developmental vulnerability',(g.dv2_pct!=null?(+g.dv2_pct).toFixed(1)+'% of local children developmentally vulnerable on two or more AEDC domains':'—'),g.dv2_sub);
- const wtxt=IND.filter(([k])=>MODEL.on[k]).map(([k,l])=>`${l.split(' ')[0]} ${Math.round(MODEL.pct[k]/den*100)}%`).join(' · ')||'—';
+ if(MODEL.on.em)measures+=mrow("Emotional Maturity (EM)",(g.em_pct!=null?(+g.em_pct).toFixed(1)+'% of local children developmentally vulnerable or at-risk (AEDC)':'—'),g.em_sub);
+ if(MODEL.on.seifa)measures+=mrow('Disadvantage (D)','SEIFA decile '+(g.decile==null?'—':g.decile)+' (1 = most disadvantaged nationally)',g.seifa_sub);
+ if(MODEL.on.rem)measures+=mrow('Remoteness (R)',(ra||'—'),g.rem_sub);
+ if(MODEL.on.dv2)measures+=mrow('Developmentally Vulnerable (DV2)',(g.dv2_pct!=null?(+g.dv2_pct).toFixed(1)+'% of local children developmentally vulnerable on two or more AEDC domains':'—'),g.dv2_sub);
+ const wtxt=IND.filter(([k])=>MODEL.on[k]).map(([k,l,c,code])=>`${code} ${Math.round(MODEL.pct[k]/den*100)}%`).join(' · ')||'—';
  const offer=subPct>0
    ? `<p>Because ${esc(area)} is a <b>${v.cTier}-priority</b> community, it qualifies for a subsidy of <b>${Math.round(subPct*100)}%</b> on the presenter fee.</p>
       <table><tbody>
@@ -2036,7 +2036,7 @@ function filtered(){const q=document.getElementById('q').value.toLowerCase();
  const g={index:'cIndex',em_pct:'cEm',decile:'cDec',subsidy:'cSub',tier:'cTier',eligible:'cElig',ra:'cRA',child:'cChild'};const sk=g[sortKey]||sortKey;
  a.sort((x,y)=>{let A=x[sk],B=y[sk];if(typeof A==='string')return sortDir*(''+A).localeCompare(''+B);return sortDir*((A??-999)-(B??-999));});return a;}
 
-const cols=[['name','Venue'],['state','State'],['status','Status'],['ra','Remoteness'],['em_pct','EM %'],['decile','SEIFA dec'],['index','Index'],['tier','Tier'],['subsidy','Subsidy'],['eligible','Eligible'],['child','Children 0–14']];
+const cols=[['name','Venue'],['state','State'],['status','Status'],['ra','Remoteness'],['em_pct','EM %'],['decile','D decile'],['index','Index'],['tier','Tier'],['subsidy','Subsidy'],['eligible','Eligible'],['child','Children 0–14']];
 let charts={};
 function applyTourViewDefaults(){fTourOnly=false;fSubOnly=false;groupBy='state';collapsedGroups.clear();pageSize=Infinity;pageNum=1;const gb=document.getElementById('groupBy');if(gb)gb.value='state';}
 function resetTourViewDefaults(){fTourOnly=false;fSubOnly=false;groupBy='';collapsedGroups.clear();pageSize=20;pageNum=1;const gb=document.getElementById('groupBy');if(gb)gb.value='';}
@@ -2048,7 +2048,7 @@ function toggleVenueOnTour(i){const t=activeTourObj();if(!t||!EDIT)return;const 
  render();}
 function render(){const a=filtered();const _cc=document.getElementById('count');if(_cc)_cc.textContent=a.length+' of '+V.length+' venues';
  const tourActive=activeTourObj();document.body.classList.toggle('tourmode',!!tourActive);
- const curCols=tourActive?[['name','Venue'],['ontour','On tour'],['index','Index'],['tier','Tier'],['subsidy','Subsidy'],['eligible','Eligible'],['tfee','Fee $'],['tsub','Tour subsidy'],['state','State'],['status','Status'],['ra','Remoteness'],['em_pct','EM %'],['decile','SEIFA dec'],['child','Children 0–14']]:cols;
+ const curCols=tourActive?[['name','Venue'],['ontour','On tour'],['index','Index'],['tier','Tier'],['subsidy','Subsidy'],['eligible','Eligible'],['tfee','Fee $'],['tsub','Tour subsidy'],['state','State'],['status','Status'],['ra','Remoteness'],['em_pct','EM %'],['decile','D decile'],['child','Children 0–14']]:cols;
  const kpiSet=tourActive?tourVenues.map(x=>x.v).filter(Boolean):(sel.size?[...sel].map(i=>V[i]).filter(Boolean):a);
  const kpiLbl=tourActive?'Tour venues':(sel.size?'Selected venues':'Venues');
  const hi=kpiSet.filter(v=>v.cTier==='High').length,me=kpiSet.filter(v=>v.cTier==='Medium').length,lo=kpiSet.filter(v=>v.cTier==='Low').length,el=kpiSet.filter(v=>v.cElig==='Yes').length;
@@ -2089,11 +2089,11 @@ function render(){const a=filtered();const _cc=document.getElementById('count');
    let html='',cur=null;
    arr.forEach(v=>{const gk=(groupBy==='tier'?v.cTier:v.state)||'—';if(gk!==cur){cur=gk;const G=groups[gk];const avg=(G.reduce((s,x)=>s+(x.cIndex||0),0)/G.length).toFixed(1);const col=collapsedGroups.has(gk);html+=`<tr class="grouphdr" onclick="toggleGroup('${(''+gk).replace(/'/g,"\\'")}')"><td colspan="${curCols.length+1}"><span style="display:inline-block;width:14px">${col?'▸':'▾'}</span>${gk} · ${G.length} venue${G.length!=1?'s':''} · avg index ${avg}</td></tr>`;}if(!collapsedGroups.has(gk))html+=rowHtml(v)+(editingId===v._i?editorRowHtml(v):'');});
    document.getElementById('tbody').innerHTML=html;
-   if(tw)tw.style.maxHeight='calc(100vh - 170px)';
+   if(tw){tw.style.maxHeight='none';tw.style.overflow='visible';}
    document.getElementById('pager').innerHTML=`<span>Grouped by <b>${groupBy}</b> · <b>${Object.keys(groups).length}</b> groups · <b>${total}</b> venues</span>`;
  }else{const ps=pageSize;const pages=ps===Infinity?1:Math.max(1,Math.ceil(total/ps));if(pageNum>pages)pageNum=pages;if(pageNum<1)pageNum=1;
    const start=ps===Infinity?0:(pageNum-1)*ps;const end=ps===Infinity?total:Math.min(total,start+ps);const rows=a.slice(start,end);
-   if(tw)tw.style.maxHeight=(ps===Infinity)?'calc(100vh - 150px)':(34+ps*32)+'px';
+   if(tw){tw.style.maxHeight='none';tw.style.overflow='visible';}
    renderPager(total,start,end,pages);
    document.getElementById('tbody').innerHTML=rows.map(v=>rowHtml(v)+(editingId===v._i?editorRowHtml(v):'')).join('');}
  const fgT=document.getElementById('fgTour');if(fgT){fgT.style.display=tourActive?'':'none';const c1=document.getElementById('fTourOnlyCb'),c2=document.getElementById('fSubOnlyCb');if(c1)c1.checked=fTourOnly;if(c2)c2.checked=fSubOnly;}
@@ -2158,7 +2158,7 @@ function areaSummary(v,g){const em=g.em_pct,dec=g.decile,ra=(g.ra||'').replace('
  let decTxt='Disadvantage (SEIFA) data is not available for this area.';
  if(dec!=null){const band=dec<=3?'among the more socio-economically disadvantaged areas in Australia':dec<=7?'around the middle of the national distribution':'among the more advantaged areas in Australia';
    decTxt=`It sits in the <b>${ordinal(dec)} SEIFA decile</b> (1 = most disadvantaged 10% nationally), placing it ${band}.`;}
- const parts=[['emotional-maturity vulnerability',g.em_sub,MODEL.on.em],['socio-economic disadvantage',g.seifa_sub,MODEL.on.seifa],['remoteness',g.rem_sub,MODEL.on.rem],['broad developmental vulnerability (DV2)',g.dv2_sub,MODEL.on.dv2]].filter(p=>p[2]&&p[1]!=null).sort((a,b)=>b[1]-a[1]);
+ const parts=[['emotional maturity (EM)',g.em_sub,MODEL.on.em],['disadvantage (D)',g.seifa_sub,MODEL.on.seifa],['remoteness (R)',g.rem_sub,MODEL.on.rem],['developmental vulnerability (DV2)',g.dv2_sub,MODEL.on.dv2]].filter(p=>p[2]&&p[1]!=null).sort((a,b)=>b[1]-a[1]);
  let why='';
  if(parts.length){const drivers=parts.filter(p=>p[1]>=6).map(p=>p[0]);
    why=`Under the current model the Impact Index is <b>${v.cIndex!=null?v.cIndex.toFixed(1):'—'} / 10</b> (${v.cTier} priority). `+(drivers.length?`The score is lifted mainly by ${drivers.join(' and ')}.`:`No single factor is extreme; the score reflects a moderate mix of ${parts.map(p=>p[0]).join(', ')}.`);}
