@@ -958,7 +958,7 @@ function renderTray(){const el=document.getElementById('selTray');if(!el)return;
   el.innerHTML=`<span class="trayname" title="${esc((co?co.name+' · ':'')+t0.name)}">${esc((co?co.name+' · ':'')+t0.name)}</span>
    <span style="margin-left:auto"></span>
    ${EDIT?`<button class="traybtn ${dirty?'pri':''}" id="traySave" ${dirty?'':'disabled'} style="${dirty?'':'opacity:.45;cursor:default'}" title="${dirty?'Save changes to this tour':'No unsaved changes'}" onclick="saveTour()">Save${dirty?' •':''}</button>`:''}
-   ${EDIT?`<button class="traybtn" onclick="editTour()" title="Rename this tour">✎</button><button class="traybtn" onclick="deleteTour()" title="Delete this tour">🗑</button>`:''}
+   ${EDIT?`<button class="traybtn" onclick="openPickModel()" title="Choose a saved model for this tour">⚙ Model</button><button class="traybtn" onclick="editTour()" title="Rename this tour">✎</button><button class="traybtn" onclick="deleteTour()" title="Delete this tour">🗑</button>`:''}
    <button class="trayclear" onclick="exitTour()" title="Deactivate this tour and restore your previous model">✕ Exit</button>`;
   el.classList.add('on');return;}
  if(!sel.size||!explorer){el.classList.remove('on');return;}
