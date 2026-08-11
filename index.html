@@ -323,7 +323,7 @@ body.toursmode .siderail,body.toursmode .railexpand,body.toursmode #kpis{display
 .dockwrap.open{display:block;}
 .dockwrap .model{margin:0;}
 .dockwrap .card{display:none;}
-.dockwrap .card.dockon{display:block;}
+.dockwrap .card.dockon{display:block;height:auto!important;}
 .dockhead-note{font-size:10px;color:var(--slate);margin:4px 2px 8px;}
 body.aboutmode .wbrail,body.toursmode .wbrail,body.aboutmode .dockwrap,body.toursmode .dockwrap{display:none!important;}
 body.aboutmode #selTray,body.toursmode #selTray{display:none!important;}
@@ -835,7 +835,7 @@ function toggleRail(){document.getElementById('mainrow').classList.toggle('railc
 function toggleSub(el){el.closest('.subsec').classList.toggle('collapsed');}
 function toggleAcc(el){el.closest('.accitem').classList.toggle('open');}
 function floatCard(cardId,btnId,left,top,w){const c=document.getElementById(cardId),b=document.getElementById(btnId);
- if(!c.classList.contains('floating')){c._home={parent:c.parentNode,next:c.nextSibling};document.body.appendChild(c);c.classList.add('floating');c.classList.remove('collapsed');c.style.right='';c.style.left=left+'px';c.style.top=top+'px';c.style.width=(w||320)+'px';if(b){b.innerHTML='<svg viewBox="0 0 24 24" style="display:block" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3.5h6l-1.2 6.2 3.4 3.3H6.8l3.4-3.3z" fill="currentColor" stroke="currentColor" stroke-width="1.4"/><line x1="12" y1="13.5" x2="12" y2="21"/></svg>';b.title='Pin back into the panel';}}
+ if(!c.classList.contains('floating')){c._home={parent:c.parentNode,next:c.nextSibling};document.body.appendChild(c);c.classList.add('floating');c.classList.remove('collapsed');c.style.right='';c.style.left=left+'px';c.style.top=top+'px';c.style.width=(w||320)+'px';c.style.height='';if(b){b.innerHTML='<svg viewBox="0 0 24 24" style="display:block" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3.5h6l-1.2 6.2 3.4 3.3H6.8l3.4-3.3z" fill="currentColor" stroke="currentColor" stroke-width="1.4"/><line x1="12" y1="13.5" x2="12" y2="21"/></svg>';b.title='Pin back into the panel';}}
  else dockCard(cardId,btnId);}
 function closePanel(name){const c=document.getElementById(DOCKCARDS[name]);
  if(c&&c.classList.contains('floating')){const btn=document.getElementById({model:'modelFloatBtn',basket:'basketFloatBtn',tour:'tourFloatBtn'}[name]);dockCard(DOCKCARDS[name],btn?btn.id:null);}
@@ -861,7 +861,7 @@ function applyDockW(){try{const wpx=+localStorage.getItem('ctii.dockw')||0;const
    if(typeof renderTierViz==='function')setTimeout(renderTierViz,30);if(map)setTimeout(()=>map.invalidateSize(),60);};
   document.addEventListener('pointermove',move);document.addEventListener('pointerup',up);});})();
 
-function dockCard(cardId,btnId){const c=document.getElementById(cardId),b=document.getElementById(btnId);c.classList.remove('floating');c.style.left=c.style.top=c.style.right=c.style.width='';if(c._home){c._home.parent.insertBefore(c,c._home.next);c._home=null;}if(b){b.textContent='⛶';b.title='Pop out as a movable window';}
+function dockCard(cardId,btnId){const c=document.getElementById(cardId),b=document.getElementById(btnId);c.classList.remove('floating');c.style.left=c.style.top=c.style.right=c.style.width=c.style.height='';if(c._home){c._home.parent.insertBefore(c,c._home.next);c._home=null;}if(b){b.textContent='⛶';b.title='Pop out as a movable window';}
  const name=Object.keys(DOCKCARDS).find(n=>DOCKCARDS[n]===cardId);if(name)openDock(name,true);}
 function cardDragStart(cardId,e){const c=document.getElementById(cardId);if(!c.classList.contains('floating'))return;if(e.target.closest('button'))return;const r=c.getBoundingClientRect();const dx=e.clientX-r.left,dy=e.clientY-r.top;
  const move=ev=>{c.style.right='';c.style.left=Math.max(4,Math.min(window.innerWidth-80,ev.clientX-dx))+'px';c.style.top=Math.max(4,Math.min(window.innerHeight-44,ev.clientY-dy))+'px';};
@@ -1429,7 +1429,13 @@ function showGate(mode,msg){const g=document.getElementById('gateView');const l=
    <input type="password" id="gPw" placeholder="Password" autocomplete="current-password" style="width:100%;font-family:inherit;font-size:14px;padding:11px 12px;border:1.5px solid var(--navy);border-radius:7px" onkeydown="if(event.key==='Enter')doLogin()">
    <div id="gMsg" class="authmsg err" style="min-height:18px">${msg||''}</div>
    <button class="btn" id="gBtn" style="width:100%;padding:11px" onclick="doLogin()">Sign in</button>
-   <div style="margin-top:10px;text-align:center"><a style="font-size:11.5px;color:var(--slate);cursor:pointer;text-decoration:underline" onclick="forgotPw()">Forgotten your password?</a></div>`);
+   <div style="margin-top:10px;text-align:center"><a style="font-size:11.5px;color:var(--slate);cursor:pointer;text-decoration:underline" onclick="showGate('forgot')">Forgotten your password?</a></div>`);
+ else if(mode==='forgot')g.innerHTML=gateHTML(`
+   <p style="font-size:13px;color:var(--slate);margin:0 0 14px">Enter your email and we'll send you a link to set a new password.</p>
+   <input type="email" id="fgEmail" placeholder="Email" autocomplete="username" style="width:100%;font-family:inherit;font-size:14px;padding:11px 12px;border:1.5px solid var(--navy);border-radius:7px" onkeydown="if(event.key==='Enter')doForgot()">
+   <div id="gMsg" class="authmsg" style="min-height:18px"></div>
+   <button class="btn" id="gBtn" style="width:100%;padding:11px" onclick="doForgot()">Send reset link</button>
+   <div style="margin-top:10px;text-align:center"><a style="font-size:11.5px;color:var(--slate);cursor:pointer;text-decoration:underline" onclick="showGate('login')">← Back to sign in</a></div>`);
  else if(mode==='pending')g.innerHTML=gateHTML(`
    <p style="font-size:13px;color:var(--slate)">Your account <b>${esc(SESSION.user.email)}</b> is awaiting approval. An administrator needs to grant you access.</p>
    <button class="btn sec" style="margin-top:10px" onclick="signOut()">Log out</button>`);
@@ -1443,10 +1449,13 @@ async function doLogin(){const email=(document.getElementById('gEmail').value||'
  const b=document.getElementById('gBtn');b.disabled=true;b.textContent='Signing in…';
  const {error}=await sbc.auth.signInWithPassword({email,password:pw});
  if(error){b.disabled=false;b.textContent='Sign in';document.getElementById('gMsg').textContent=error.message;}}
-async function forgotPw(){const email=(document.getElementById('gEmail').value||'').trim();
- if(!email){document.getElementById('gMsg').textContent='Type your email above first, then click again.';return;}
+async function doForgot(){const email=(document.getElementById('fgEmail').value||'').trim();const msg=document.getElementById('gMsg');
+ if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){msg.className='authmsg err';msg.textContent='Enter a valid email address.';return;}
+ const b=document.getElementById('gBtn');b.disabled=true;b.textContent='Sending…';
  const {error}=await sbc.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
- document.getElementById('gMsg').textContent=error?error.message:'Reset link sent — check your email.';}
+ b.disabled=false;b.textContent='Send reset link';
+ msg.className='authmsg '+(error?'err':'ok');
+ msg.textContent=error?error.message:'Reset link sent — check your email, then open the link on this device.';}
 async function doForcePw(){const p1=document.getElementById('gPw1').value,p2=document.getElementById('gPw2').value;
  if(p1.length<8){document.getElementById('gMsg').textContent='Password must be at least 8 characters.';return;}
  if(p1!==p2){document.getElementById('gMsg').textContent='Passwords do not match.';return;}
@@ -1571,8 +1580,8 @@ function renderModels(){const el=document.getElementById('savedmodels');if(!el)r
  h+=`<button class="preset" style="border-style:dashed;align-self:flex-start" onclick="saveCurrentModel()">＋ Save current</button>`;
  el.innerHTML=h;}
 function applyModel(id){const m=MODELS.find(x=>x.id===id);if(!m||!m.config)return;const c=m.config;
- MODEL.geo=c.geo||'sa2';MODEL.on={em:!!c.on.em,seifa:!!c.on.seifa,rem:!!c.on.rem};
- MODEL.pct={em:+c.pct.em||0,seifa:+c.pct.seifa||0,rem:+c.pct.rem||0};
+ MODEL.geo=c.geo||'sa2';MODEL.on={em:!!c.on.em,seifa:!!c.on.seifa,rem:!!c.on.rem,dv2:!!c.on.dv2};
+ MODEL.pct={em:+c.pct.em||0,seifa:+c.pct.seifa||0,rem:+c.pct.rem||0,dv2:+c.pct.dv2||0};
  MODEL.thr={high:+c.thr.high,med:+c.thr.med};MODEL.sub={floor:+c.sub.floor,ceil:+c.sub.ceil,full:+c.sub.full};
  document.querySelectorAll('#geo button').forEach(b=>b.classList.toggle('on',b.dataset.g===MODEL.geo));
  const gv=(i,v)=>{const e=document.getElementById(i);if(e&&v!=null&&!isNaN(v))e.value=v;};
@@ -1633,7 +1642,7 @@ function updateEff(){const eff=IND.map(([k,label])=>MODEL.on[k]?`${label.split('
  document.getElementById('eff').innerHTML=`<b>Active model:</b> ${MODEL.geo.toUpperCase()} · weights (total ${tot}%) → ${eff||'none (all indicators off)'}`+(off.length?` · <span style="color:#EF476F">off: ${off.join(', ')}</span>`:'');
  IND.forEach(([k])=>{document.getElementById('row_'+k)?.classList.toggle('off',!MODEL.on[k]);});}
 const PRESETS={em_seifa:{on:{em:true,seifa:true,rem:false},pct:{em:50,seifa:50,rem:0},high:7},all:{on:{em:true,seifa:true,rem:true},pct:{em:40,seifa:40,rem:20},high:6.3},em_only:{on:{em:true,seifa:false,rem:false},pct:{em:100,seifa:0,rem:0}}};
-function applyPreset(key){const p=PRESETS[key];MODEL.on={...p.on};MODEL.pct={...p.pct};
+function applyPreset(key){const p=PRESETS[key];MODEL.on={em:!!p.on.em,seifa:!!p.on.seifa,rem:!!p.on.rem,dv2:!!p.on.dv2};MODEL.pct={em:+p.pct.em||0,seifa:+p.pct.seifa||0,rem:+p.pct.rem||0,dv2:+p.pct.dv2||0};
  if(p.high!=null){MODEL.thr.high=p.high;const e=document.getElementById('tHigh');if(e)e.value=p.high;}
  buildInd();updateSubnote();recompute();render();}
 function markActivePreset(){for(const key in PRESETS){const p=PRESETS[key];const m=['em','seifa','rem','dv2'].every(k=>!!MODEL.on[k]===!!p.on[k]&&(+MODEL.pct[k]||0)===(+p.pct[k]||0));const b=document.getElementById('ps_'+key);if(b)b.classList.toggle('on',m);}}
