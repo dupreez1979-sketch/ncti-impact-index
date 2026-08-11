@@ -349,7 +349,7 @@ body.aboutmode #filterCard,body.toursmode #filterCard{display:none!important;}
 /* KPI strip relocated */
 .kpirow{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 10px;}
 .xbar{margin-bottom:14px;}
-.kpirow .tstat{border:1.5px solid var(--navy);border-radius:9px;padding:7px 14px;background:var(--paper);}
+.kpirow .tstat{border:1.5px solid var(--navy);border-radius:9px;padding:4px 14px;background:var(--paper);height:62px;display:flex;flex-direction:column;justify-content:center;box-sizing:border-box;}
 /* selection tray */
 #selTray{position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:1500;background:var(--navy);color:#fff;border-radius:12px;box-shadow:5px 5px 0 rgba(7,59,76,.35);padding:8px 14px;display:none;align-items:center;gap:10px;font-size:12px;max-width:96vw;flex-wrap:nowrap;white-space:nowrap;cursor:grab;touch-action:none;}
 #selTray:active{cursor:grabbing;}
@@ -904,7 +904,7 @@ function renderTray(){const el=document.getElementById('selTray');if(!el)return;
  const explorer=(curPage==='venues'||curPage==='map'||curPage==='charts');
  const t0=activeTourObj();
  if(t0&&explorer){const T=tourTotals();const co=COMPANIES.find(c=>c.id===curCompany);
-  el.innerHTML=`<span class="trayname" title="${esc((co?co.name+' · ':'')+t0.name)}">${esc(t0.name)}</span><span class="traymeta">${tourVenues.length} venues · ${T.conf} sub. · ${fmt$(T.sub)} · ${T.child.toLocaleString()} children</span>
+  el.innerHTML=`<span class="trayname" title="${esc((co?co.name+' · ':'')+t0.name)}">${esc((co?co.name+' · ':'')+t0.name)}</span>
    <span style="margin-left:auto"></span>
    <button class="traybtn" onclick="createTourReport()" title="Tour report (PDF)">Report ▸</button>
    ${SESSION?`<button class="traybtn" onclick="editTour()" title="Rename this tour">✎</button><button class="traybtn" onclick="deleteTour()" title="Delete this tour">🗑</button>`:''}
@@ -1117,6 +1117,9 @@ function tuChips(){let h='';
  if(tuConfOnly)h+=`<span class="fchip2" onclick="setTuFilter('conf',false)">Confirmed only ✕</span>`;
  return h;}
 function setTuSort(k){if(tuSortK===k)tuSortD*=-1;else{tuSortK=k;tuSortD=(['company','work','tour'].includes(k))?1:-1;}renderToursPage();}
+async function toursPageReport(){const id=tuTour?+tuTour:(curTour||0);
+ if(!id){toast('Pick a tour first — use the Tour filter, or activate one from the list.',null,true);if(!tuFiltOpen)toggleTourFilters();return;}
+ await openTourFromList(id);}
 function setToursView(v){toursView=v;renderToursPage();}
 function setTuFilter(which,val){if(which==='company'){tuCompany=val;tuShow='';tuTour='';}else if(which==='show'){tuShow=val;tuTour='';}else if(which==='tour')tuTour=val;else if(which==='conf')tuConfOnly=val;tuPage=1;renderToursPage();}
 function setTuSize(v){tuSize=(v==='all')?Infinity:+v;tuPage=1;renderToursPage();}
@@ -1151,6 +1154,7 @@ function renderToursPage(){const head=document.getElementById('toursHead');if(!h
       <button data-tv="analysis" class="${toursView==='analysis'?'active':''}" onclick="setToursView('analysis')">Analysis</button>
     </div>
     <button class="btn sec" style="padding:6px 12px;font-size:12px" onclick="toggleTourFilters()">Filters${tuFiltCount()?' ('+tuFiltCount()+')':''}</button>
+    <button class="btn" style="padding:6px 14px;font-size:12px" onclick="toursPageReport()">Report ▸</button>
   </div>
   <div class="card" id="tourFilterCard" style="padding:10px 14px 12px;margin-bottom:18px;display:${tuFiltOpen?'block':'none'}">
     <div class="chead" style="cursor:default"><h3 style="margin:0">Filters</h3><span style="margin-left:auto;display:flex;gap:6px"><button class="iconbtn" title="Reset all filters" onclick="resetTuFilters()">⟳</button><button class="iconbtn" title="Close" onclick="toggleTourFilters()">✕</button></span></div>
@@ -1579,11 +1583,13 @@ async function toggleVenueOnTour(i){const t=activeTourObj();if(!t||!SESSION)retu
 function render(){const a=filtered();const _cc=document.getElementById('count');if(_cc)_cc.textContent=a.length+' of '+V.length+' venues';
  const tourActive=activeTourObj();document.body.classList.toggle('tourmode',!!tourActive);
  const curCols=tourActive?[cols[0],['ontour','On tour'],['tfee','Fee $'],['tsub','Tour subsidy']].concat(cols.slice(1)):cols;
- const hi=a.filter(v=>v.cTier==='High').length,me=a.filter(v=>v.cTier==='Medium').length,lo=a.filter(v=>v.cTier==='Low').length,el=a.filter(v=>v.cElig==='Yes').length;
- const avg=a.length?a.reduce((s,v)=>s+(v.cIndex||0),0)/a.length:0;
- const totChild=uniqueChild(a),highChild=uniqueChild(a.filter(v=>v.cTier==='High'));
+ const kpiSet=tourActive?tourVenues.map(x=>x.v).filter(Boolean):(sel.size?[...sel].map(i=>V[i]).filter(Boolean):a);
+ const kpiLbl=tourActive?'Tour venues':(sel.size?'Selected venues':'Venues');
+ const hi=kpiSet.filter(v=>v.cTier==='High').length,me=kpiSet.filter(v=>v.cTier==='Medium').length,lo=kpiSet.filter(v=>v.cTier==='Low').length,el=kpiSet.filter(v=>v.cElig==='Yes').length;
+ const avg=kpiSet.length?kpiSet.reduce((s,v)=>s+(v.cIndex||0),0)/kpiSet.length:0;
+ const totChild=uniqueChild(kpiSet),highChild=uniqueChild(kpiSet.filter(v=>v.cTier==='High'));
  document.getElementById('kpis').innerHTML=`
-   <div class="tstat"><div class="tsv">${a.length}</div><div class="tsl">Venues</div></div>
+   <div class="tstat"><div class="tsv">${kpiSet.length}</div><div class="tsl">${kpiLbl}</div></div>
    <div class="tstat"><div class="tsv">${avg.toFixed(1)}</div><div class="tsl">Avg index</div></div>
    <div class="tstat"><div class="tmbar" style="width:108px">${hi?`<span style="flex:${hi};background:#EF476F"></span>`:''}${me?`<span style="flex:${me};background:#FFD166"></span>`:''}${lo?`<span style="flex:${lo};background:#5BC0BE"></span>`:''}</div><div class="tsl" style="margin-top:5px"><b style="color:#EF476F">${hi}</b> High · <b style="color:#B9922E">${me}</b> Med · <b style="color:#3E8F8C">${lo}</b> Low</div></div>
    <div class="tstat"><div class="tsv" style="color:#06D6A0">${el}</div><div class="tsl">Subsidy eligible</div></div>
