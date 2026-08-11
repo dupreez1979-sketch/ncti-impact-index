@@ -568,10 +568,10 @@ body.aboutmode .sitefoot{margin-top:26px;}
   <div class="psec" id="ps-builder">
    <div class="psechead" onclick="togglePsec(this)">Model builder <span class="caret">▾</span></div>
    <div class="psecbody">
-   <div class="subsec collapsed" id="sec-geo"><div class="subhead" onclick="toggleSub(this)">Geography <span class="caret">▾</span></div>
-     <div class="subbody"><span class="geo" id="geo"><button data-g="sa2" class="on" onclick="setGeo('sa2')">SA2</button><button data-g="sa3" onclick="setGeo('sa3')">SA3</button></span></div></div>
    <div class="subsec collapsed" id="sec-ind"><div class="subhead" onclick="toggleSub(this)">Indicators <span class="caret">▾</span></div>
      <div class="subbody"><div class="ind" id="ind"></div></div></div>
+   <div class="subsec collapsed" id="sec-geo"><div class="subhead" onclick="toggleSub(this)">Geography <span class="caret">▾</span></div>
+     <div class="subbody"><span class="geo" id="geo"><button data-g="sa2" class="on" onclick="setGeo('sa2')">SA2</button><button data-g="sa3" onclick="setGeo('sa3')">SA3</button></span></div></div>
    <div class="subsec" id="sec-tier"><div class="subhead" onclick="toggleSub(this)">Tier <span class="caret">▾</span></div>
      <div class="subbody">
        <div class="tierviz">
@@ -891,10 +891,6 @@ body.aboutmode .sitefoot{margin-top:26px;}
   </div>
   <div class="sfbase">
     <span>© 2026 National Children's Theatre Initiative</span>
-    <span style="opacity:.5">·</span>
-    <span>Children's Theatre <b>Impact Index</b></span>
-    <span style="opacity:.5">·</span>
-    <span>Theatre for Every Child</span>
   </div>
  </div>
 </footer>
@@ -1925,7 +1921,7 @@ function renderModels(){const el=document.getElementById('savedmodels');if(!el)r
  if(!MODELS.length)h+='<span class="muted" style="font-size:11px;margin-right:4px">No saved models yet.</span>';
  MODELS.forEach(m=>{const on=modelEq(m.config);
   const tip='Created '+(m.date||'—')+(m.description?('\n\n'+m.description):'');
-  h+=`<span class="modelchip ${on?'on':''}"><button class="modelapply" onclick="applyModel(${m.id})" title="Apply: ${esc(m.name)}">${esc(m.name)}</button><span class="modelicons2"><span class="modelinfo" title="${esc(tip)}">ⓘ</span>${EDIT?`<button title="Update to current settings" onclick="event.stopPropagation();updateModelToCurrent(${m.id})">⟳</button><button title="Edit name &amp; description" onclick="event.stopPropagation();renameModel(${m.id})">✎</button><button title="Delete" onclick="event.stopPropagation();deleteModel(${m.id})">✕</button>`:''}</span></span>`;});
+  h+=`<span class="modelchip ${on?'on':''}"><button class="modelapply" onclick="applyModel(${m.id})" title="Apply: ${esc(m.name)}">${esc(m.name)}</button><span class="modelicons2"><span class="modelinfo" title="${esc(tip)}">ⓘ</span>${EDIT?`<button title="Edit name &amp; description" onclick="event.stopPropagation();renameModel(${m.id})">✎</button><button title="Delete" onclick="event.stopPropagation();deleteModel(${m.id})">✕</button>`:''}</span></span>`;});
  el.innerHTML=h;}
 function applyModel(id){const m=MODELS.find(x=>x.id===id);if(!m||!m.config)return;const c=m.config;
  MODEL.geo=c.geo||'sa2';MODEL.on={em:!!c.on.em,seifa:!!c.on.seifa,rem:!!c.on.rem,dv2:!!c.on.dv2};
@@ -1939,7 +1935,20 @@ function deleteCurrentModel(){if(!EDIT){toast('Only admins can delete models.',n
  const m=(typeof MODELS!=='undefined'?MODELS:[]).find(x=>cfgEq(MODEL,x.config));
  if(!m){toast('The current settings are not a saved model — nothing to delete.',null,true);return;}
  deleteModel(m.id);}
-function saveCurrentModel(){if(!EDIT){toast('Only admins can save models.',null,true);return;}openModel('Save model','','','Save',doSaveModel);}
+function autoModelName(){const den=activeKeys().reduce((a,k)=>a+MODEL.pct[k],0)||1;
+ const parts=IND.filter(([k])=>MODEL.on[k]&&MODEL.pct[k]>0).map(([k,l,c,code])=>code+Math.round(MODEL.pct[k]/den*100));
+ const w=parts.length?parts.join('\u00b7'):'no indicators';
+ const sub=`${Math.round(MODEL.sub.floor*100)}\u2013${Math.round(MODEL.sub.ceil*100)}%@${(+MODEL.sub.full).toFixed(1).replace(/\.0$/,'')}`;
+ return `${w} \u00b7 ${MODEL.geo.toUpperCase()} \u00b7 H${(+MODEL.thr.high).toFixed(1)} \u00b7 ${sub}`;}
+function autoModelDesc(){const den=activeKeys().reduce((a,k)=>a+MODEL.pct[k],0)||1;
+ const on=IND.filter(([k])=>MODEL.on[k]).map(([k,l,c,code])=>`${code} ${Math.round(MODEL.pct[k]/den*100)}%`).join(', ')||'none';
+ const off=IND.filter(([k])=>!MODEL.on[k]).map(([k,l,c,code])=>code);
+ return `Geography ${MODEL.geo.toUpperCase()}. Weights ${on}${off.length?` (${off.join(', ')} off)`:''}. `+
+  `Tiers: High \u2265 ${(+MODEL.thr.high).toFixed(1)}, Medium \u2265 ${(+MODEL.thr.med).toFixed(1)}. `+
+  `Subsidy ${Math.round(MODEL.sub.floor*100)}% \u2192 ${Math.round(MODEL.sub.ceil*100)}%, full at ${(+MODEL.sub.full).toFixed(1)}.`;}
+function uniqueModelName(base){const names=new Set((typeof MODELS!=='undefined'?MODELS:[]).map(m=>m.name));
+ if(!names.has(base))return base;let i=2;while(names.has(base+' ('+i+')'))i++;return base+' ('+i+')';}
+function saveCurrentModel(){if(!EDIT){toast('Only admins can save models.',null,true);return;}openModel('Save model',uniqueModelName(autoModelName()),autoModelDesc(),'Save',doSaveModel,{sub:'Named automatically from the current settings \u2014 edit either field if you prefer.'});}
 async function doSaveModel(name,desc){const {data,error}=await sbc.from('models').insert({name:name,description:desc||null,config:MODEL}).select('id,name,description,config,created_at').single();
  if(error){toast('Save failed: '+error.message,null,true);return;}
  MODELS.push({id:data.id,name:data.name,description:data.description,config:data.config,date:fmtDate(data.created_at)});MODELS.sort((a,b)=>(''+a.name).localeCompare(b.name));renderModels();}
