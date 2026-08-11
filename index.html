@@ -1163,7 +1163,10 @@ function createTourReport(){const t=activeTourObj();if(!t){toast('Select a tour 
        <div><div class="h">${n} <span style="font-size:15px">venues</span></div><div class="l">${confN} subsidised</div></div>
        <div><div class="h">${child.toLocaleString()}</div><div class="l">Children 0–14 reached</div></div>
      </div>
+     <h3>Who pays</h3>
+     ${rptStackBar([{label:'Subsidy',value:sub,color:'#EF476F'},{label:'Presenters',value:pay,color:'#118AB2'}])}
      <h3>Funding sources</h3>
+     ${rptDonut([{label:"Children's Theatre Investment Fund",value:R.fund,color:'#EF476F'}].concat(R.rows.map((r,i)=>({label:r.name,value:r.amount,color:['#118AB2','#5BC0BE','#FFD166','#9B5DE5','#F79256','#06D6A0'][i%6]}))))}
      <table><tbody>${fundRows}<tr class="grp"><td><b>Total subsidy sought</b></td><td class="right"><b>${fmt$(sub)}</b></td></tr></tbody></table>
      <p style="color:#6b7a80;font-size:11px">Gross presenter fees across the tour: ${fmt$(gross)}. Subsidy applies to confirmed High-tier venues only.</p>
      <h3>The model used</h3>
@@ -1177,6 +1180,8 @@ function createTourReport(){const t=activeTourObj();if(!t){toast('Select a tour 
      <h3>Where the tour goes</h3>
      <div style="margin:6px 0 4px">${ausTourMap(mapItems,400)}</div>
      <div class="rpt-legend"><span><i style="background:#EF476F"></i>Subsidised venue</span><span><i style="background:#118AB2"></i>On tour (no subsidy)</span></div>
+     <h3>Subsidy by state</h3>
+     ${rptHBars(states.filter(st=>stateSub[st]>0).map(st=>({label:st,value:stateSub[st],color:'#EF476F'})))}
      <h3>Venues by state</h3>
      <table><thead>${vhead}</thead><tbody>${vrows}</tbody></table>
      <div class="rpt-foot">Impact scoring from AEDC 2024, ABS SEIFA 2021 (IRSD), ABS Remoteness Areas, ABS Census 2021 and Estimated Resident Population. Prepared with the National Children's Theatre Initiative.</div>
@@ -1364,15 +1369,43 @@ function toggleModelFloat(){floatCard('modelcard','modelFloatBtn',300,70,560);}
 function modelDragStart(e){cardDragStart('modelcard',e);}
 // ---------- subsidy report (PDF) ----------
 function closeReport(){document.getElementById('reportView').classList.remove('open');}
-function tierReportSVG(){const W=620,H=64,ax=16;const x=v=>v/10*W;
+function tierReportSVG(markIdx){const W=620,H=64,ax=16;const x=v=>v/10*W;
  const med=+MODEL.thr.med,high=+MODEL.thr.high,full=Math.max(+MODEL.sub.full,high);
  const xm=x(med),xh=x(high),xf=x(full);const yF=H-MODEL.sub.floor*H,yC=H-MODEL.sub.ceil*H;
  let s=`<svg width="100%" viewBox="0 0 ${W} ${H+ax}" preserveAspectRatio="xMidYMid meet" style="border:1.5px solid #073B4C;border-radius:5px;max-width:620px">`;
  s+=`<rect x="0" y="0" width="${xm}" height="${H}" fill="#5BC0BE"/><rect x="${xm}" y="0" width="${xh-xm}" height="${H}" fill="#FFD166"/><rect x="${xh}" y="0" width="${W-xh}" height="${H}" fill="#EF476F"/>`;
  s+=`<polygon points="${xh},${H} ${xh},${yF} ${xf},${yC} ${W},${yC} ${W},${H}" fill="rgba(7,59,76,.55)" stroke="#073B4C" stroke-width="1.5"/>`;
  for(let i=0;i<=10;i++){const xi=x(i);s+=`<line x1="${xi}" y1="0" x2="${xi}" y2="${H}" stroke="rgba(7,59,76,.18)" stroke-width="0.6"/><text x="${xi}" y="${H+12}" font-size="9" fill="#4A5859" text-anchor="middle" font-family="Inter,sans-serif">${i}</text>`;}
- s+=`<circle cx="${xh}" cy="${yF}" r="4" fill="#fff" stroke="#073B4C" stroke-width="1.5"/><circle cx="${xf}" cy="${yC}" r="4" fill="#fff" stroke="#073B4C" stroke-width="1.5"/></svg>`;
+ s+=`<circle cx="${xh}" cy="${yF}" r="4" fill="#fff" stroke="#073B4C" stroke-width="1.5"/><circle cx="${xf}" cy="${yC}" r="4" fill="#fff" stroke="#073B4C" stroke-width="1.5"/>`;
+ if(markIdx!=null&&!isNaN(markIdx)){const xv=x(Math.max(0,Math.min(10,markIdx)));
+  s+=`<line x1="${xv}" y1="0" x2="${xv}" y2="${H}" stroke="#fff" stroke-width="2.5" stroke-dasharray="4,3"/><circle cx="${xv}" cy="10" r="8" fill="#073B4C" stroke="#fff" stroke-width="2"/><text x="${xv}" y="13.5" font-size="9" font-weight="bold" fill="#fff" text-anchor="middle" font-family="Inter,sans-serif">${(+markIdx).toFixed(1)}</text>`;}
+ s+='</svg>';
  return s;}
+// ---- report chart helpers (inline SVG, print-safe) ----
+function rptStackBar(items){const W=620,H=34;const tot=items.reduce((a,x)=>a+(x.value||0),0)||1;let xp=0,segs='',lbls='';
+ items.filter(x=>x.value>0).forEach(x=>{const w=x.value/tot*W;
+  segs+=`<rect x="${xp}" y="0" width="${w}" height="${H}" fill="${x.color}"/>`;
+  if(w>70)lbls+=`<text x="${xp+w/2}" y="${H/2+4}" font-size="11" font-weight="bold" fill="#fff" text-anchor="middle" font-family="Inter,sans-serif">${x.label} ${fmt$(x.value)}</text>`;
+  xp+=w;});
+ const legend=items.map(x=>`<span style="display:inline-flex;align-items:center;gap:5px;margin-right:16px;font-size:11px;color:#4A5859"><i style="width:10px;height:10px;border-radius:2px;background:${x.color};display:inline-block"></i>${x.label}: <b style="color:#073B4C">${fmt$(x.value)}</b> (${Math.round(x.value/tot*100)}%)</span>`).join('');
+ return `<svg width="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" style="border:1.5px solid #073B4C;border-radius:5px;max-width:620px">${segs}</svg><div style="margin-top:5px">${legend}</div>`;}
+function rptDonut(items){const CX=70,CY=70,R1=64,R2=36;const tot=items.reduce((a,x)=>a+(x.value||0),0);if(tot<=0)return '';
+ let a0=-Math.PI/2,paths='';
+ const arcs=items.filter(x=>x.value>0);
+ if(arcs.length===1){paths=`<circle cx="${CX}" cy="${CY}" r="${(R1+R2)/2}" fill="none" stroke="${arcs[0].color}" stroke-width="${R1-R2}"/>`;}
+ else arcs.forEach(x=>{const a1=a0+x.value/tot*2*Math.PI;const large=(a1-a0)>Math.PI?1:0;
+  const p=(r,a)=>`${CX+r*Math.cos(a)},${CY+r*Math.sin(a)}`;
+  paths+=`<path d="M${p(R1,a0)} A${R1},${R1} 0 ${large} 1 ${p(R1,a1)} L${p(R2,a1)} A${R2},${R2} 0 ${large} 0 ${p(R2,a0)} Z" fill="${x.color}" stroke="#fff" stroke-width="1.5"/>`;a0=a1;});
+ const legend=items.map(x=>`<div style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:#4A5859;margin:3px 0"><i style="width:10px;height:10px;border-radius:2px;background:${x.color};display:inline-block;flex:0 0 auto"></i><span style="flex:1">${x.label}</span><b style="color:#073B4C">${fmt$(x.value)}</b><span>(${Math.round(x.value/tot*100)}%)</span></div>`).join('');
+ return `<div style="display:flex;gap:20px;align-items:center;margin:6px 0"><svg width="140" height="140" viewBox="0 0 140 140" style="flex:0 0 auto">${paths}</svg><div style="flex:1;min-width:0">${legend}</div></div>`;}
+function rptHBars(items,max,fmt){const W=620,BH=22,GAP=8,LW=210;fmt=fmt||(v=>fmt$(v));
+ const mx=max||Math.max(...items.map(x=>x.value||0))||1;
+ const H=items.length*(BH+GAP);let out='';
+ items.forEach((x,i)=>{const y=i*(BH+GAP);const bw=Math.max(2,(x.value||0)/mx*(W-LW-70));
+  out+=`<text x="${LW-8}" y="${y+BH/2+4}" font-size="11" fill="#073B4C" text-anchor="end" font-family="Inter,sans-serif">${x.label}</text>`;
+  out+=`<rect x="${LW}" y="${y}" width="${bw}" height="${BH}" rx="3" fill="${x.color||'#118AB2'}" stroke="#073B4C" stroke-width="1"/>`;
+  out+=`<text x="${LW+bw+8}" y="${y+BH/2+4}" font-size="11" font-weight="bold" fill="#073B4C" font-family="Inter,sans-serif">${fmt(x.value||0)}</text>`;});
+ return `<svg width="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" style="max-width:620px">${out}</svg>`;}
 function createReport(){
  if(!sel.size){toast('Select some venues in the Venues list first.',null,true);return;}
  let n=0,elig=0,sub=0,child=0,gross=0;const seen=new Set();const byState={};const pts=[];const stateSub={};
@@ -1403,7 +1436,10 @@ function createReport(){
        <div><div class="h">${n}</div><div class="l">Venues supported${elig!==n?` · ${elig} funded`:''}</div></div>
        <div><div class="h">${child.toLocaleString()}</div><div class="l">Children 0–14 reached</div></div>
      </div>
+     <h3>Who pays</h3>
+     ${rptStackBar([{label:'Subsidy',value:sub,color:'#EF476F'},{label:'Presenters',value:pay,color:'#118AB2'}])}
      <h3>Funding sources</h3>
+     ${rptDonut([{label:"Children's Theatre Investment Fund",value:R.fund,color:'#EF476F'}].concat(R.rows.map((r,i)=>({label:r.name,value:r.amount,color:['#118AB2','#5BC0BE','#FFD166','#9B5DE5','#F79256','#06D6A0'][i%6]}))))}
      <table><tbody>${fundRows}<tr class="grp"><td><b>Total subsidy sought</b></td><td class="right"><b>${fmt$(sub)}</b></td></tr></tbody></table>
      <p style="color:#6b7a80;font-size:11px">Gross presenter fees across the package: ${fmt$(gross)} · venues contribute ${fmt$(pay)} · subsidy covers the balance.</p>
      <h3>The model used</h3>
@@ -1462,10 +1498,12 @@ function createVenueReport(i){const v=V[i];if(!v)return;const g=v[MODEL.geo]||{}
      <h3>Why your community is a priority</h3>
      <p>The Children's Theatre Impact Index scores every community in Australia from 0 to 10 for the social value that children's theatre can create there, using children's emotional development (AEDC), socio-economic disadvantage (ABS SEIFA) and remoteness.</p>
      <div class="rpt-hero"><div><div class="h pink">${v.cIndex!=null?v.cIndex.toFixed(1):'—'}<span style="font-size:15px"> / 10</span></div><div class="l">${esc(area)} — ${v.cTier} priority</div></div><div><div class="h">${(v.cChild||0).toLocaleString()}</div><div class="l">Children 0–14 in the area</div></div></div>
-     <table><thead><tr><th>Measure</th><th class="right">Sub-score</th></tr></thead><tbody>${measures}</tbody></table>
+     ${rptHBars(IND.filter(([k])=>MODEL.on[k]&&{em:g.em_sub,seifa:g.seifa_sub,rem:g.rem_sub,dv2:g.dv2_sub}[k]!=null).map(([k,l,col])=>({label:l,value:+({em:g.em_sub,seifa:g.seifa_sub,rem:g.rem_sub,dv2:g.dv2_sub}[k]),color:col})),10,v2=>v2.toFixed(1)+' / 10')}
      <h3>How the score is calculated</h3>
      <p>Each measure becomes a 0–10 sub-score; the Index is the weighted average. Under the current model (${wtxt}):</p>
      <p style="font-size:14px"><b>Index = ${activeParts} = ${v.cIndex!=null?v.cIndex.toFixed(1):'—'}</b></p>
+     <p style="font-size:11.5px;color:#6b7a80;margin-bottom:4px">Where ${esc(v.name)} sits on the tier &amp; subsidy scale:</p>
+     ${tierReportSVG(v.cIndex)}
      <h3>The subsidy offer</h3>
      ${offer}
      <h3>Funding</h3>
