@@ -109,9 +109,11 @@ header h1{font-size:29px;margin:0;} header .sub{color:var(--slate);font-size:13p
 .preset{font-family:'Charlie Kingdom';font-size:13px;padding:7px 14px;border:1.5px solid var(--navy);border-radius:6px;background:#fff;color:var(--navy);cursor:pointer;box-shadow:3px 3px 0 var(--navy);}
 .preset.on{background:var(--pink);color:#fff;}
 .preset:active{box-shadow:1px 1px 0 var(--navy);transform:translate(2px,2px);}
-.ind{display:grid;grid-template-columns:128px 1fr 46px;gap:10px 12px;align-items:center;}
+.ind{display:grid;grid-template-columns:150px 1fr 46px;gap:10px 12px;align-items:center;}
 .ind .name{display:flex;align-items:center;gap:8px;font-weight:700;}
-.ind .dot{width:12px;height:12px;border-radius:3px;display:inline-block;}
+.ind .indname{min-width:0;}
+.ind .indinfo{margin-left:auto;color:var(--slate);font-size:12px;cursor:help;flex:0 0 auto;}
+.ind .indinfo:hover{color:var(--pink);}
 .ind input[type=range]{width:100%;accent-color:var(--pink);}
 .ind .wv{font-family:'Charlie Kingdom';font-size:16px;text-align:right;}
 .ind .off{opacity:.4;}
@@ -567,7 +569,7 @@ body.aboutmode .sitefoot{margin-top:26px;}
      <div class="subbody"><span class="geo" id="geo"><button data-g="sa2" class="on" onclick="setGeo('sa2')">SA2</button><button data-g="sa3" onclick="setGeo('sa3')">SA3</button></span></div></div>
    <div class="subsec collapsed" id="sec-ind"><div class="subhead" onclick="toggleSub(this)">Indicators <span class="caret">▾</span></div>
      <div class="subbody"><div class="ind" id="ind"></div></div></div>
-   <div class="subsec" id="sec-tier"><div class="subhead" onclick="toggleSub(this)">Tier &amp; subsidy settings <span class="caret">▾</span></div>
+   <div class="subsec" id="sec-tier"><div class="subhead" onclick="toggleSub(this)">Tier <span class="caret">▾</span></div>
      <div class="subbody">
        <div class="tierviz">
          <div class="tvtrack" id="tvtrack">
@@ -587,15 +589,22 @@ body.aboutmode .sitefoot{margin-top:26px;}
          
        </div>
        <div class="tvfields">
-         <div class="fg"><label>High tier at Index ≥</label><input type="number" id="tHigh" value="6.3" step="0.1" min="0" max="10" oninput="setThr()"></div>
-         <div class="fg"><label>Medium tier at Index ≥</label><input type="number" id="tMed" value="3.8" step="0.1" min="0" max="10" oninput="setThr()"></div>
+         <div class="fg"><label>High</label><input type="number" id="tHigh" value="6.3" step="0.1" min="0" max="10" oninput="setThr()"></div>
+         <div class="fg"><label>Medium</label><input type="number" id="tMed" value="3.8" step="0.1" min="0" max="10" oninput="setThr()"></div>
+       </div>
+     </div></div>
+   <div class="subsec" id="sec-sub"><div class="subhead" onclick="toggleSub(this)">Subsidy <span class="caret">▾</span></div>
+     <div class="subbody">
+       <div class="tvfields">
          <div class="fg"><label>Subsidy floor %</label><input type="number" id="sFloor" value="50" step="5" min="0" max="100" oninput="setSub()"></div>
          <div class="fg"><label>Full subsidy %</label><input type="number" id="sCeil" value="100" step="5" min="0" max="100" oninput="setSub()"></div>
-         <div class="fg"><label>Full subsidy at Index ≥</label><input type="number" id="sFull" value="8.0" step="0.1" min="0" max="10" oninput="setSub()"></div>
+         <div class="fg"><label>Full subsidy at</label><input type="number" id="sFull" value="8.0" step="0.1" min="0" max="10" oninput="setSub()"></div>
        </div>
-       
      </div></div>
-   <button class="btn" style="width:100%;margin-top:4px;padding:7px 10px;font-size:12px" onclick="saveCurrentModel()">＋ Save this model…</button>
+   <div style="display:flex;gap:8px;margin-top:6px;align-items:center">
+     <button class="iconbtn" style="width:auto;padding:0 14px;height:32px;gap:7px;font-size:13px;font-family:'Charlie Kingdom'" title="Save the current settings as a model" onclick="saveCurrentModel()">💾 Save</button>
+     <button class="iconbtn" id="mbDelBtn" style="width:38px;height:32px;font-size:15px" title="Delete the saved model in use" onclick="deleteCurrentModel()">🗑</button>
+   </div>
    <div id="tourFreezeBox"></div>
    
    </div>
@@ -1904,7 +1913,6 @@ function renderModels(){const el=document.getElementById('savedmodels');if(!el)r
  MODELS.forEach(m=>{const on=modelEq(m.config);
   const tip='Created '+(m.date||'—')+(m.description?('\n\n'+m.description):'');
   h+=`<span class="modelchip ${on?'on':''}"><button class="modelapply" onclick="applyModel(${m.id})" title="Apply: ${esc(m.name)}">${esc(m.name)}</button><span class="modelicons2"><span class="modelinfo" title="${esc(tip)}">ⓘ</span>${EDIT?`<button title="Update to current settings" onclick="event.stopPropagation();updateModelToCurrent(${m.id})">⟳</button><button title="Edit name &amp; description" onclick="event.stopPropagation();renameModel(${m.id})">✎</button><button title="Delete" onclick="event.stopPropagation();deleteModel(${m.id})">✕</button>`:''}</span></span>`;});
- h+=`<button class="preset" style="border-style:dashed;align-self:flex-start" onclick="saveCurrentModel()">＋ Save current</button>`;
  el.innerHTML=h;}
 function applyModel(id){const m=MODELS.find(x=>x.id===id);if(!m||!m.config)return;const c=m.config;
  MODEL.geo=c.geo||'sa2';MODEL.on={em:!!c.on.em,seifa:!!c.on.seifa,rem:!!c.on.rem,dv2:!!c.on.dv2};
@@ -1914,6 +1922,10 @@ function applyModel(id){const m=MODELS.find(x=>x.id===id);if(!m||!m.config)retur
  const gv=(i,v)=>{const e=document.getElementById(i);if(e&&v!=null&&!isNaN(v))e.value=v;};
  gv('tHigh',MODEL.thr.high);gv('tMed',MODEL.thr.med);gv('sFloor',Math.round(MODEL.sub.floor*100));gv('sCeil',Math.round(MODEL.sub.ceil*100));gv('sFull',MODEL.sub.full);
  buildInd();updateSubnote();recompute();render();}
+function deleteCurrentModel(){if(!EDIT){toast('Only admins can delete models.',null,true);return;}
+ const m=(typeof MODELS!=='undefined'?MODELS:[]).find(x=>cfgEq(MODEL,x.config));
+ if(!m){toast('The current settings are not a saved model — nothing to delete.',null,true);return;}
+ deleteModel(m.id);}
 function saveCurrentModel(){if(!EDIT){toast('Only admins can save models.',null,true);return;}openModel('Save model','','','Save',doSaveModel);}
 async function doSaveModel(name,desc){const {data,error}=await sbc.from('models').insert({name:name,description:desc||null,config:MODEL}).select('id,name,description,config,created_at').single();
  if(error){toast('Save failed: '+error.message,null,true);return;}
@@ -1957,9 +1969,13 @@ function recompute(){for(const v of V){const c=computeOne(v);const g=v[MODEL.geo
  v.cIndex=c.index;v.cTier=c.tier;v.cSub=c.subsidy;v.cElig=c.elig;v.cEm=g.em_pct;v.cDec=g.decile;v.cRA=g.ra;v.cChild=ch?ch.t:null;v.cAges=ch?ch.a:[0,0,0];}}
 
 // ---- model UI ----
+const INDTIP={em:'Emotional Maturity (EM)\nSource: AEDC 2024, emotional maturity domain — prosocial behaviour, anxiety, aggression, hyperactivity/inattention.\nMeasure: % of children developmentally vulnerable or at risk.\nSub-score: min(10, EM% ÷ 25.17 × 5) — 5 = national average.',
+ seifa:'Disadvantage (D)\nSource: ABS SEIFA 2021, Index of Relative Socio-economic Disadvantage (IRSD).\nMeasure: national decile (1 = most disadvantaged 10%).\nSub-score: 11 − decile.',
+ rem:'Remoteness (R)\nSource: ABS ASGS 2021 Remoteness Structure.\nMeasure: remoteness class of the area.\nSub-score: Major Cities 0 · Inner Regional 2.5 · Outer Regional 5 · Remote 7.5 · Very Remote 10.',
+ dv2:'Developmentally Vulnerable (DV2)\nSource: AEDC 2024 summary measure.\nMeasure: % of children developmentally vulnerable on two or more of the five AEDC domains.\nSub-score: min(10, DV2% ÷ 12.46 × 5) — 5 = national average.\nCoverage: 91% of SA2s (AEDC suppresses small areas).'};
 function buildInd(){document.getElementById('ind').innerHTML=IND.map(([k,label,col])=>`
- <div class="name" id="row_${k}"><input type="checkbox" ${MODEL.on[k]?'checked':''} onchange="setOn('${k}',this.checked)">
-   <span class="dot" style="background:${col}"></span>${label}</div>
+ <div class="name" id="row_${k}" title="${esc(INDTIP[k]||'')}"><input type="checkbox" ${MODEL.on[k]?'checked':''} onchange="setOn('${k}',this.checked)">
+   <span class="indname">${label}</span><span class="indinfo" title="${esc(INDTIP[k]||'')}">ⓘ</span></div>
  <input type="range" id="sl_${k}" min="0" max="100" step="5" value="${MODEL.pct[k]}" oninput="setW('${k}',this.value)" ${MODEL.on[k]?'':'disabled'}>
  <div class="wv" id="wv_${k}" style="color:${col}">${MODEL.pct[k]}%</div>`).join('');updateEff();}
 function syncSliders(){['em','seifa','rem','dv2'].forEach(k=>{const sl=document.getElementById('sl_'+k),wv=document.getElementById('wv_'+k);if(sl){sl.value=MODEL.pct[k];sl.disabled=!MODEL.on[k];}if(wv)wv.textContent=MODEL.pct[k]+'%';});updateEff();}
@@ -2104,7 +2120,7 @@ function render(){const a=filtered();const _cc=document.getElementById('count');
  if(curPage==='charts')drawCharts(a);
  if(curPage==='map'){schedulePaint();paintMarkers();}
  const tfb=document.getElementById('tourFreezeBox');
- if(tfb)tfb.innerHTML=(tourActive&&EDIT)?`<button class="btn sec" style="width:100%;margin-top:8px;padding:7px 10px;font-size:12px;border-color:var(--pink);color:var(--pink)" onclick="saveModelToTour()" title="Stage the current settings as “${esc(tourActive.name)}”’s frozen model — Save on the bar commits it">❄ Freeze current model to ${esc(tourActive.name)}</button>`:'';
+ if(tfb)tfb.innerHTML=(tourActive&&EDIT)?`<button class="btn sec" style="width:100%;margin-top:8px;padding:7px 10px;font-size:12px;border-color:var(--pink);color:var(--pink)" onclick="saveModelToTour()" title="Stage the current settings as “${esc(tourActive.name)}”’s frozen model — Save on the bar commits it">Apply model to current tour</button>`:'';
  renderModels();renderTierViz();renderTourPanel();renderTourBar();renderTourVenues();
  renderFilterChips();renderContext();renderTray();saveFilters();}
 function setSort(k){if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=(['name','state','status','ra','tier','eligible','ontour'].includes(k))?1:-1;}render();}
