@@ -507,6 +507,12 @@ body.aboutmode .sitefoot{margin-top:26px;}
 /* editor action buttons: one row, one size */
 .efbtn{padding:0 14px!important;height:32px;font-size:12px!important;white-space:nowrap;display:inline-flex;align-items:center;flex:0 0 auto;}
 /* change log */
+.clogtable{width:100%;border-collapse:collapse;font-size:11.5px;}
+.clogtable th{position:sticky;top:0;z-index:2;background:var(--navy);color:#fff;font-size:9.5px;text-transform:uppercase;letter-spacing:.3px;padding:6px 8px;text-align:left;}
+.clogtable td{padding:5px 8px;border-bottom:1px solid #Eee6cf;vertical-align:middle;}
+.clogtable tr.clogr{cursor:pointer;}
+.clogtable tr.clogr:hover{background:#FFF3D6;}
+
 .clrow{border:1px solid #Eee6cf;border-radius:8px;padding:7px 10px;background:#fff;}
 .clhead{display:flex;gap:8px;align-items:center;font-size:12px;flex-wrap:wrap;}
 .clwhen{color:var(--slate);font-size:11px;white-space:nowrap;}
@@ -862,7 +868,8 @@ body.aboutmode .sitefoot{margin-top:26px;}
      </select>
      <button class="btn sec efbtn" onclick="exportChangeLogCSV()">Export CSV</button>
    </div>
-   <div id="clogList" style="max-height:52vh;overflow:auto;display:flex;flex-direction:column;gap:6px"></div>
+   <div id="clogList" style="max-height:50vh;overflow:auto"></div>
+   <div class="pager" id="clogPager" style="margin-top:8px"></div>
    <div style="text-align:center;margin-top:8px"><button class="btn sec efbtn" id="clogMore" style="display:none" onclick="loadChangeLog(true)">Load older</button></div>
  </div>
 </div>
@@ -949,6 +956,7 @@ body.aboutmode .sitefoot{margin-top:26px;}
    <div style="margin-bottom:12px">
      <div style="font-family:'Charlie Kingdom';font-size:14px;color:var(--navy);margin-bottom:8px">Add a user</div>
      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+       <input type="text" id="nuName" placeholder="Name" style="grid-column:1/-1">
        <input type="email" id="nuEmail" placeholder="Email">
        <input type="text" id="nuPw" placeholder="Temporary password (min 8)">
        <select id="nuRole" style="font-family:inherit;font-size:13px;padding:9px;border:1.5px solid var(--navy);border-radius:6px;background:#fff;color:var(--navy)"><option value="viewer">Viewer — read only</option><option value="admin">Admin — full editing</option></select>
@@ -1971,7 +1979,7 @@ async function setUserRole(id,role){const {error}=await sbc.from('profiles').upd
 async function resetUserPw(email){const {error}=await sbc.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
  toast(error?error.message:'Reset email sent to '+email,null,!!error);}
 function revokeUser(id,email){openConfirm('Revoke access?','“'+email+'” will no longer be able to sign in to the Index. You can re-add them later.','Revoke',async()=>{const {error}=await sbc.from('profiles').delete().eq('id',id);if(error){toast(error.message,null,true);return;}toast('Access revoked for '+email);loadUsers();});}
-async function addUser(){const email=(document.getElementById('nuEmail').value||'').trim();
+async function addUser(){const name=(document.getElementById('nuName').value||'').trim();const email=(document.getElementById('nuEmail').value||'').trim();
  const pw=document.getElementById('nuPw').value,role=document.getElementById('nuRole').value,mustCh=document.getElementById('nuMust').checked;
  const msg=document.getElementById('nuMsg');msg.textContent='';
  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){msg.textContent='Enter a valid email.';return;}
@@ -1982,9 +1990,9 @@ async function addUser(){const email=(document.getElementById('nuEmail').value||
   const {data,error}=await tmp.auth.signUp({email,password:pw});
   if(error)throw error;
   const uid=data.user&&data.user.id;if(!uid)throw new Error('User was not created — check that sign-ups are enabled in Supabase Auth settings.');
-  const {error:e2}=await sbc.from('profiles').insert({id:uid,email,role,must_change_password:mustCh});
+  const {error:e2}=await sbc.from('profiles').insert({id:uid,email,name:name||null,role,must_change_password:mustCh});
   if(e2)throw e2;
-  document.getElementById('nuEmail').value='';document.getElementById('nuPw').value='';
+  document.getElementById('nuName').value='';document.getElementById('nuEmail').value='';document.getElementById('nuPw').value='';
   toast('User created. Give them their email + temporary password.');loadUsers();
  }catch(e){msg.textContent=e.message;}
  b.disabled=false;b.textContent='Add user';}
@@ -2080,7 +2088,7 @@ async function amGeocode(){const q=document.getElementById('amAddr').value;
  areaMap.setView([h.lat,h.lng],13);
  const c=sa2FromLatLng(h.lat,h.lng);if(c){areaState.code=String(c);}
  amRestyle();amInfo();toast('Pin moved to: '+h.label.split(',').slice(0,3).join(','));}
-let clogRows=[],clogOldest=null,clogTable='',clogQ='';
+let clogRows=[],clogOldest=null,clogTable='',clogQ='',clogSortK='at',clogSortD=-1,clogPage=1,clogSize=20,clogOpen=new Set();
 const CLOG_FIELDS={sa2_code:'SA2',sa3_code:'SA3',sa2_em_pct:'EM % (SA2)',sa3_em_pct:'EM % (SA3)',sa2_decile:'D decile (SA2)',sa3_decile:'D decile (SA3)',sa2_ra:'Remoteness (SA2)',sa3_ra:'Remoteness (SA3)',subsidy_confirmed:'Subsidy confirmed',default_fee:'Default fee',must_change_password:'Password change due',sort_order:'Order'};
 function clogFieldName(k){return CLOG_FIELDS[k]||k.replace(/_/g,' ');}
 function clogVal(v){if(v===null||v===undefined)return '—';if(typeof v==='object')return JSON.stringify(v).slice(0,60)+(JSON.stringify(v).length>60?'…':'');return String(v);}
@@ -2100,20 +2108,40 @@ async function loadChangeLog(older){
   document.getElementById('clogMore').style.display=(data&&data.length===150)?'':'none';
   renderChangeLog();
  }catch(e){box.innerHTML='<div class="authmsg err">'+esc(e.message)+' — has audit-log.sql been run?</div>';}}
+function setClogSort(k){if(clogSortK===k)clogSortD*=-1;else{clogSortK=k;clogSortD=(k==='at')?-1:1;}clogPage=1;renderChangeLog();}
+function toggleClogRow(id){if(clogOpen.has(id))clogOpen.delete(id);else clogOpen.add(id);renderChangeLog();}
+function setClogSize(v){clogSize=(v==='all')?Infinity:+v;clogPage=1;renderChangeLog();}
+function clogGoto(n){clogPage=n;renderChangeLog();}
 function renderChangeLog(){const box=document.getElementById('clogList');if(!box)return;
- let list=clogRows;
+ let list=clogRows.slice();
  if(clogTable)list=list.filter(r=>r.table_name===clogTable);
  if(clogQ){const q=clogQ.toLowerCase();list=list.filter(r=>((r.row_label||'')+' '+(r.user_email||'')+' '+JSON.stringify(r.changes||{})).toLowerCase().includes(q));}
- if(!list.length){box.innerHTML='<div class="muted" style="padding:8px">No changes match.</div>';return;}
+ const kf={at:r=>r.at||'',user:r=>r.user_email||'',action:r=>r.action||'',table:r=>r.table_name||'',label:r=>r.row_label||''}[clogSortK]||(r=>r.at||'');
+ list.sort((a,b)=>{const A=kf(a),B=kf(b);return clogSortD*(''+A).localeCompare(''+B);});
+ const total=list.length;
+ if(!total){box.innerHTML='<div class="muted" style="padding:8px">No changes match.</div>';const pg0=document.getElementById('clogPager');if(pg0)pg0.innerHTML='';return;}
+ const size=clogSize===Infinity?total:clogSize;const pages=Math.max(1,Math.ceil(total/size));if(clogPage>pages)clogPage=pages;
+ const start=clogSize===Infinity?0:(clogPage-1)*clogSize;const end=clogSize===Infinity?total:Math.min(total,start+clogSize);
+ const pageRows=list.slice(start,end);
  const tlbl={venues:'Venue',tours:'Tour',tour_venues:'Tour venue',models:'Model',companies:'Company',shows:'Work'};
- box.innerHTML=list.map(r=>{
+ const th=(k,l)=>`<th style="cursor:pointer;white-space:nowrap" onclick="setClogSort('${k}')">${l}${clogSortK===k?(clogSortD<0?' ▾':' ▴'):''}</th>`;
+ let h=`<table class="clogtable"><thead><tr>${th('at','When')}${th('user','User')}${th('action','Action')}${th('table','Type')}${th('label','Record')}<th></th></tr></thead><tbody>`;
+ pageRows.forEach(r=>{
   const dt=new Date(r.at);
   const when=dt.toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'})+' '+dt.toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'});
   const act=r.action==='insert'?'<span class="clact ins">created</span>':r.action==='delete'?'<span class="clact del">deleted</span>':'<span class="clact upd">changed</span>';
-  let detail='';
-  if(r.action==='update'&&r.changes){
-   detail='<div class="cldiffs">'+Object.keys(r.changes).map(k=>`<div class="cldiff"><span class="clf">${esc(clogFieldName(k))}</span><span class="clfrom">${esc(clogVal(r.changes[k].from))}</span><span style="color:var(--slate)">→</span><span class="clto">${esc(clogVal(r.changes[k].to))}</span></div>`).join('')+'</div>';}
-  return `<div class="clrow"><div class="clhead"><span class="clwhen">${when}</span><span class="clwho">${esc(r.user_email||'—')}</span>${act}<b>${esc(tlbl[r.table_name]||r.table_name)}</b><span class="cllbl">${esc(r.row_label||'')}</span></div>${detail}</div>`;}).join('');}
+  const nCh=r.action==='update'&&r.changes?Object.keys(r.changes).length:0;
+  const open=clogOpen.has(r.id);
+  h+=`<tr class="clogr" onclick="toggleClogRow(${r.id})"><td style="white-space:nowrap">${when}</td><td>${esc(r.user_email||'—')}</td><td>${act}</td><td>${esc(tlbl[r.table_name]||r.table_name)}</td><td class="cllbl">${esc(r.row_label||'')}</td><td style="white-space:nowrap;color:var(--slate);font-size:10.5px">${nCh?nCh+' field'+(nCh>1?'s':'')+' '+(open?'▾':'▸'):''}</td></tr>`;
+  if(open&&nCh){h+=`<tr><td colspan="6" style="background:#FBF7EA"><div class="cldiffs" style="margin:2px 0">${Object.keys(r.changes).map(k=>`<div class="cldiff"><span class="clf">${esc(clogFieldName(k))}</span><span class="clfrom">${esc(clogVal(r.changes[k].from))}</span><span style="color:var(--slate)">→</span><span class="clto">${esc(clogVal(r.changes[k].to))}</span></div>`).join('')}</div></td></tr>`;}
+  else if(open&&r.action!=='update'){h+=`<tr><td colspan="6" style="background:#FBF7EA;font-size:11px;color:var(--slate)">${esc(clogVal(r.changes))}</td></tr>`;}});
+ h+='</tbody></table>';
+ box.innerHTML=h;
+ const pg=document.getElementById('clogPager');
+ if(pg){const opts=[20,50,100].map(n=>`<option value="${n}" ${clogSize===n?'selected':''}>${n}</option>`).join('')+`<option value="all" ${clogSize===Infinity?'selected':''}>All</option>`;
+  let btns='';
+  if(pages>1)btns=`<div class="pbtns"><button onclick="clogGoto(1)" ${clogPage===1?'disabled':''}>« First</button><button onclick="clogGoto(${clogPage-1})" ${clogPage===1?'disabled':''}>‹ Prev</button><span style="padding:0 6px">Page <b>${clogPage}</b> of <b>${pages}</b></span><button onclick="clogGoto(${clogPage+1})" ${clogPage===pages?'disabled':''}>Next ›</button><button onclick="clogGoto(${pages})" ${clogPage===pages?'disabled':''}>Last »</button></div>`;
+  pg.innerHTML=`<label>Show <select onchange="setClogSize(this.value)">${opts}</select> per page</label> <span>Showing <b>${start+1}–${end}</b> of <b>${total}</b> loaded</span>${btns}`;}}
 function exportChangeLogCSV(){
  const esc2=x=>'"'+String(x==null?'':x).replace(/"/g,'""')+'"';
  const rows=[['When','User','Action','Table','Record','Changes'].map(esc2).join(',')];
@@ -2769,7 +2797,12 @@ async function boot(){
   buildInd();updateSubnote();recompute();initFilters();restoreFilters();render();renderAuth();
   setProgress(78);
   loadGeometry();
-  try{MODELS=(await sbAll('models','id,name,description,config,is_preset,created_at,starred,sort_order')).map(m=>({id:m.id,name:m.name,description:m.description,config:m.config,date:fmtDate(m.created_at),starred:!!m.starred,ord:m.sort_order==null?9999:+m.sort_order}));sortModels();renderModels();}catch(mErr){console.warn('models not loaded (create the table with models.sql):',mErr);}
+  try{MODELS=(await sbAll('models','id,name,description,config,is_preset,created_at,starred,sort_order')).map(m=>({id:m.id,name:m.name,description:m.description,config:m.config,date:fmtDate(m.created_at),starred:!!m.starred,ord:m.sort_order==null?9999:+m.sort_order}));sortModels();renderModels();}
+  catch(mErr){
+   try{MODELS=(await sbAll('models','id,name,description,config,is_preset,created_at')).map(m=>({id:m.id,name:m.name,description:m.description,config:m.config,date:fmtDate(m.created_at),starred:false,ord:9999}));
+    MODELS.sort((a,b)=>(''+a.name).localeCompare(b.name));renderModels();
+    if(EDIT)toast('Models loaded without stars/ordering — run model-order.sql in Supabase to enable them.',null,true);}
+   catch(m2){console.warn('models not loaded (create the table with models.sql):',m2);}}
   setProgress(90);
   await loadTours();loadAllTourVenues();restoreState();
   setProgress(100);
