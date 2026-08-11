@@ -913,7 +913,9 @@ function applyModelObj(c){if(!c)return;
  const gv=(i,val)=>{const e=document.getElementById(i);if(e&&val!=null&&!isNaN(val))e.value=val;};
  gv('tHigh',MODEL.thr.high);gv('tMed',MODEL.thr.med);gv('sFloor',Math.round(MODEL.sub.floor*100));gv('sCeil',Math.round(MODEL.sub.ceil*100));gv('sFull',MODEL.sub.full);
  buildInd();updateSubnote();recompute();}
-function exitTour(){if(!activeTourObj())return;guardDirty(_exitTourNow);}
+function exitTour(){const t=activeTourObj();if(!t)return;
+ if(tourDirty()){guardDirty(_exitTourNow);return;}
+ openConfirm('Exit tour mode?','Deactivate “'+t.name+'” and return to free modelling. Your previous model will be restored. The tour itself is untouched.','Exit tour',_exitTourNow);}
 function _exitTourNow(){const t=activeTourObj();if(!t)return;
  const name=t.name;const restore=modelBeforeTour?JSON.parse(JSON.stringify(modelBeforeTour)):null;
  curTour=null;curShow=null;curCompany=null;tourVenues=[];sources=[];
