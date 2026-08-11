@@ -675,6 +675,7 @@ body.aboutmode .sitefoot{margin-top:26px;}
  <div class="fchipbar" id="fchips"></div>
  <div class="viewswitch"><button data-view="venues" class="active" onclick="showPage('venues')">List</button><button data-view="map" onclick="showPage('map')">Map</button><button data-view="charts" onclick="showPage('charts')">Analysis</button></div>
  <button class="btn sec" id="filtersBtn" style="padding:6px 12px;font-size:12px" onclick="toggleFilterDrawer()">Filters</button>
+ <button class="btn sec" id="addVenueBtn" style="padding:6px 12px;font-size:12px;display:none" onclick="openAddVenue()">＋ New venue</button>
  <div class="repmenuwrap"><button class="btn" style="padding:6px 14px;font-size:12px" onclick="toggleRepMenu(event)">Report ▾</button><div class="repmenu" id="repmenu"></div></div>
 </div>
 <div class="card" id="filterCard" style="padding:10px 14px 12px">
@@ -703,7 +704,18 @@ body.aboutmode .sitefoot{margin-top:26px;}
  <div class="card chartbox"><h3>Children 0–14 by tier (reach)</h3><canvas id="cChildTier"></canvas></div>
 </div></div>
 <div class="page" id="page-tours">
- <div id="toursHead"></div>
+ <div id="toursSkel">
+  <div class="skkpis">
+    <div class="skkpi"><span class="sk" style="width:30px;height:22px"></span><span class="sk" style="width:48px;height:8px;margin-top:8px"></span></div>
+    <div class="skkpi"><span class="sk" style="width:36px;height:22px"></span><span class="sk" style="width:104px;height:8px;margin-top:8px"></span></div>
+    <div class="skkpi"><span class="sk" style="width:30px;height:22px"></span><span class="sk" style="width:92px;height:8px;margin-top:8px"></span></div>
+    <div class="skkpi"><span class="sk" style="width:74px;height:22px"></span><span class="sk" style="width:96px;height:8px;margin-top:8px"></span></div>
+    <div class="skkpi"><span class="sk" style="width:74px;height:22px"></span><span class="sk" style="width:104px;height:8px;margin-top:8px"></span></div>
+  </div>
+  <div class="skbar"><span class="sk" style="width:200px;height:30px;border-radius:8px;margin-left:auto"></span><span class="sk" style="width:86px;height:30px;border-radius:8px"></span><span class="sk" style="width:92px;height:30px;border-radius:8px"></span></div>
+  <div class="card" style="overflow:hidden;padding:0"><div style="background:var(--navy);height:34px"></div><div style="padding:0 4px"><div class="skrow"><span class="sk" style="flex:1;height:10px"></span><span class="sk" style="width:80px;height:10px"></span><span class="sk" style="width:110px;height:10px"></span><span class="sk" style="width:40px;height:10px"></span><span class="sk" style="width:60px;height:10px"></span></div><div class="skrow"><span class="sk" style="flex:1;height:10px"></span><span class="sk" style="width:80px;height:10px"></span><span class="sk" style="width:110px;height:10px"></span><span class="sk" style="width:40px;height:10px"></span><span class="sk" style="width:60px;height:10px"></span></div><div class="skrow"><span class="sk" style="flex:1;height:10px"></span><span class="sk" style="width:80px;height:10px"></span><span class="sk" style="width:110px;height:10px"></span><span class="sk" style="width:40px;height:10px"></span><span class="sk" style="width:60px;height:10px"></span></div><div class="skrow"><span class="sk" style="flex:1;height:10px"></span><span class="sk" style="width:80px;height:10px"></span><span class="sk" style="width:110px;height:10px"></span><span class="sk" style="width:40px;height:10px"></span><span class="sk" style="width:60px;height:10px"></span></div><div class="skrow"><span class="sk" style="flex:1;height:10px"></span><span class="sk" style="width:80px;height:10px"></span><span class="sk" style="width:110px;height:10px"></span><span class="sk" style="width:40px;height:10px"></span><span class="sk" style="width:60px;height:10px"></span></div><div class="skrow"><span class="sk" style="flex:1;height:10px"></span><span class="sk" style="width:80px;height:10px"></span><span class="sk" style="width:110px;height:10px"></span><span class="sk" style="width:40px;height:10px"></span><span class="sk" style="width:60px;height:10px"></span></div></div></div>
+</div>
+<div id="toursHead"></div>
  <div id="toursBody"></div>
 </div>
 <div class="page" id="page-map">
@@ -798,6 +810,15 @@ body.aboutmode .sitefoot{margin-top:26px;}
    <textarea id="mm_desc" rows="3" placeholder="Description (optional) — shown in the ⓘ tooltip" style="width:100%;font-family:inherit;font-size:14px;padding:10px 12px;border:1.5px solid var(--navy);border-radius:6px;background:#fff;color:var(--navy);margin-top:8px;resize:vertical"></textarea>
    <div id="mm_msg" class="authmsg"></div>
    <div class="authactions"><button class="btn sec" onclick="closeName()">Cancel</button><button class="btn" id="mm_ok" onclick="submitName()">Save</button></div>
+ </div>
+</div>
+<div class="authmodal" id="addvenuemodal" onclick="if(event.target===this)closeAddVenue()">
+ <div class="authcard" style="max-width:620px">
+   <button class="authx" onclick="closeAddVenue()" title="Close">×</button>
+   <h2>New <span class="pink">venue</span></h2>
+   <p style="font-size:12px;color:var(--slate)">Type the coordinates and the SA2 area is detected automatically; its scores come from the Index.</p>
+   <div id="avBody"></div>
+   <div class="authactions"><button class="btn sec" onclick="closeAddVenue()">Cancel</button><button class="btn" id="avBtn" onclick="createVenue()">Add venue</button></div>
  </div>
 </div>
 <div class="authmodal" id="newtourmodal" onclick="if(event.target===this)closeNewTour()">
@@ -1898,8 +1919,86 @@ function editorRowHtml(v){const d=editData;
    <div><label>Longitude</label><input id="ef_lng" type="number" step="0.0001" value="${d.lng==null?'':d.lng}"></div>
    <div class="full"><label>Notes</label><textarea id="ef_notes" rows="2">${esc(d.notes||'')}</textarea></div>
    <div class="full"><label class="chk"><input id="ef_active" type="checkbox" ${d.active?'checked':''}> Active — shown in the venue list, charts and map</label></div>
-   <div class="full" style="display:flex;gap:8px;justify-content:flex-end;align-items:center"><span class="muted" style="margin-right:auto">Scores &amp; census are computed — not editable here.</span><button class="btn sec" onclick="cancelEdit()">Cancel</button><button class="btn" onclick="saveVenue()">Save changes</button></div>
+   <div class="full" style="display:flex;gap:8px;justify-content:flex-end;align-items:center"><span class="muted" style="margin-right:auto">Scores &amp; census are computed — not editable here.</span><button class="btn sec" style="border-color:var(--pink);color:var(--pink)" onclick="deleteVenue(${v._i})">Delete venue</button><button class="btn sec" onclick="cancelEdit()">Cancel</button><button class="btn" onclick="saveVenue()">Save changes</button></div>
  </div></td></tr>`;}
+function pipRing(pt,ring){let inside=false;for(let i=0,j=ring.length-1;i<ring.length;j=i++){const xi=ring[i][0],yi=ring[i][1],xj=ring[j][0],yj=ring[j][1];
+ if(((yi>pt[1])!==(yj>pt[1]))&&(pt[0]<(xj-xi)*(pt[1]-yi)/((yj-yi)||1e-12)+xi))inside=!inside;}return inside;}
+function sa2FromLatLng(lat,lng){if(!SA2GEO||!SA2GEO.features||!SA2GEO.features.length)return null;const pt=[lng,lat];
+ for(const f of SA2GEO.features){const g=f.geometry;if(!g)continue;
+  const polys=g.type==='Polygon'?[g.coordinates]:(g.type==='MultiPolygon'?g.coordinates:[]);
+  for(const poly of polys){if(!poly.length)continue;if(pipRing(pt,poly[0])){let hole=false;for(let i=1;i<poly.length;i++)if(pipRing(pt,poly[i])){hole=true;break;}
+   if(!hole)return f.properties&&f.properties.c;}}}
+ return null;}
+const RAMAP={0:'Major Cities of Australia',2.5:'Inner Regional Australia',5:'Outer Regional Australia',7.5:'Remote Australia',10:'Very Remote Australia'};
+function areaFieldsFor(sa2code){const L=SA2LOOK[sa2code];if(!L)return null;
+ const sa3=String(sa2code).slice(0,5);
+ const sib2=V.find(v=>v.sa2code===sa2code),sib3=V.find(v=>v.sa3code===sa3);
+ const pct=(sub,nat)=>sub==null?null:Math.round(sub/5*nat*100)/100;
+ return {sa2_code:String(sa2code),sa3_code:sa3,
+  sa2_em_pct:pct(L.e2,25.17),sa2_decile:L.d2==null?null:Math.round(11-L.d2),sa2_ra:RAMAP[L.r2]||null,
+  sa3_em_pct:pct(L.e3,25.17),sa3_decile:L.d3==null?null:Math.round(11-L.d3),sa3_ra:RAMAP[L.r3]||null,
+  sa2_name:sib2?sib2.sa2name:null,
+  c2_t:L.ch==null?null:Math.round(L.ch),
+  c2_0_4:sib2&&sib2.childSA2?sib2.childSA2.a[0]:null,c2_5_9:sib2&&sib2.childSA2?sib2.childSA2.a[1]:null,c2_10_14:sib2&&sib2.childSA2?sib2.childSA2.a[2]:null,
+  c3_t:sib3&&sib3.childSA3?sib3.childSA3.t:null,
+  c3_0_4:sib3&&sib3.childSA3?sib3.childSA3.a[0]:null,c3_5_9:sib3&&sib3.childSA3?sib3.childSA3.a[1]:null,c3_10_14:sib3&&sib3.childSA3?sib3.childSA3.a[2]:null};}
+function openAddVenue(){if(!EDIT){toast('Only admins can add venues.',null,true);return;}
+ const sts=[...new Set(V.map(x=>x.status).filter(Boolean))];
+ document.getElementById('avBody').innerHTML=`
+  <div class="editform">
+    <div><label>Venue name</label><input id="av_name" placeholder="e.g. Griffith Regional Theatre"></div>
+    <div><label>Status</label><select id="av_status">${sts.map(x=>`<option>${esc(x)}</option>`).join('')}</select></div>
+    <div><label>State</label><select id="av_state">${['','NSW','VIC','QLD','SA','WA','TAS','NT','ACT'].map(x=>`<option value="${x}">${x||'—'}</option>`).join('')}</select></div>
+    <div><label>Postcode</label><input id="av_postcode" placeholder="2680"></div>
+    <div><label>Latitude</label><input id="av_lat" type="number" step="0.0001" placeholder="-34.2891" oninput="avDetect()"></div>
+    <div><label>Longitude</label><input id="av_lng" type="number" step="0.0001" placeholder="146.0409" oninput="avDetect()"></div>
+    <div class="full"><label>SA2 code</label><input id="av_sa2" placeholder="detected from coordinates" oninput="avShowArea()"></div>
+    <div class="full"><div id="av_area" class="muted" style="font-size:11.5px"></div></div>
+    <div class="full"><label>Notes</label><textarea id="av_notes" rows="2"></textarea></div>
+  </div>
+  <div id="av_msg" class="authmsg err"></div>`;
+ document.getElementById('addvenuemodal').classList.add('open');
+ setTimeout(()=>{const e=document.getElementById('av_name');if(e)e.focus();},40);}
+function closeAddVenue(){document.getElementById('addvenuemodal').classList.remove('open');}
+let _avT=null;
+function avDetect(){clearTimeout(_avT);_avT=setTimeout(()=>{
+ const lat=parseFloat(document.getElementById('av_lat').value),lng=parseFloat(document.getElementById('av_lng').value);
+ if(isNaN(lat)||isNaN(lng))return;
+ const code=sa2FromLatLng(lat,lng);
+ if(code){document.getElementById('av_sa2').value=code;avShowArea();}
+ else document.getElementById('av_area').innerHTML=(SA2GEO&&SA2GEO.features&&SA2GEO.features.length)?'<span style="color:var(--pink)">No SA2 found for those coordinates — enter the SA2 code manually.</span>':'Boundaries still loading — enter the SA2 code manually, or wait a moment.';},260);}
+function avShowArea(){const code=(document.getElementById('av_sa2').value||'').trim();const box=document.getElementById('av_area');
+ if(!code){box.textContent='';return;}
+ const L=SA2LOOK[code];
+ if(!L){box.innerHTML='<span style="color:var(--pink)">Unknown SA2 code — it must be one of the '+Object.keys(SA2LOOK).length.toLocaleString()+' scored areas.</span>';return;}
+ const f=areaFieldsFor(code);const idx=computeSA2(code);
+ box.innerHTML=`Area <b>${esc(code)}</b>${f.sa2_name?' \u00b7 '+esc(f.sa2_name):''} — ${f.sa2_ra||'—'} \u00b7 SEIFA decile ${f.sa2_decile==null?'—':f.sa2_decile} \u00b7 ~${(f.c2_t||0).toLocaleString()} children 0–14`+(idx?` \u00b7 Impact <b>${idx.idx.toFixed(1)}</b> (${idx.tier})`:'');}
+async function createVenue(){const g=id=>document.getElementById(id);const msg=g('av_msg');msg.textContent='';
+ const name=g('av_name').value.trim(),code=(g('av_sa2').value||'').trim();
+ const lat=parseFloat(g('av_lat').value),lng=parseFloat(g('av_lng').value);
+ if(!name){msg.textContent='Give the venue a name.';return;}
+ if(!code||!SA2LOOK[code]){msg.textContent='A valid SA2 code is required — type coordinates to detect it, or enter it directly.';return;}
+ const btn=g('avBtn');btn.disabled=true;btn.textContent='Adding…';
+ try{
+  const row=Object.assign({name,state:g('av_state').value||null,status:g('av_status').value||null,postcode:g('av_postcode').value.trim()||null,
+   lat:isNaN(lat)?null:lat,lng:isNaN(lng)?null:lng,active:true,notes:g('av_notes').value||null},areaFieldsFor(code));
+  const {data,error}=await sbc.from('venues').insert(row).select('id').single();
+  if(error)throw error;
+  const {data:full,error:e2}=await sbc.from('venue_full').select('*').eq('id',data.id).single();
+  if(e2)throw e2;
+  full._i=V.length;V.push(full);DATA.venues=V;
+  recompute();initFilters();restoreFilters();render();if(map)paintMarkers();
+  closeAddVenue();toast('\u201c'+esc(name)+'\u201d added.');
+ }catch(e){msg.textContent=e.message;}
+ btn.disabled=false;btn.textContent='Add venue';}
+function deleteVenue(i){if(!EDIT)return;const v=V[i];if(!v)return;
+ openConfirm('Delete venue?','\u201c'+v.name+'\u201d will be permanently removed, along with its place on any tour. This cannot be undone.','Delete',async()=>{
+  const {error}=await sbc.from('venues').delete().eq('id',v.id);
+  if(error){toast(error.message,null,true);return;}
+  V=V.filter(x=>x.id!==v.id);V.forEach((x,n)=>x._i=n);DATA.venues=V;
+  tourVenues=tourVenues.filter(x=>x.venue_id!==v.id);ALLTV=ALLTV.filter(x=>x.venue_id!==v.id);
+  sel.clear();editingId=null;editData=null;
+  recompute();render();if(map)paintMarkers();toast('Venue deleted.');});}
 async function saveVenue(){const g=id=>document.getElementById(id);
  const upd={status:g('ef_status').value,name:g('ef_name').value.trim(),state:g('ef_state').value.trim(),postcode:g('ef_postcode').value.trim(),lat:parseFloat(g('ef_lat').value),lng:parseFloat(g('ef_lng').value),active:g('ef_active').checked,notes:g('ef_notes').value};
  if(isNaN(upd.lat))upd.lat=null;if(isNaN(upd.lng))upd.lng=null;
@@ -2154,13 +2253,16 @@ function showPage(p){curPage=p;const explorer=(p==='venues'||p==='map'||p==='cha
  const xb=document.getElementById('exploreBar');if(xb)xb.style.display=explorer?'':'none';
  const kp=document.getElementById('kpis');if(kp)kp.style.display=explorer?'':'none';
  const gb=document.getElementById('groupByWrap');if(gb)gb.style.display=(p==='venues')?'':'none';
+ const av=document.getElementById('addVenueBtn');if(av)av.style.display=(p==='venues'&&EDIT)?'':'none';
  document.querySelectorAll('#mobtabs button').forEach(b=>b.classList.toggle('on',b.dataset.mt===(explorer?'explore':p)));
  try{if(location.hash!=='#/'+p)history.replaceState(null,'','#/'+p);}catch(e){}
  try{localStorage.setItem('ctii.page',p);}catch(e){}
  if(p==='map'){const h=document.getElementById('mapSkelHost');
   if(h&&!GEO_READY&&!document.getElementById('mapSkelNote'))h.innerHTML='<div class="skmapnote" id="mapSkelNote"><span class="skspin"></span>Loading area boundaries — venue pins are ready, shading appears shortly.</div>';
   if(!map)initMap();setTimeout(()=>{if(map){map.invalidateSize();paintMap();paintMarkers();}},60);}
- if(p==='tours'){loadAllTourVenues().then(renderToursPage);}
+ if(p==='tours'){const sk=document.getElementById('toursSkel'),hd=document.getElementById('toursHead'),bd=document.getElementById('toursBody');
+  if(!ALLTV.length){if(sk)sk.style.display='';if(hd)hd.innerHTML='';if(bd)bd.innerHTML='';}
+  loadAllTourVenues().then(()=>{if(sk)sk.style.display='none';renderToursPage();});}
  render();}
 function drawCharts(a){const tiers=['High','Medium','Low'],tc=tiers.map(t=>a.filter(v=>v.cTier===t).length);
  const rlab=['Major Cities of Australia','Inner Regional Australia','Outer Regional Australia','Remote Australia','Very Remote Australia'];const rc=rlab.map(r=>a.filter(v=>v.cRA===r).length);
