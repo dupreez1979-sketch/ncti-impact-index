@@ -572,7 +572,6 @@ body.tourmode #mapAllWrap{display:none;}
    <div class="psechead" onclick="togglePsec(this)">Income sources <span class="caret">▾</span></div>
    <div class="psecbody"><div id="splitPanel"><div id="sourcesBox"></div></div></div>
   </div>
-  <div class="muted" style="margin-top:2px;font-size:10.5px">Tick venues in the Venues list — selections persist across filters. Only High-tier venues draw a subsidy. The funder PDF is under <b>Report ▾</b> in the toolbar.</div>
  </div>
 </div>
 <div class="card model" id="tourCard">
@@ -721,7 +720,8 @@ body.tourmode #mapAllWrap{display:none;}
    <button class="authx" onclick="closePickModel()" title="Close">×</button>
    <h2>Choose a <span class="pink">model</span> for this tour</h2>
    <p>Applying a model re-scores every venue and freezes it to the tour, so the tour's numbers stay stable even if the live model changes later.</p>
-   <div id="pickbody" style="display:flex;flex-direction:column;gap:8px;max-height:52vh;overflow:auto;margin-top:6px"></div>
+   <input type="text" id="pickSearch" placeholder="Search models…" style="display:none;margin:2px 0 8px" oninput="renderPickList(this.value)">
+   <div id="pickbody" style="display:flex;flex-direction:column;gap:8px;max-height:46vh;overflow:auto;margin-top:6px"></div>
    <div class="muted" style="font-size:10.5px;margin-top:10px">Want something custom? Build it in the Model panel, then press “Re-save current model to tour”.</div>
  </div>
 </div>
@@ -824,7 +824,7 @@ function renderBasket(){if(!document.getElementById('bkN'))return;const tour=act
  setT('bkSecTitle',tour?'Tour subsidy':'Scenario builder');
  const feeRow=document.getElementById('bkFeeRow');if(feeRow)feeRow.style.display=tour?'none':'';
  const cb=document.getElementById('bkClearBtn');if(cb)cb.style.display=tour?'none':'';
- const link=document.getElementById('bkLink');if(link)link.innerHTML=tour?`<div class="bklinkbox">Linked to tour <b>${esc(tour.name)}</b> — venues, fees &amp; income sources come from the tour. Edit them in the Tours / Tour venues panels.</div>`:'';
+ const link=document.getElementById('bkLink');if(link)link.innerHTML='';
  document.getElementById('bkN').textContent=n;
  document.getElementById('bkElig').textContent=elig;
  document.getElementById('bkChild').textContent=child.toLocaleString();
@@ -1044,11 +1044,20 @@ function applyTourModel(){const t=activeTourObj();if(!t||!t.model)return;const c
  gv('tHigh',MODEL.thr.high);gv('tMed',MODEL.thr.med);gv('sFloor',Math.round(MODEL.sub.floor*100));gv('sCeil',Math.round(MODEL.sub.ceil*100));gv('sFull',MODEL.sub.full);
  if(t.sources)sources=JSON.parse(JSON.stringify(t.sources));
  buildInd();updateSubnote();recompute();render();}
+function renderPickList(q){const t=activeTourObj();if(!t)return;const body=document.getElementById('pickbody');
+ q=(q||'').toLowerCase().trim();
+ const cur=stagedModel||t.model;
+ let list=MODELS.slice();
+ if(q)list=list.filter(m=>(m.name||'').toLowerCase().includes(q)||(m.description||'').toLowerCase().includes(q));
+ list.sort((a,b)=>{const ac=cur&&cfgEq(a.config,cur)?0:1,bc=cur&&cfgEq(b.config,cur)?0:1;if(ac!==bc)return ac-bc;return (''+a.name).localeCompare(b.name);});
+ body.innerHTML=(list.length?list.map(m=>{const on=cur&&cfgEq(m.config,cur);
+   return `<button class="btn ${on?'':'sec'}" style="text-align:left;padding:9px 12px;font-size:13px;display:block;width:100%" onclick="pickModelApply(${m.id})"><b>${esc(m.name)}</b>${on?' — current':''}${m.description?`<span style="display:block;font-weight:400;font-size:11px;margin-top:2px;opacity:.8">${esc(m.description)}</span>`:''}</button>`;}).join(''):(MODELS.length?'<div class="muted">No models match “'+esc(q)+'”.</div>':'<div class="muted">No saved models yet — build one in the Model panel and press “Save this model…”.</div>'));}
 function openPickModel(){const t=activeTourObj();if(!t){toast('Select a tour first.',null,true);return;}
- const body=document.getElementById('pickbody');
- body.innerHTML=(MODELS.length?MODELS.map(m=>{const on=t.model&&cfgEq(m.config,t.model);
-   return `<button class="btn ${on?'':'sec'}" style="text-align:left;padding:9px 12px;font-size:13px;display:block;width:100%" onclick="pickModelApply(${m.id})"><b>${esc(m.name)}</b>${on?' — current':''}${m.description?`<span style="display:block;font-weight:400;font-size:11px;margin-top:2px;opacity:.8">${esc(m.description)}</span>`:''}</button>`;}).join(''):'<div class="muted">No saved models yet — build one in the Model panel and press “Save this model…”.</div>');
- document.getElementById('pickmodal').classList.add('open');}
+ const srch=document.getElementById('pickSearch');
+ srch.value='';srch.style.display=MODELS.length>5?'':'none';
+ renderPickList('');
+ document.getElementById('pickmodal').classList.add('open');
+ if(MODELS.length>5)setTimeout(()=>srch.focus(),40);}
 function closePickModel(){document.getElementById('pickmodal').classList.remove('open');}
 async function pickModelApply(id){const t=activeTourObj();const m=MODELS.find(x=>x.id===id);if(!t||!m)return;
  const curM=stagedModel||t.model;
