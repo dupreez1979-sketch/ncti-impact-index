@@ -2653,7 +2653,7 @@ function openD(i){curIdx=i;const v=V[i];const g=v[MODEL.geo];let den=activeKeys(
   <div class="dbody">
    <div style="display:flex;gap:12px;align-items:center;margin-bottom:6px"><div class="card" style="padding:10px 16px;text-align:center"><div class="disp" style="font-size:34px;color:${TIERCOL[v.cTier]}">${v.cIndex!=null?v.cIndex.toFixed(1):'—'}</div><div class="muted">Impact Index</div></div>
      <div><span class="chip tier-${v.cTier}" style="font-size:13px">${v.cTier} priority</span><br><br><span class="muted">Subsidy: </span><b>${v.cSub?Math.round(v.cSub*100)+'%':'none'}</b> · <span class="muted">Eligible: </span><b>${v.cElig}</b></div>
-     <div style="margin-left:auto;text-align:center">${ausLocatorSVG(v)}<div class="muted" style="font-size:10px;margin-top:2px">Location in Australia</div></div></div>
+     <div style="margin-left:auto;text-align:center;cursor:pointer" title="Open the area checker — verify this venue's SA2/SA3 on a live map" onclick="closeD();openAreaChecker('edit',${i})">${ausLocatorSVG(v)}<div style="font-size:10px;font-weight:800;color:var(--pink);margin-top:3px;text-decoration:underline">Check location</div></div></div>
    ${v.address?`<div class="muted" style="font-size:11.5px;margin:4px 0 2px">${esc(v.address)}</div>`:''}${EDIT?`<button class="btn sec" style="margin:8px 0 2px" onclick="closeD();editVenue(${i})">✎ Edit details</button>`:''}
    <div class="muted" style="margin:8px 0 2px">Model: <b>${MODEL.geo.toUpperCase()}</b>, weights normalised across active indicators</div>
    ${rows}
