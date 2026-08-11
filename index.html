@@ -351,7 +351,10 @@ body.aboutmode #filterCard,body.toursmode #filterCard{display:none!important;}
 .xbar{margin-bottom:14px;}
 .kpirow .tstat{border:1.5px solid var(--navy);border-radius:9px;padding:7px 14px;background:var(--paper);}
 /* selection tray */
-#selTray{position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:1500;background:var(--navy);color:#fff;border-radius:12px;box-shadow:5px 5px 0 rgba(7,59,76,.35);padding:10px 16px;display:none;align-items:center;gap:12px;font-size:12.5px;max-width:min(94vw,860px);flex-wrap:wrap;}
+#selTray{position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:1500;background:var(--navy);color:#fff;border-radius:12px;box-shadow:5px 5px 0 rgba(7,59,76,.35);padding:8px 14px;display:none;align-items:center;gap:10px;font-size:12px;max-width:96vw;flex-wrap:nowrap;white-space:nowrap;cursor:grab;touch-action:none;}
+#selTray:active{cursor:grabbing;}
+#selTray .trayname{font-family:'Charlie Kingdom';font-size:13px;letter-spacing:.3px;overflow:hidden;text-overflow:ellipsis;max-width:280px;flex:0 1 auto;}
+#selTray .traymeta{opacity:.95;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;}
 #selTray.on{display:flex;}
 #selTray.tourctx{background:var(--pink);box-shadow:5px 5px 0 rgba(160,20,60,.3);}
 #selTray b{font-family:'Charlie Kingdom';font-size:14px;letter-spacing:.3px;}
@@ -813,6 +816,17 @@ function closePanel(name){const c=document.getElementById(DOCKCARDS[name]);
  if(c&&c.classList.contains('floating')){const btn=document.getElementById({model:'modelFloatBtn',basket:'basketFloatBtn',tour:'tourFloatBtn'}[name]);dockCard(DOCKCARDS[name],btn?btn.id:null);}
  closeDock();}
 function toggleTourVenuesFloat(){openTourFullEditor();}
+(function(){const tr=document.getElementById('selTray');if(!tr)return;
+ tr.title='Drag to move · double-click to reset position';
+ tr.addEventListener('pointerdown',e=>{if(e.target.closest('button,input,a'))return;e.preventDefault();
+  const r=tr.getBoundingClientRect();const dx=e.clientX-r.left,dy=e.clientY-r.top;
+  const move=ev=>{tr.style.transform='none';tr.style.bottom='auto';
+   tr.style.left=Math.max(4,Math.min(window.innerWidth-r.width-4,ev.clientX-dx))+'px';
+   tr.style.top=Math.max(4,Math.min(window.innerHeight-r.height-4,ev.clientY-dy))+'px';};
+  const up=()=>{document.removeEventListener('pointermove',move);document.removeEventListener('pointerup',up);};
+  document.addEventListener('pointermove',move);document.addEventListener('pointerup',up);});
+ tr.addEventListener('dblclick',e=>{if(e.target.closest('button,input,a'))return;tr.style.left='';tr.style.top='';tr.style.bottom='';tr.style.transform='';});})();
+
 function applyDockW(){try{const wpx=+localStorage.getItem('ctii.dockw')||0;const dw=document.getElementById('dockwrap');if(wpx&&dw){dw.style.width=wpx+'px';dw.style.flex='0 0 '+wpx+'px';}}catch(e){}}
 (function(){const sp=document.getElementById('dockSplit');if(!sp)return;
  sp.addEventListener('pointerdown',e=>{e.preventDefault();const dw=document.getElementById('dockwrap');const startX=e.clientX,startW=dw.getBoundingClientRect().width;sp.classList.add('dragging');
@@ -892,11 +906,11 @@ function renderTray(){const el=document.getElementById('selTray');if(!el)return;
  const explorer=(curPage==='venues'||curPage==='map'||curPage==='charts');
  const t0=activeTourObj();
  if(t0&&explorer){const T=tourTotals();const co=COMPANIES.find(c=>c.id===curCompany);
-  el.innerHTML=`<b>${esc((co?co.name+' · ':'')+t0.name)}</b> · ${tourVenues.length} venue${tourVenues.length!=1?'s':''} · ${T.conf} subsidised · ${fmt$(T.sub)} · ${T.child.toLocaleString()} children
+  el.innerHTML=`<span class="trayname" title="${esc((co?co.name+' · ':'')+t0.name)}">${esc(t0.name)}</span><span class="traymeta">${tourVenues.length} venues · ${T.conf} sub. · ${fmt$(T.sub)} · ${T.child.toLocaleString()} children</span>
    <span style="margin-left:auto"></span>
-   <button class="traybtn" onclick="createTourReport()">Report ▸</button>
-   ${SESSION?`<button class="traybtn" onclick="editTour()" title="Rename this tour">✎ Edit</button><button class="traybtn" onclick="deleteTour()" title="Delete this tour">Delete</button>`:''}
-   <button class="trayclear" onclick="exitTour()" title="Deactivate this tour and restore your previous model">✕ Exit tour</button>`;
+   <button class="traybtn" onclick="createTourReport()" title="Tour report (PDF)">Report ▸</button>
+   ${SESSION?`<button class="traybtn" onclick="editTour()" title="Rename this tour">✎</button><button class="traybtn" onclick="deleteTour()" title="Delete this tour">🗑</button>`:''}
+   <button class="trayclear" onclick="exitTour()" title="Deactivate this tour and restore your previous model">✕ Exit</button>`;
   el.classList.add('on');return;}
  if(!sel.size||!explorer){el.classList.remove('on');return;}
  let n=0,sub=0,child=0;const seen=new Set();
