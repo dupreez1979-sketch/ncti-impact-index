@@ -346,6 +346,7 @@ body.aboutmode #selTray,body.toursmode #selTray{display:none!important;}
 .repmenu button{display:block;width:100%;text-align:left;background:none;border:none;font-family:inherit;font-size:14px;color:var(--navy);padding:11px 12px;border-radius:6px;cursor:pointer;}
 .repmenu button:hover{background:#FFF3D6;}
 .repmenu button:disabled{color:#9aa5a1;cursor:default;background:none;}
+.repmenu .menugrp{font-size:9px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;color:var(--slate);padding:8px 12px 2px;border-top:1px solid #Eee6cf;margin-top:4px;}
 .repmenu .rm-sub{display:block;font-size:10px;color:var(--slate);font-weight:400;margin-top:2px;}
 /* filter drawer */
 #filterCard{display:none;}
@@ -505,6 +506,21 @@ body.aboutmode .sitefoot{margin-top:26px;}
 .loaderr{max-width:560px;border:2px solid var(--pink);border-radius:12px;background:#fff;padding:20px 22px;box-shadow:5px 5px 0 var(--navy);}
 /* editor action buttons: one row, one size */
 .efbtn{padding:0 14px!important;height:32px;font-size:12px!important;white-space:nowrap;display:inline-flex;align-items:center;flex:0 0 auto;}
+/* change log */
+.clrow{border:1px solid #Eee6cf;border-radius:8px;padding:7px 10px;background:#fff;}
+.clhead{display:flex;gap:8px;align-items:center;font-size:12px;flex-wrap:wrap;}
+.clwhen{color:var(--slate);font-size:11px;white-space:nowrap;}
+.clwho{color:var(--navy);font-size:11px;font-weight:600;}
+.clact{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;padding:1px 7px;border-radius:10px;border:1px solid;}
+.clact.ins{color:#0F6E56;border-color:#0F6E56;background:#E1F5EE;}
+.clact.upd{color:#185FA5;border-color:#185FA5;background:#E6F1FB;}
+.clact.del{color:var(--pink);border-color:var(--pink);background:#FBEAF0;}
+.cllbl{color:var(--navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px;}
+.cldiffs{margin-top:5px;display:flex;flex-direction:column;gap:2px;}
+.cldiff{display:flex;gap:8px;font-size:11px;align-items:baseline;flex-wrap:wrap;padding-left:8px;}
+.cldiff .clf{font-weight:700;color:var(--navy);min-width:110px;}
+.cldiff .clfrom{color:var(--pink);text-decoration:line-through;text-decoration-thickness:1px;}
+.cldiff .clto{color:#0F6E56;font-weight:600;}
 /* location audit */
 .audrow{display:flex;gap:9px;align-items:center;border:1px solid #Eee6cf;border-radius:7px;padding:5px 9px;font-size:12px;background:#fff;}
 .aud-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;color:var(--navy);}
@@ -832,6 +848,22 @@ body.aboutmode .sitefoot{margin-top:26px;}
    <textarea id="mm_desc" rows="3" placeholder="Description (optional) — shown in the ⓘ tooltip" style="width:100%;font-family:inherit;font-size:14px;padding:10px 12px;border:1.5px solid var(--navy);border-radius:6px;background:#fff;color:var(--navy);margin-top:8px;resize:vertical"></textarea>
    <div id="mm_msg" class="authmsg"></div>
    <div class="authactions"><button class="btn sec" onclick="closeName()">Cancel</button><button class="btn" id="mm_ok" onclick="submitName()">Save</button></div>
+ </div>
+</div>
+<div class="authmodal" id="clogmodal" onclick="if(event.target===this)closeChangeLog()">
+ <div class="authcard" style="max-width:760px;width:96vw">
+   <button class="authx" onclick="closeChangeLog()" title="Close">×</button>
+   <h2>Change <span class="pink">log</span></h2>
+   <p style="font-size:12px;color:var(--slate)">Every change to venues, tours, models, companies and works — who made it, when, and each field's before and after. Recorded by the database itself, so nothing is missed and history cannot be edited.</p>
+   <div style="display:flex;gap:8px;margin:4px 0 10px;flex-wrap:wrap;align-items:center">
+     <input id="clogSearch" placeholder="Search venue, user, value…" style="flex:1;min-width:160px" oninput="clogQ=this.value;renderChangeLog()">
+     <select id="clogTableSel" style="font-family:inherit;font-size:12.5px;padding:7px;border:1.5px solid var(--navy);border-radius:6px;background:#fff;color:var(--navy)" onchange="clogTable=this.value;renderChangeLog()">
+       <option value="">All records</option><option value="venues">Venues</option><option value="tours">Tours</option><option value="tour_venues">Tour venues</option><option value="models">Models</option><option value="companies">Companies</option><option value="shows">Works</option>
+     </select>
+     <button class="btn sec efbtn" onclick="exportChangeLogCSV()">Export CSV</button>
+   </div>
+   <div id="clogList" style="max-height:52vh;overflow:auto;display:flex;flex-direction:column;gap:6px"></div>
+   <div style="text-align:center;margin-top:8px"><button class="btn sec efbtn" id="clogMore" style="display:none" onclick="loadChangeLog(true)">Load older</button></div>
  </div>
 </div>
 <div class="authmodal" id="auditmodal" onclick="if(event.target===this)closeAudit()">
@@ -1825,7 +1857,7 @@ function renderAuth(){const el=document.getElementById('authbox');if(!el)return;
  if(SESSION){el.innerHTML=`<div class="repmenuwrap"><button class="iconbtn" style="width:54px;height:45px;font-size:23px" title="Menu" onclick="event.stopPropagation();toggleUserMenu()">☰</button>
   <div class="repmenu" id="usermenu" style="min-width:160px">
     <button onclick="closeUserMenu();openProfile()">Profile</button>
-    ${EDIT?'<button onclick="closeUserMenu();openUsers()">Users</button><button onclick="closeUserMenu();openAudit()">Location audit</button>':''}
+    ${EDIT?'<button onclick="closeUserMenu();openUsers()">Users</button><div class="menugrp">Audit</div><button onclick="closeUserMenu();openAudit()">Location audit</button><button onclick="closeUserMenu();openChangeLog()">Change log</button>':''}
     <button onclick="closeUserMenu();signOut()">Log out</button>
   </div></div>`;}
  else el.innerHTML='';}
@@ -2048,6 +2080,48 @@ async function amGeocode(){const q=document.getElementById('amAddr').value;
  areaMap.setView([h.lat,h.lng],13);
  const c=sa2FromLatLng(h.lat,h.lng);if(c){areaState.code=String(c);}
  amRestyle();amInfo();toast('Pin moved to: '+h.label.split(',').slice(0,3).join(','));}
+let clogRows=[],clogOldest=null,clogTable='',clogQ='';
+const CLOG_FIELDS={sa2_code:'SA2',sa3_code:'SA3',sa2_em_pct:'EM % (SA2)',sa3_em_pct:'EM % (SA3)',sa2_decile:'D decile (SA2)',sa3_decile:'D decile (SA3)',sa2_ra:'Remoteness (SA2)',sa3_ra:'Remoteness (SA3)',subsidy_confirmed:'Subsidy confirmed',default_fee:'Default fee',must_change_password:'Password change due',sort_order:'Order'};
+function clogFieldName(k){return CLOG_FIELDS[k]||k.replace(/_/g,' ');}
+function clogVal(v){if(v===null||v===undefined)return '—';if(typeof v==='object')return JSON.stringify(v).slice(0,60)+(JSON.stringify(v).length>60?'…':'');return String(v);}
+async function openChangeLog(){if(!EDIT)return;
+ document.getElementById('clogmodal').classList.add('open');
+ clogRows=[];clogOldest=null;await loadChangeLog(false);}
+function closeChangeLog(){document.getElementById('clogmodal').classList.remove('open');}
+async function loadChangeLog(older){
+ const box=document.getElementById('clogList');if(!clogRows.length)box.innerHTML='<div class="muted">Loading…</div>';
+ try{
+  let q=sbc.from('audit_log').select('id,table_name,row_id,row_label,action,changes,user_email,at').order('at',{ascending:false}).limit(150);
+  if(older&&clogOldest)q=q.lt('at',clogOldest);
+  const {data,error}=await q;
+  if(error)throw error;
+  if(older)clogRows=clogRows.concat(data||[]);else clogRows=data||[];
+  if(clogRows.length)clogOldest=clogRows[clogRows.length-1].at;
+  document.getElementById('clogMore').style.display=(data&&data.length===150)?'':'none';
+  renderChangeLog();
+ }catch(e){box.innerHTML='<div class="authmsg err">'+esc(e.message)+' — has audit-log.sql been run?</div>';}}
+function renderChangeLog(){const box=document.getElementById('clogList');if(!box)return;
+ let list=clogRows;
+ if(clogTable)list=list.filter(r=>r.table_name===clogTable);
+ if(clogQ){const q=clogQ.toLowerCase();list=list.filter(r=>((r.row_label||'')+' '+(r.user_email||'')+' '+JSON.stringify(r.changes||{})).toLowerCase().includes(q));}
+ if(!list.length){box.innerHTML='<div class="muted" style="padding:8px">No changes match.</div>';return;}
+ const tlbl={venues:'Venue',tours:'Tour',tour_venues:'Tour venue',models:'Model',companies:'Company',shows:'Work'};
+ box.innerHTML=list.map(r=>{
+  const dt=new Date(r.at);
+  const when=dt.toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'})+' '+dt.toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'});
+  const act=r.action==='insert'?'<span class="clact ins">created</span>':r.action==='delete'?'<span class="clact del">deleted</span>':'<span class="clact upd">changed</span>';
+  let detail='';
+  if(r.action==='update'&&r.changes){
+   detail='<div class="cldiffs">'+Object.keys(r.changes).map(k=>`<div class="cldiff"><span class="clf">${esc(clogFieldName(k))}</span><span class="clfrom">${esc(clogVal(r.changes[k].from))}</span><span style="color:var(--slate)">→</span><span class="clto">${esc(clogVal(r.changes[k].to))}</span></div>`).join('')+'</div>';}
+  return `<div class="clrow"><div class="clhead"><span class="clwhen">${when}</span><span class="clwho">${esc(r.user_email||'—')}</span>${act}<b>${esc(tlbl[r.table_name]||r.table_name)}</b><span class="cllbl">${esc(r.row_label||'')}</span></div>${detail}</div>`;}).join('');}
+function exportChangeLogCSV(){
+ const esc2=x=>'"'+String(x==null?'':x).replace(/"/g,'""')+'"';
+ const rows=[['When','User','Action','Table','Record','Changes'].map(esc2).join(',')];
+ clogRows.forEach(r=>rows.push([r.at,r.user_email||'',r.action,r.table_name,r.row_label||'',JSON.stringify(r.changes||{})].map(esc2).join(',')));
+ const blob=new Blob([rows.join('\n')],{type:'text/csv'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+ a.download='ctii-change-log-'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+ setTimeout(()=>URL.revokeObjectURL(a.href),2000);}
 let auditRows=[],auditRunning=false;
 function openAudit(){if(!EDIT)return;
  if(!SA2GEO||!SA2GEO.features||!SA2GEO.features.length){toast('Area boundaries are still loading \u2014 try again shortly.',null,true);return;}
