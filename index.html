@@ -440,6 +440,12 @@ body.tourmode tr.ontourrow td{background:#FFF0F4;}
 #dockSplit{flex:0 0 7px;width:7px;cursor:col-resize;border-radius:4px;background:transparent;align-self:stretch;display:none;transition:background .15s;}
 #dockSplit:hover,#dockSplit.dragging{background:var(--teal);}
 @media(min-width:1280px){.dockwrap.open+#dockSplit{display:block;}}
+/* users admin */
+.userrow{display:flex;align-items:center;gap:8px;border:1.5px solid var(--navy);border-radius:8px;padding:7px 10px;background:#fff;}
+.userrow .ur-main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.userrow .ur-main b{font-size:13px;color:var(--navy);}
+.userrow select{font-family:inherit;font-size:12px;padding:4px 6px;border:1.5px solid var(--navy);border-radius:5px;background:#fff;color:var(--navy);}
+#gateView input{background:#fff;color:var(--navy);}
 /* panel sections (Model builder / Saved models / Scenario / Income sources) */
 .psec{border:1.5px solid var(--navy);border-radius:9px;margin:0 0 10px;overflow:hidden;background:#fff;}
 .psechead{display:flex;align-items:center;gap:8px;background:var(--navy);color:#fff;font-family:'Charlie Kingdom';font-size:13px;padding:7px 11px;cursor:pointer;letter-spacing:.3px;user-select:none;}
@@ -709,16 +715,37 @@ body.tourmode tr.ontourrow td{background:#FFF0F4;}
    <div class="muted" style="font-size:10.5px;margin-top:10px">Want something custom? Build it in the Model panel, then press “Re-save current model to tour”.</div>
  </div>
 </div>
-<div class="authmodal" id="authmodal" onclick="if(event.target===this)closeSignin()">
+<div class="authmodal" id="profilemodal" onclick="if(event.target===this)closeProfile()">
  <div class="authcard">
-   <button class="authx" onclick="closeSignin()" title="Close">×</button>
-   <h2>Sign in to <span class="pink">edit</span></h2>
-   <p>Enter your email and we'll send you a secure sign-in link. Only invited users can sign in.</p>
-   <input type="email" id="authemail" placeholder="you@example.com" autocomplete="email" onkeydown="if(event.key==='Enter')sendMagicLink()">
-   <div id="authmsg" class="authmsg"></div>
-   <div class="authactions"><button class="btn sec" onclick="closeSignin()">Cancel</button><button class="btn" id="authsend" onclick="sendMagicLink()">Send link</button></div>
+   <button class="authx" onclick="closeProfile()" title="Close">×</button>
+   <h2>Your <span class="pink">profile</span></h2>
+   <p style="font-size:12px;color:var(--slate)">Signed in as <b id="pfEmail"></b></p>
+   <input type="text" id="pfName" placeholder="Your name" style="margin-bottom:8px">
+   <input type="password" id="pfPw1" placeholder="New password (leave blank to keep current)" autocomplete="new-password" style="margin-bottom:8px">
+   <input type="password" id="pfPw2" placeholder="Repeat new password" autocomplete="new-password">
+   <div id="pfMsg" class="authmsg err"></div>
+   <div class="authactions"><button class="btn sec" onclick="closeProfile()">Cancel</button><button class="btn" onclick="saveProfile()">Save</button></div>
  </div>
 </div>
+<div class="authmodal" id="usersmodal" onclick="if(event.target===this)closeUsers()">
+ <div class="authcard" style="max-width:560px">
+   <button class="authx" onclick="closeUsers()" title="Close">×</button>
+   <h2><span class="pink">Users</span> &amp; access</h2>
+   <div id="usersList" style="display:flex;flex-direction:column;gap:6px;max-height:38vh;overflow:auto;margin:8px 0 14px"></div>
+   <div style="border-top:1.5px dashed var(--slate);padding-top:12px">
+     <div style="font-family:'Charlie Kingdom';font-size:14px;color:var(--navy);margin-bottom:8px">Add a user</div>
+     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+       <input type="email" id="nuEmail" placeholder="Email">
+       <input type="text" id="nuPw" placeholder="Temporary password (min 8)">
+       <select id="nuRole" style="font-family:inherit;font-size:13px;padding:9px;border:1.5px solid var(--navy);border-radius:6px;background:#fff;color:var(--navy)"><option value="viewer">Viewer — read only</option><option value="admin">Admin — full editing</option></select>
+       <label style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--navy)"><input type="checkbox" id="nuMust" checked> Must change password on first login</label>
+     </div>
+     <div id="nuMsg" class="authmsg err"></div>
+     <div class="authactions"><button class="btn" id="nuBtn" onclick="addUser()">Add user</button></div>
+   </div>
+ </div>
+</div>
+<div id="gateView" style="display:none;position:fixed;inset:0;background:var(--cream);z-index:5200;align-items:center;justify-content:center;padding:24px;text-align:left"></div>
 <div id="selTray"></div>
 <div id="toasts"></div>
 <div id="mobtabs">
@@ -765,7 +792,7 @@ function selectAllFiltered(check){filtered().forEach(v=>{if(check)sel.add(v._i);
 function clearSel(){sel.clear();render();}
 function setBasketFee(v){basketFee=Math.max(0,+v||0);const e=document.getElementById('bkFee');if(e)e.value=basketFee;renderBasket();}
 function updateSelAll(){const el=document.getElementById('selAll');if(!el)return;const a=filtered();let c=0;a.forEach(v=>{if(sel.has(v._i))c++;});el.checked=a.length>0&&c===a.length;el.indeterminate=c>0&&c<a.length;}
-function persistSourcesIfTour(){const t=activeTourObj();if(t&&sbc){t.sources=JSON.parse(JSON.stringify(sources));sbc.from('tours').update({sources}).eq('id',t.id).then(r=>{if(r&&r.error)console.warn('save sources',r.error);});}}
+function persistSourcesIfTour(){if(!EDIT)return;const t=activeTourObj();if(t&&sbc){t.sources=JSON.parse(JSON.stringify(sources));sbc.from('tours').update({sources}).eq('id',t.id).then(r=>{if(r&&r.error)console.warn('save sources',r.error);});}}
 function renderBasket(){if(!document.getElementById('bkN'))return;const tour=activeTourObj();
  let n=0,elig=0,sub=0,child=0,gross=0;const seen=new Set();const stateSub={};
  if(tour){tourVenues.forEach(tv=>{const v=tv.v;if(!v)return;n++;const fee=tv.fee||0;gross+=fee;const k=areaCode(v);if(k!=null&&!seen.has(k)){seen.add(k);child+=v.cChild||0;}
@@ -907,14 +934,14 @@ function renderTray(){const el=document.getElementById('selTray');if(!el)return;
   el.innerHTML=`<span class="trayname" title="${esc((co?co.name+' · ':'')+t0.name)}">${esc((co?co.name+' · ':'')+t0.name)}</span>
    <span style="margin-left:auto"></span>
    <button class="traybtn" onclick="createTourReport()" title="Tour report (PDF)">Report ▸</button>
-   ${SESSION?`<button class="traybtn" onclick="editTour()" title="Rename this tour">✎</button><button class="traybtn" onclick="deleteTour()" title="Delete this tour">🗑</button>`:''}
+   ${EDIT?`<button class="traybtn" onclick="editTour()" title="Rename this tour">✎</button><button class="traybtn" onclick="deleteTour()" title="Delete this tour">🗑</button>`:''}
    <button class="trayclear" onclick="exitTour()" title="Deactivate this tour and restore your previous model">✕ Exit</button>`;
   el.classList.add('on');return;}
  if(!sel.size||!explorer){el.classList.remove('on');return;}
  let n=0,sub=0,child=0;const seen=new Set();
  sel.forEach(i=>{const v=V[i];if(!v)return;n++;const k=areaCode(v);if(k!=null&&!seen.has(k)){seen.add(k);child+=v.cChild||0;}if(v.cSub>0)sub+=basketFee*v.cSub;});
  const t=activeTourObj();
- const addAct=(t&&SESSION)?"addSelectedToTour()":"openDock('tour',true)";
+ const addAct=(t&&EDIT)?"addSelectedToTour()":"openDock('tour',true)";
  el.innerHTML=`<b>${n}</b> venue${n!=1?'s':''} selected · subsidy ${fmt$(sub)} · ${child.toLocaleString()} children
   <span style="margin-left:auto"></span>
   <button class="traybtn" onclick="openDock('basket',true)">Scenario ▸</button>
@@ -948,15 +975,15 @@ function selectCompany(id){curCompany=id?+id:null;curShow=null;curTour=null;rend
 function selectShow(id){curShow=id?+id:null;curTour=null;renderTourPanel();}
 function selectTour(id){curTour=id?+id:null;try{localStorage.setItem('ctii.tour',curTour||'');}catch(e){}loadTourVenues(curTour);const t=activeTourObj();if(t)applyTourViewDefaults();if(t&&t.model){applyTourModel();toast('“'+esc(t.name)+'” is now the active tour — its frozen model has been applied.');}else{renderTourPanel();if(t)toast('“'+esc(t.name)+'” is now the active tour.');}}
 function renderTourPanel(){const el=document.getElementById('tourBody');if(!el)return;
- if(!SESSION){el.innerHTML='<div class="muted" style="font-size:12px">Sign in to build and manage tours.</div>';return;}
+ const RO=!EDIT;
  const compOpts='<option value="">— select company —</option>'+COMPANIES.map(c=>`<option value="${c.id}" ${c.id===curCompany?'selected':''}>${esc(c.name)}</option>`).join('');
  const shows=SHOWS.filter(s=>s.company_id===curCompany).sort((a,b)=>(''+a.title).localeCompare(b.title));
  const showOpts='<option value="">— select work —</option>'+shows.map(s=>`<option value="${s.id}" ${s.id===curShow?'selected':''}>${esc(s.title)}</option>`).join('');
  const tours=TOURS.filter(t=>t.show_id===curShow).sort((a,b)=>(''+a.name).localeCompare(b.name));
  const tourOpts='<option value="">— select tour —</option>'+tours.map(t=>`<option value="${t.id}" ${t.id===curTour?'selected':''}>${esc(t.name)}</option>`).join('');
- let h=`<div class="tourrow"><select onchange="selectCompany(this.value)">${compOpts}</select><button class="iconbtn2" title="New company" onclick="addCompany()">＋</button>${curCompany?`<button class="iconbtn2" title="Edit company" onclick="editCompany()">✎</button><button class="iconbtn2" title="Delete company" onclick="deleteCompany()">✕</button>`:''}</div>`;
- h+=`<div class="tourrow"><select onchange="selectShow(this.value)" ${curCompany?'':'disabled'}>${showOpts}</select>${curCompany?`<button class="iconbtn2" title="New work" onclick="addShow()">＋</button>`:''}${curShow?`<button class="iconbtn2" title="Edit work" onclick="editShow()">✎</button><button class="iconbtn2" title="Delete work" onclick="deleteShow()">✕</button>`:''}</div>`;
- h+=`<div class="tourrow"><select onchange="selectTour(this.value)" ${curShow?'':'disabled'}>${tourOpts}</select>${curShow?`<button class="iconbtn2" title="New tour" onclick="addTour()">＋</button>`:''}${curTour?`<button class="iconbtn2" title="Edit tour" onclick="editTour()">✎</button><button class="iconbtn2" title="Delete tour" onclick="deleteTour()">✕</button>`:''}</div>`;
+ let h=`<div class="tourrow"><select onchange="selectCompany(this.value)">${compOpts}</select>${RO?'':`<button class="iconbtn2" title="New company" onclick="addCompany()">＋</button>`}${(!RO&&curCompany)?`<button class="iconbtn2" title="Edit company" onclick="editCompany()">✎</button><button class="iconbtn2" title="Delete company" onclick="deleteCompany()">✕</button>`:''}</div>`;
+ h+=`<div class="tourrow"><select onchange="selectShow(this.value)" ${curCompany?'':'disabled'}>${showOpts}</select>${(!RO&&curCompany)?`<button class="iconbtn2" title="New work" onclick="addShow()">＋</button>`:''}${(!RO&&curShow)?`<button class="iconbtn2" title="Edit work" onclick="editShow()">✎</button><button class="iconbtn2" title="Delete work" onclick="deleteShow()">✕</button>`:''}</div>`;
+ h+=`<div class="tourrow"><select onchange="selectTour(this.value)" ${curShow?'':'disabled'}>${tourOpts}</select>${(!RO&&curShow)?`<button class="iconbtn2" title="New tour" onclick="addTour()">＋</button>`:''}${(!RO&&curTour)?`<button class="iconbtn2" title="Edit tour" onclick="editTour()">✎</button><button class="iconbtn2" title="Delete tour" onclick="deleteTour()">✕</button>`:''}</div>`;
  const t=activeTourObj();
  if(t){const co=COMPANIES.find(c=>c.id===curCompany),sh=SHOWS.find(s=>s.id===curShow);
    const nV=tourVenues.length,nC=tourVenues.filter(x=>x.confirmed).length;
@@ -971,11 +998,11 @@ function renderTourPanel(){const el=document.getElementById('tourBody');if(!el)r
        <li class="${s4?'done':''} ${cur===4?'cur':''}" onclick="showPage('venues')"><span class="stn">${s4?'✓':'4'}</span>Fees &amp; confirm<span class="stsub">${nC} of ${nV} confirmed — in the list</span></li>
      </ul>
      <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
-       <button class="btn sec" style="padding:5px 9px;font-size:11.5px" onclick="saveModelToTour()">${s2?'Re-save current model to tour':'Save current model to tour'}</button>
+       ${RO?'':`<button class="btn sec" style="padding:5px 9px;font-size:11.5px" onclick="saveModelToTour()">${s2?'Re-save current model to tour':'Save current model to tour'}</button>`}
        <button class="btn sec" style="padding:5px 9px;font-size:11.5px;border-color:var(--pink);color:var(--pink)" onclick="exitTour()" title="Deactivate this tour and return to free modelling">✕ Exit tour mode</button>
      </div>
    </div>`;}
- else if(SESSION){h+=`<div class="muted" style="font-size:10.5px;margin-top:8px">No tour is active — you're in free modelling mode. Pick a company, work and tour above to start building.</div>`;}
+ else {h+=`<div class="muted" style="font-size:10.5px;margin-top:8px">No tour is active — you're in free modelling mode. Pick a company, work and tour above to start building.</div>`;}
  el.innerHTML=h;}
 function addCompany(){openModel('New company','','','Create',async(name,addr)=>{const {data,error}=await sbc.from('companies').insert({name,address:addr||null}).select('id,name,address').single();if(error){toast(error.message,null,true);return;}COMPANIES.push(data);COMPANIES.sort((a,b)=>(''+a.name).localeCompare(b.name));curCompany=data.id;curShow=curTour=null;renderTourPanel();},{sub:'Company name and (optionally) address.',namePlaceholder:'Company name',descPlaceholder:'Address (optional)'});}
 function editCompany(){const c=COMPANIES.find(x=>x.id===curCompany);if(!c)return;openModel('Edit company',c.name,c.address||'','Save',async(name,addr)=>{const {error}=await sbc.from('companies').update({name,address:addr||null}).eq('id',c.id);if(error){toast(error.message,null,true);return;}c.name=name;c.address=addr;COMPANIES.sort((a,b)=>(''+a.name).localeCompare(b.name));renderTourPanel();},{sub:'Company name and address.',namePlaceholder:'Company name',descPlaceholder:'Address (optional)'});}
@@ -1001,13 +1028,13 @@ function openPickModel(){const t=activeTourObj();if(!t){toast('Select a tour fir
  document.getElementById('pickmodal').classList.add('open');}
 function closePickModel(){document.getElementById('pickmodal').classList.remove('open');}
 async function pickModelApply(id){applyModel(id);await saveModelToTour();closePickModel();}
-async function saveModelToTour(){const t=activeTourObj();if(!t){toast('Select a tour first.',null,true);return;}const {error}=await sbc.from('tours').update({model:MODEL,sources:sources}).eq('id',t.id);if(error){toast(error.message,null,true);return;}t.model=JSON.parse(JSON.stringify(MODEL));t.sources=JSON.parse(JSON.stringify(sources));renderTourPanel();renderContext();toast('Model frozen to “'+esc(t.name)+'”.');}
+async function saveModelToTour(){if(!EDIT){toast('Only admins can change tours.',null,true);return;}const t=activeTourObj();if(!t){toast('Select a tour first.',null,true);return;}const {error}=await sbc.from('tours').update({model:MODEL,sources:sources}).eq('id',t.id);if(error){toast(error.message,null,true);return;}t.model=JSON.parse(JSON.stringify(MODEL));t.sources=JSON.parse(JSON.stringify(sources));renderTourPanel();renderContext();toast('Model frozen to “'+esc(t.name)+'”.');}
 // ---------- tour venues ----------
 let tourVenues=[];
 async function loadTourVenues(tourId){tourVenues=[];if(tourId&&sbc){const {data,error}=await sbc.from('tour_venues').select('id,venue_id,fee,subsidy_confirmed').eq('tour_id',tourId);
  if(error)console.warn(error);else tourVenues=(data||[]).map(r=>{const v=V.find(x=>x.id===r.venue_id);return v?{id:r.id,venue_id:r.venue_id,fee:r.fee,confirmed:r.subsidy_confirmed,v}:null;}).filter(Boolean);}
  renderTourVenues();renderTourBar();renderTourPanel();renderBasket();if(curPage==='map'&&map)paintMarkers();}
-async function addSelectedToTour(){const t=activeTourObj();if(!t){toast('Select a tour in the Tour panel first.',null,true);openDock('tour',true);return;}if(!sel.size){toast('Tick some venues in the list first.',null,true);return;}
+async function addSelectedToTour(){if(!EDIT){toast('Only admins can build tours.',null,true);return;}const t=activeTourObj();if(!t){toast('Select a tour in the Tour panel first.',null,true);openDock('tour',true);return;}if(!sel.size){toast('Tick some venues in the list first.',null,true);return;}
  const have=new Set(tourVenues.map(x=>x.venue_id));
  const rows=[...sel].map(i=>V[i]).filter(v=>v&&v.id&&!have.has(v.id)).map(v=>({tour_id:t.id,venue_id:v.id,fee:t.default_fee||basketFee,subsidy_confirmed:v.cTier==='High'}));
  if(!rows.length){toast('Those venues are already on this tour.',null,true);return;}
@@ -1027,7 +1054,7 @@ function setTvFilter(which,v){if(which==='tier')tvfTier=v;else if(which==='state
 function tvRow(x){const v=x.v;const amt=(x.confirmed&&v.cSub>0)?(x.fee||0)*v.cSub:0;
  return `<tr><td>${esc(v.name)}</td><td>${esc(v.state||'')}</td><td><span class="chip tier-${v.cTier}" style="font-size:9px;padding:1px 6px">${v.cTier}</span></td><td class="center">${v.cIndex!=null?v.cIndex.toFixed(1):'—'}</td><td><span class="tvfee">$<input type="number" value="${x.fee||0}" step="500" min="0" onchange="setTourVenueFee(${x.id},this.value)"></span></td><td class="center"><input type="checkbox" ${x.confirmed?'checked':''} onchange="toggleTourVenueConfirmed(${x.id},this.checked)"></td><td class="right">${amt?fmt$(amt):'–'}</td><td><button class="srcx" onclick="removeTourVenue(${x.id})" title="Remove from tour">✕</button></td></tr>`;}
 function renderTourVenues(){const el=document.getElementById('tourVenuesBody');if(!el)return;const t=activeTourObj();
- if(!SESSION){el.innerHTML='<div class="muted" style="font-size:12px">Sign in to manage tour venues.</div>';return;}
+
  if(!t){el.innerHTML='';return;}
  const T=tourTotals();
  let h=`<div class="muted" style="font-size:11px;margin-bottom:6px">${tourVenues.length} venue${tourVenues.length!=1?'s':''} on this tour · ${T.conf} with confirmed subsidy</div>`;
@@ -1376,26 +1403,129 @@ function tvDragY(kind,ev){ev.preventDefault();ev.stopPropagation();const track=d
  document.addEventListener('pointermove',move);document.addEventListener('pointerup',up);move(ev);}
 // ---------- auth + venue editing ----------
 const sbc=window.supabase?window.supabase.createClient(SB_URL,SB_KEY):null;
-let SESSION=null, editingId=null, editData=null;
+let SESSION=null, PROFILE=null, EDIT=false, editingId=null, editData=null, _booted=false, _recovery=false;
+function authToken(){return SESSION?SESSION.access_token:SB_KEY;}
+function refreshSBH(){SBH.Authorization='Bearer '+authToken();}
 function renderAuth(){const el=document.getElementById('authbox');if(!el)return;
- if(SESSION){el.innerHTML=`<b style="font-size:13px">✎ Edit mode</b><span style="text-transform:none;letter-spacing:0;color:#fff;font-size:11px">${SESSION.user.email}</span><button class="linkbtn" onclick="signOut()">Sign out</button>`;}
- else{el.innerHTML=`<button class="linkbtn" onclick="showSignin()">Sign in to edit</button>`;}}
-function showSignin(){const m=document.getElementById('authmodal');if(!m)return;m.classList.add('open');setAuthMsg('',false);const e=document.getElementById('authemail');if(e){e.value='';setTimeout(()=>e.focus(),40);}}
-function closeSignin(){const m=document.getElementById('authmodal');if(m)m.classList.remove('open');}
-function setAuthMsg(t,err){const el=document.getElementById('authmsg');if(!el)return;el.textContent=t;el.className='authmsg '+(err?'err':'ok');}
-function sendMagicLink(){if(!sbc){setAuthMsg('Auth library not loaded — check your connection.',true);return;}
- const email=(document.getElementById('authemail').value||'').trim();
- if(!email||!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){setAuthMsg('Please enter a valid email address.',true);return;}
- const btn=document.getElementById('authsend');btn.disabled=true;btn.textContent='Sending…';
- sbc.auth.signInWithOtp({email,options:{shouldCreateUser:false,emailRedirectTo:location.origin+location.pathname}}).then(({error})=>{
-   btn.disabled=false;btn.textContent='Send link';
-   if(error){setAuthMsg(error.message,true);}else{setAuthMsg('Link sent. Check your email and open it on this device.',false);}
- });}
-async function signOut(){if(sbc)await sbc.auth.signOut();SESSION=null;editingId=null;renderAuth();render();}
-function initAuth(){if(!sbc){renderAuth();return;}
- sbc.auth.getSession().then(({data})=>{SESSION=data.session;renderAuth();if(V.length)render();});
- sbc.auth.onAuthStateChange((_e,s)=>{SESSION=s;renderAuth();if(V.length)render();});}
-async function editVenue(i){if(!SESSION){showSignin();return;}editingId=i;editData=null;render();
+ if(SESSION){el.innerHTML=`<div class="repmenuwrap"><button class="iconbtn" style="width:36px;height:30px;font-size:15px" title="Menu" onclick="event.stopPropagation();toggleUserMenu()">☰</button>
+  <div class="repmenu" id="usermenu" style="min-width:210px">
+    <div style="padding:8px 10px 4px;font-size:11px;color:var(--slate)">${esc(PROFILE&&PROFILE.name?PROFILE.name:SESSION.user.email)}${EDIT?' · <b style="color:var(--pink)">Admin</b>':' · viewer'}</div>
+    <button onclick="closeUserMenu();openProfile()">Profile<span class="rm-sub">name &amp; password</span></button>
+    ${EDIT?'<button onclick="closeUserMenu();openUsers()">Users<span class="rm-sub">add people &amp; set roles</span></button>':''}
+    <button onclick="closeUserMenu();signOut()">Log out</button>
+  </div></div>`;}
+ else el.innerHTML='';}
+function toggleUserMenu(){const m=document.getElementById('usermenu');if(m)m.classList.toggle('open');}
+function closeUserMenu(){const m=document.getElementById('usermenu');if(m)m.classList.remove('open');}
+document.addEventListener('click',e=>{if(!e.target.closest('#authbox'))closeUserMenu();});
+// ---------- gate ----------
+function gateHTML(inner){return `<div style="max-width:400px;width:100%"><div style="font-family:'Charlie Kingdom';font-size:26px;color:var(--navy);margin-bottom:4px">Children's Theatre <span style="color:var(--pink)">Impact</span> Index</div>${inner}</div>`;}
+function showGate(mode,msg){const g=document.getElementById('gateView');const l=document.getElementById('loading');if(l)l.style.display='none';
+ if(!mode){g.style.display='none';return;}
+ g.style.display='flex';
+ if(mode==='login')g.innerHTML=gateHTML(`
+   <p style="font-size:13px;color:var(--slate);margin:0 0 16px">Sign in to continue. Access is by invitation — contact the NCTI team if you need an account.</p>
+   <input type="email" id="gEmail" placeholder="Email" autocomplete="username" style="width:100%;font-family:inherit;font-size:14px;padding:11px 12px;border:1.5px solid var(--navy);border-radius:7px;margin-bottom:8px" onkeydown="if(event.key==='Enter')doLogin()">
+   <input type="password" id="gPw" placeholder="Password" autocomplete="current-password" style="width:100%;font-family:inherit;font-size:14px;padding:11px 12px;border:1.5px solid var(--navy);border-radius:7px" onkeydown="if(event.key==='Enter')doLogin()">
+   <div id="gMsg" class="authmsg err" style="min-height:18px">${msg||''}</div>
+   <button class="btn" id="gBtn" style="width:100%;padding:11px" onclick="doLogin()">Sign in</button>
+   <div style="margin-top:10px;text-align:center"><a style="font-size:11.5px;color:var(--slate);cursor:pointer;text-decoration:underline" onclick="forgotPw()">Forgotten your password?</a></div>`);
+ else if(mode==='pending')g.innerHTML=gateHTML(`
+   <p style="font-size:13px;color:var(--slate)">Your account <b>${esc(SESSION.user.email)}</b> is awaiting approval. An administrator needs to grant you access.</p>
+   <button class="btn sec" style="margin-top:10px" onclick="signOut()">Log out</button>`);
+ else if(mode==='forcepw')g.innerHTML=gateHTML(`
+   <p style="font-size:13px;color:var(--slate);margin:0 0 14px">${_recovery?'Set a new password to continue.':'Please set a new password before continuing.'}</p>
+   <input type="password" id="gPw1" placeholder="New password (min 8 characters)" autocomplete="new-password" style="width:100%;font-family:inherit;font-size:14px;padding:11px 12px;border:1.5px solid var(--navy);border-radius:7px;margin-bottom:8px">
+   <input type="password" id="gPw2" placeholder="Repeat new password" autocomplete="new-password" style="width:100%;font-family:inherit;font-size:14px;padding:11px 12px;border:1.5px solid var(--navy);border-radius:7px" onkeydown="if(event.key==='Enter')doForcePw()">
+   <div id="gMsg" class="authmsg err" style="min-height:18px"></div>
+   <button class="btn" id="gBtn" style="width:100%;padding:11px" onclick="doForcePw()">Set password</button>`);}
+async function doLogin(){const email=(document.getElementById('gEmail').value||'').trim(),pw=document.getElementById('gPw').value;
+ const b=document.getElementById('gBtn');b.disabled=true;b.textContent='Signing in…';
+ const {error}=await sbc.auth.signInWithPassword({email,password:pw});
+ if(error){b.disabled=false;b.textContent='Sign in';document.getElementById('gMsg').textContent=error.message;}}
+async function forgotPw(){const email=(document.getElementById('gEmail').value||'').trim();
+ if(!email){document.getElementById('gMsg').textContent='Type your email above first, then click again.';return;}
+ const {error}=await sbc.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+ document.getElementById('gMsg').textContent=error?error.message:'Reset link sent — check your email.';}
+async function doForcePw(){const p1=document.getElementById('gPw1').value,p2=document.getElementById('gPw2').value;
+ if(p1.length<8){document.getElementById('gMsg').textContent='Password must be at least 8 characters.';return;}
+ if(p1!==p2){document.getElementById('gMsg').textContent='Passwords do not match.';return;}
+ const b=document.getElementById('gBtn');b.disabled=true;b.textContent='Saving…';
+ const {error}=await sbc.auth.updateUser({password:p1});
+ if(error){b.disabled=false;b.textContent='Set password';document.getElementById('gMsg').textContent=error.message;return;}
+ _recovery=false;
+ if(PROFILE&&PROFILE.must_change_password){await sbc.from('profiles').update({must_change_password:false}).eq('id',SESSION.user.id);PROFILE.must_change_password=false;}
+ gate();toast('Password updated.');}
+async function loadProfile(){PROFILE=null;EDIT=false;if(!SESSION)return;
+ try{const {data}=await sbc.from('profiles').select('id,email,name,role,must_change_password').eq('id',SESSION.user.id).single();
+  PROFILE=data||null;EDIT=!!(PROFILE&&PROFILE.role==='admin');}catch(e){}}
+async function gate(){refreshSBH();
+ if(!SESSION){showGate('login');renderAuth();return;}
+ await loadProfile();renderAuth();
+ if(!PROFILE){showGate('pending');return;}
+ if(_recovery||PROFILE.must_change_password){showGate('forcepw');return;}
+ showGate(null);
+ if(!_booted){_booted=true;document.getElementById('loading').style.display='flex';boot();}
+ else render();}
+async function signOut(){if(sbc)await sbc.auth.signOut();SESSION=null;PROFILE=null;EDIT=false;editingId=null;curTour=null;location.reload();}
+function initAuth(){if(!sbc){showGate('login','Auth library failed to load — check your connection.');return;}
+ sbc.auth.getSession().then(({data})=>{SESSION=data.session;gate();});
+ sbc.auth.onAuthStateChange((ev,s)=>{const had=!!SESSION;SESSION=s;refreshSBH();
+  if(ev==='PASSWORD_RECOVERY')_recovery=true;
+  if(!!s!==had||ev==='PASSWORD_RECOVERY'||ev==='SIGNED_IN')gate();});}
+// ---------- profile modal ----------
+function openProfile(){const m=document.getElementById('profilemodal');
+ document.getElementById('pfName').value=(PROFILE&&PROFILE.name)||'';
+ document.getElementById('pfEmail').textContent=SESSION.user.email;
+ document.getElementById('pfPw1').value='';document.getElementById('pfPw2').value='';
+ document.getElementById('pfMsg').textContent='';m.classList.add('open');}
+function closeProfile(){document.getElementById('profilemodal').classList.remove('open');}
+async function saveProfile(){const name=document.getElementById('pfName').value.trim();
+ const p1=document.getElementById('pfPw1').value,p2=document.getElementById('pfPw2').value;const msg=document.getElementById('pfMsg');
+ if(p1||p2){if(p1.length<8){msg.textContent='Password must be at least 8 characters.';return;}if(p1!==p2){msg.textContent='Passwords do not match.';return;}
+  const {error}=await sbc.auth.updateUser({password:p1});if(error){msg.textContent=error.message;return;}}
+ if(PROFILE&&name!==(PROFILE.name||'')){const {error}=await sbc.from('profiles').update({name}).eq('id',SESSION.user.id);if(error){msg.textContent=error.message;return;}PROFILE.name=name;}
+ closeProfile();renderAuth();toast('Profile saved.');}
+// ---------- users admin ----------
+let USERS=[];
+async function openUsers(){if(!EDIT)return;document.getElementById('usersmodal').classList.add('open');await loadUsers();}
+function closeUsers(){document.getElementById('usersmodal').classList.remove('open');}
+async function loadUsers(){const box=document.getElementById('usersList');box.innerHTML='<div class="muted">Loading…</div>';
+ const {data,error}=await sbc.from('profiles').select('id,email,name,role,must_change_password,created_at').order('created_at');
+ if(error){box.innerHTML='<div class="authmsg err">'+esc(error.message)+'</div>';return;}
+ USERS=data||[];
+ box.innerHTML=USERS.map(u=>`<div class="userrow">
+   <div class="ur-main"><b>${esc(u.name||u.email)}</b><span class="muted" style="font-size:11px">${esc(u.email)}${u.must_change_password?' · must change password':''}</span></div>
+   <select onchange="setUserRole('${u.id}',this.value)" ${u.id===SESSION.user.id?'disabled title="You cannot change your own role"':''}>
+     <option value="viewer" ${u.role==='viewer'?'selected':''}>Viewer</option>
+     <option value="admin" ${u.role==='admin'?'selected':''}>Admin</option>
+   </select>
+   <button class="iconbtn" title="Send password reset email" onclick="resetUserPw('${esc(u.email)}')">✉</button>
+   <button class="iconbtn" title="Revoke access" onclick="revokeUser('${u.id}','${esc(u.email)}')" ${u.id===SESSION.user.id?'disabled':''}>✕</button>
+ </div>`).join('')||'<div class="muted">No users yet.</div>';}
+async function setUserRole(id,role){const {error}=await sbc.from('profiles').update({role}).eq('id',id);
+ if(error){toast(error.message,null,true);}else toast('Role updated.');loadUsers();}
+async function resetUserPw(email){const {error}=await sbc.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+ toast(error?error.message:'Reset email sent to '+email,null,!!error);}
+function revokeUser(id,email){openConfirm('Revoke access?','“'+email+'” will no longer be able to sign in to the Index. You can re-add them later.','Revoke',async()=>{const {error}=await sbc.from('profiles').delete().eq('id',id);if(error){toast(error.message,null,true);return;}toast('Access revoked for '+email);loadUsers();});}
+async function addUser(){const email=(document.getElementById('nuEmail').value||'').trim();
+ const pw=document.getElementById('nuPw').value,role=document.getElementById('nuRole').value,mustCh=document.getElementById('nuMust').checked;
+ const msg=document.getElementById('nuMsg');msg.textContent='';
+ if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){msg.textContent='Enter a valid email.';return;}
+ if(pw.length<8){msg.textContent='Temporary password must be at least 8 characters.';return;}
+ const b=document.getElementById('nuBtn');b.disabled=true;b.textContent='Creating…';
+ try{
+  const tmp=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
+  const {data,error}=await tmp.auth.signUp({email,password:pw});
+  if(error)throw error;
+  const uid=data.user&&data.user.id;if(!uid)throw new Error('User was not created — check that sign-ups are enabled in Supabase Auth settings.');
+  const {error:e2}=await sbc.from('profiles').insert({id:uid,email,role,must_change_password:mustCh});
+  if(e2)throw e2;
+  document.getElementById('nuEmail').value='';document.getElementById('nuPw').value='';
+  toast('User created. Give them their email + temporary password.');loadUsers();
+ }catch(e){msg.textContent=e.message;}
+ b.disabled=false;b.textContent='Add user';}
+async function editVenue(i){if(!EDIT)return;editingId=i;editData=null;render();
  const {data,error}=await sbc.from('venues').select('id,name,state,status,postcode,lat,lng,active,notes').eq('id',V[i].id).single();
  if(error){toast('Could not load venue: '+error.message,null,true);editingId=null;render();return;}
  editData=data;render();}
@@ -1437,7 +1567,7 @@ function renderModels(){const el=document.getElementById('savedmodels');if(!el)r
  if(!MODELS.length)h+='<span class="muted" style="font-size:11px;margin-right:4px">No saved models yet.</span>';
  MODELS.forEach(m=>{const on=modelEq(m.config);
   const tip='Created '+(m.date||'—')+(m.description?('\n\n'+m.description):'');
-  h+=`<span class="modelchip ${on?'on':''}"><button class="modelapply" onclick="applyModel(${m.id})" title="Apply: ${esc(m.name)}">${esc(m.name)}</button><span class="modelicons2"><span class="modelinfo" title="${esc(tip)}">ⓘ</span>${SESSION?`<button title="Update to current settings" onclick="event.stopPropagation();updateModelToCurrent(${m.id})">⟳</button><button title="Edit name &amp; description" onclick="event.stopPropagation();renameModel(${m.id})">✎</button><button title="Delete" onclick="event.stopPropagation();deleteModel(${m.id})">✕</button>`:''}</span></span>`;});
+  h+=`<span class="modelchip ${on?'on':''}"><button class="modelapply" onclick="applyModel(${m.id})" title="Apply: ${esc(m.name)}">${esc(m.name)}</button><span class="modelicons2"><span class="modelinfo" title="${esc(tip)}">ⓘ</span>${EDIT?`<button title="Update to current settings" onclick="event.stopPropagation();updateModelToCurrent(${m.id})">⟳</button><button title="Edit name &amp; description" onclick="event.stopPropagation();renameModel(${m.id})">✎</button><button title="Delete" onclick="event.stopPropagation();deleteModel(${m.id})">✕</button>`:''}</span></span>`;});
  h+=`<button class="preset" style="border-style:dashed;align-self:flex-start" onclick="saveCurrentModel()">＋ Save current</button>`;
  el.innerHTML=h;}
 function applyModel(id){const m=MODELS.find(x=>x.id===id);if(!m||!m.config)return;const c=m.config;
@@ -1448,15 +1578,15 @@ function applyModel(id){const m=MODELS.find(x=>x.id===id);if(!m||!m.config)retur
  const gv=(i,v)=>{const e=document.getElementById(i);if(e&&v!=null&&!isNaN(v))e.value=v;};
  gv('tHigh',MODEL.thr.high);gv('tMed',MODEL.thr.med);gv('sFloor',Math.round(MODEL.sub.floor*100));gv('sCeil',Math.round(MODEL.sub.ceil*100));gv('sFull',MODEL.sub.full);
  buildInd();updateSubnote();recompute();render();}
-function saveCurrentModel(){if(!SESSION){showSignin();return;}openModel('Save model','','','Save',doSaveModel);}
+function saveCurrentModel(){if(!EDIT){toast('Only admins can save models.',null,true);return;}openModel('Save model','','','Save',doSaveModel);}
 async function doSaveModel(name,desc){const {data,error}=await sbc.from('models').insert({name:name,description:desc||null,config:MODEL}).select('id,name,description,config,created_at').single();
  if(error){toast('Save failed: '+error.message,null,true);return;}
  MODELS.push({id:data.id,name:data.name,description:data.description,config:data.config,date:fmtDate(data.created_at)});MODELS.sort((a,b)=>(''+a.name).localeCompare(b.name));renderModels();}
-function renameModel(id){if(!SESSION){showSignin();return;}const m=MODELS.find(x=>x.id===id);if(!m)return;
+function renameModel(id){if(!EDIT)return;const m=MODELS.find(x=>x.id===id);if(!m)return;
  openModel('Edit model',m.name,m.description||'','Save',async (name,desc)=>{const {error}=await sbc.from('models').update({name,description:desc||null}).eq('id',id);if(error){toast(error.message,null,true);return;}m.name=name;m.description=desc;MODELS.sort((a,b)=>(''+a.name).localeCompare(b.name));renderModels();});}
-function updateModelToCurrent(id){if(!SESSION){showSignin();return;}const m=MODELS.find(x=>x.id===id);if(!m)return;
+function updateModelToCurrent(id){if(!EDIT)return;const m=MODELS.find(x=>x.id===id);if(!m)return;
  openConfirm('Update saved model?','Overwrite “'+m.name+'” with the model settings currently on screen?','Update',async ()=>{const {data,error}=await sbc.from('models').update({config:MODEL}).eq('id',id).select('config').single();if(error){toast(error.message,null,true);return;}m.config=data.config;renderModels();});}
-function deleteModel(id){if(!SESSION){showSignin();return;}const m=MODELS.find(x=>x.id===id);if(!m)return;
+function deleteModel(id){if(!EDIT)return;const m=MODELS.find(x=>x.id===id);if(!m)return;
  openConfirm('Delete model?','This removes “'+m.name+'” for everyone. This cannot be undone.','Delete',async ()=>{const {error}=await sbc.from('models').delete().eq('id',id);if(error){toast(error.message,null,true);return;}MODELS=MODELS.filter(x=>x.id!==id);renderModels();});}
 // naming / confirm modal
 let _mmCb=null,_mmMode='model';
@@ -1575,7 +1705,7 @@ let charts={};
 function applyTourViewDefaults(){groupBy='state';collapsedGroups.clear();pageSize=Infinity;pageNum=1;const gb=document.getElementById('groupBy');if(gb)gb.value='state';}
 function resetTourViewDefaults(){groupBy='';collapsedGroups.clear();pageSize=20;pageNum=1;const gb=document.getElementById('groupBy');if(gb)gb.value='';}
 function tvOf(v){return tourVenues.find(x=>x.venue_id===v.id);}
-async function toggleVenueOnTour(i){const t=activeTourObj();if(!t||!SESSION)return;const v=V[i];const tv=tvOf(v);
+async function toggleVenueOnTour(i){const t=activeTourObj();if(!t||!EDIT)return;const v=V[i];const tv=tvOf(v);
  if(tv){await removeTourVenue(tv.id);}
  else{const {data,error}=await sbc.from('tour_venues').insert({tour_id:t.id,venue_id:v.id,fee:t.default_fee||basketFee,subsidy_confirmed:v.cTier==='High'}).select('id').single();
   if(error){toast(error.message,null,true);return;}
@@ -1598,12 +1728,12 @@ function render(){const a=filtered();const _cc=document.getElementById('count');
    ${tourActive?`<div class="tstat" title="Confirmed subsidy across the active tour."><div class="tsv" style="color:var(--pink)">${fmt$(tourTotals().sub)}</div><div class="tsl">Tour subsidy</div></div>`:''}`;
  document.getElementById('thead').innerHTML='<th style="width:26px;cursor:default"><input type="checkbox" id="selAll" onclick="selectAllFiltered(this.checked)" title="Select all in this view"></th>'+curCols.map(c=>`<th onclick="setSort('${c[0]}')">${c[1]}${sortKey===c[0]?(sortDir<0?' ▾':' ▴'):''}</th>`).join('');
  const tw=document.querySelector('#page-venues .tablewrap');const total=a.length;
- const tourCells=v=>{if(!tourActive)return '';const tv=tvOf(v);const dis=SESSION?'':'disabled';
+ const tourCells=v=>{if(!tourActive)return '';const tv=tvOf(v);const dis=EDIT?'':'disabled';
    const amt=(tv&&tv.confirmed&&v.cSub>0)?fmt$((tv.fee||0)*v.cSub):'';
    return `<td class="center" onclick="event.stopPropagation()"><input type="checkbox" ${tv?'checked':''} ${dis} title="${tv?'Remove from':'Add to'} ${esc(tourActive.name)}" onclick="event.stopPropagation();toggleVenueOnTour(${v._i})"></td>`+
     `<td class="center" onclick="event.stopPropagation()">${tv?`<span class="tvfee">$<input type="number" value="${tv.fee||0}" step="500" min="0" ${dis} onchange="setTourVenueFee(${tv.id},this.value)"></span>`:'<span class="muted">–</span>'}</td>`+
     `<td onclick="event.stopPropagation()" style="white-space:nowrap">${tv?`<input type="checkbox" ${tv.confirmed?'checked':''} ${dis} title="Subsidy confirmed" onchange="toggleTourVenueConfirmed(${tv.id},this.checked)"> <b style="color:var(--pink)">${amt||'–'}</b>`:'<span class="muted">–</span>'}</td>`;};
- const rowHtml=v=>`<tr onclick="openD(${v._i})" class="${tourActive&&tvOf(v)?'ontourrow':''}"><td class="center" onclick="event.stopPropagation()"><input type="checkbox" ${sel.has(v._i)?'checked':''} onclick="event.stopPropagation();toggleSel(${v._i})"></td><td><b>${v.name}</b>${SESSION?` <button class="pencil" title="Edit venue" onclick="event.stopPropagation();editVenue(${v._i})">✎</button>`:''}</td>${tourCells(v)}<td>${v.state||''}</td><td style="font-size:11.5px">${v.status||''}</td><td>${(v.cRA||'').replace(' Australia','')}</td><td class="right">${v.cEm!=null?(+v.cEm).toFixed(1):''}</td><td class="center">${v.cDec??''}</td><td class="center"><b>${v.cIndex!=null?v.cIndex.toFixed(1):'—'}</b></td><td class="center"><span class="chip tier-${v.cTier}">${v.cTier}</span></td><td class="center">${v.cSub?Math.round(v.cSub*100)+'%':'–'}</td><td class="center"><span class="pill-${v.cElig}">${v.cElig}</span></td><td class="right">${v.cChild!=null?v.cChild.toLocaleString():''}</td></tr>`;
+ const rowHtml=v=>`<tr onclick="openD(${v._i})" class="${tourActive&&tvOf(v)?'ontourrow':''}"><td class="center" onclick="event.stopPropagation()"><input type="checkbox" ${sel.has(v._i)?'checked':''} onclick="event.stopPropagation();toggleSel(${v._i})"></td><td><b>${v.name}</b>${EDIT?` <button class="pencil" title="Edit venue" onclick="event.stopPropagation();editVenue(${v._i})">✎</button>`:''}</td>${tourCells(v)}<td>${v.state||''}</td><td style="font-size:11.5px">${v.status||''}</td><td>${(v.cRA||'').replace(' Australia','')}</td><td class="right">${v.cEm!=null?(+v.cEm).toFixed(1):''}</td><td class="center">${v.cDec??''}</td><td class="center"><b>${v.cIndex!=null?v.cIndex.toFixed(1):'—'}</b></td><td class="center"><span class="chip tier-${v.cTier}">${v.cTier}</span></td><td class="center">${v.cSub?Math.round(v.cSub*100)+'%':'–'}</td><td class="center"><span class="pill-${v.cElig}">${v.cElig}</span></td><td class="right">${v.cChild!=null?v.cChild.toLocaleString():''}</td></tr>`;
  if(groupBy){const ord={High:0,Medium:1,Low:2};
    const arr=a.slice().sort((x,y)=>groupBy==='tier'?((ord[x.cTier]??9)-(ord[y.cTier]??9)):(''+(x.state||'')).localeCompare(''+(y.state||'')));
    const groups={};arr.forEach(v=>{const gk=(groupBy==='tier'?v.cTier:v.state)||'—';(groups[gk]=groups[gk]||[]).push(v);});
@@ -1703,7 +1833,7 @@ function openD(i){curIdx=i;const v=V[i];const g=v[MODEL.geo];let den=activeKeys(
    <div style="display:flex;gap:12px;align-items:center;margin-bottom:6px"><div class="card" style="padding:10px 16px;text-align:center"><div class="disp" style="font-size:34px;color:${TIERCOL[v.cTier]}">${v.cIndex!=null?v.cIndex.toFixed(1):'—'}</div><div class="muted">Impact Index</div></div>
      <div><span class="chip tier-${v.cTier}" style="font-size:13px">${v.cTier} priority</span><br><br><span class="muted">Subsidy: </span><b>${v.cSub?Math.round(v.cSub*100)+'%':'none'}</b> · <span class="muted">Eligible: </span><b>${v.cElig}</b></div>
      <div style="margin-left:auto;text-align:center">${ausLocatorSVG(v)}<div class="muted" style="font-size:10px;margin-top:2px">Location in Australia</div></div></div>
-   ${SESSION?`<button class="btn sec" style="margin:8px 0 2px" onclick="closeD();editVenue(${i})">✎ Edit details</button>`:''}
+   ${EDIT?`<button class="btn sec" style="margin:8px 0 2px" onclick="closeD();editVenue(${i})">✎ Edit details</button>`:''}
    <div class="muted" style="margin:8px 0 2px">Model: <b>${MODEL.geo.toUpperCase()}</b>, weights normalised across active indicators</div>
    ${rows}
    <div class="formula"><div class="muted">Index under the current model</div><div style="margin-top:4px">Index = ${activeParts} = <span class="big" style="color:${TIERCOL[v.cTier]}">${v.cIndex!=null?v.cIndex.toFixed(1):'—'}</span></div></div>
@@ -1787,7 +1917,7 @@ async function boot(){
     sbAll('venue_full','*'),
     sbAll('sa2_scores','sa2_code,e2,d2,r2,e3,d3,r3,v2,v3,ch,hv'),
     sbOne('app_config?select=key,value'),
-    fetch(SB_URL+'/storage/v1/object/public/geo/sa2_boundaries.geojson').then(r=>{if(!r.ok)throw new Error('geojson → '+r.status);return r.json();})
+    fetch(SB_URL+'/storage/v1/object/authenticated/geo/sa2_boundaries.geojson',{headers:{Authorization:'Bearer '+authToken(),apikey:SB_KEY}}).then(r=>r.ok?r.json():fetch(SB_URL+'/storage/v1/object/public/geo/sa2_boundaries.geojson').then(r2=>{if(!r2.ok)throw new Error('geojson → '+r2.status);return r2.json();}))
   ]);
   V=venues; V.forEach((v,i)=>v._i=i); DATA.venues=V;
   SA2LOOK={}; scores.forEach(s=>{SA2LOOK[s.sa2_code]={e2:+s.e2,d2:+s.d2,r2:+s.r2,e3:+s.e3,d3:+s.d3,r3:+s.r3,v2:s.v2==null?null:+s.v2,v3:s.v3==null?null:+s.v3,ch:s.ch==null?null:+s.ch,hv:+s.hv};});
@@ -1803,5 +1933,4 @@ async function boot(){
  }
 }
 initAuth();
-boot();
 </script></body></html>
