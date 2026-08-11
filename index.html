@@ -715,6 +715,21 @@ body.tourmode #mapAllWrap{display:none;}
    <div class="authactions"><button class="btn sec" onclick="closeName()">Cancel</button><button class="btn" id="mm_ok" onclick="submitName()">Save</button></div>
  </div>
 </div>
+<div class="authmodal" id="newtourmodal" onclick="if(event.target===this)closeNewTour()">
+ <div class="authcard">
+   <button class="authx" onclick="closeNewTour()" title="Close">×</button>
+   <h2>New <span class="pink">tour</span></h2>
+   <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">
+     <select id="ntCompany" onchange="ntSyncWorks()" style="font-family:inherit;font-size:13px;padding:10px;border:1.5px solid var(--navy);border-radius:6px;background:#fff;color:var(--navy)"></select>
+     <input type="text" id="ntCompanyNew" placeholder="New company name" style="display:none">
+     <select id="ntWork" onchange="ntSyncWorkNew()" style="font-family:inherit;font-size:13px;padding:10px;border:1.5px solid var(--navy);border-radius:6px;background:#fff;color:var(--navy)"></select>
+     <input type="text" id="ntWorkNew" placeholder="New work / show title" style="display:none">
+     <input type="text" id="ntName" placeholder="Tour name, e.g. “2027 National Tour”" onkeydown="if(event.key==='Enter')createNewTour()">
+   </div>
+   <div id="ntMsg" class="authmsg err"></div>
+   <div class="authactions"><button class="btn sec" onclick="closeNewTour()">Cancel</button><button class="btn" id="ntBtn" onclick="createNewTour()">Create tour</button></div>
+ </div>
+</div>
 <div class="authmodal" id="pickmodal" onclick="if(event.target===this)closePickModel()">
  <div class="authcard">
    <button class="authx" onclick="closePickModel()" title="Close">×</button>
@@ -1202,6 +1217,44 @@ function tuChips(){let h='';
  if(tuConfOnly)h+=`<span class="fchip2" onclick="setTuFilter('conf',false)">Confirmed only ✕</span>`;
  return h;}
 function setTuSort(k){if(tuSortK===k)tuSortD*=-1;else{tuSortK=k;tuSortD=(['company','work','tour'].includes(k))?1:-1;}renderToursPage();}
+function openNewTour(){if(!EDIT)return;
+ const cs=document.getElementById('ntCompany');
+ cs.innerHTML='<option value="">— select company —</option>'+COMPANIES.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('')+'<option value="__new">＋ New company…</option>';
+ ntSyncWorks();document.getElementById('ntName').value='';document.getElementById('ntMsg').textContent='';
+ document.getElementById('ntCompanyNew').style.display='none';document.getElementById('ntWorkNew').style.display='none';
+ document.getElementById('newtourmodal').classList.add('open');}
+function closeNewTour(){document.getElementById('newtourmodal').classList.remove('open');}
+function ntSyncWorks(){const cid=document.getElementById('ntCompany').value;
+ document.getElementById('ntCompanyNew').style.display=cid==='__new'?'':'none';
+ const ws=document.getElementById('ntWork');
+ const shows=(cid&&cid!=='__new')?SHOWS.filter(x=>x.company_id===+cid):[];
+ ws.innerHTML='<option value="">— select work —</option>'+shows.map(x=>`<option value="${x.id}">${esc(x.title)}</option>`).join('')+'<option value="__new">＋ New work…</option>';
+ document.getElementById('ntWorkNew').style.display='none';}
+function ntSyncWorkNew(){document.getElementById('ntWorkNew').style.display=document.getElementById('ntWork').value==='__new'?'':'none';}
+async function createNewTour(){const msg=document.getElementById('ntMsg');msg.textContent='';
+ let cid=document.getElementById('ntCompany').value,wid=document.getElementById('ntWork').value;
+ const cNew=(document.getElementById('ntCompanyNew').value||'').trim(),wNew=(document.getElementById('ntWorkNew').value||'').trim(),name=(document.getElementById('ntName').value||'').trim();
+ if(!cid){msg.textContent='Pick a company (or create one).';return;}
+ if(cid==='__new'&&!cNew){msg.textContent='Type the new company name.';return;}
+ if(!wid){msg.textContent='Pick a work (or create one).';return;}
+ if(wid==='__new'&&!wNew){msg.textContent='Type the new work title.';return;}
+ if(!name){msg.textContent='Give the tour a name, e.g. “2027 National Tour”.';return;}
+ const b=document.getElementById('ntBtn');b.disabled=true;b.textContent='Creating…';
+ try{
+  if(cid==='__new'){const {data,error}=await sbc.from('companies').insert({name:cNew}).select('id,name,address').single();if(error)throw error;COMPANIES.push(data);COMPANIES.sort((a,b2)=>(''+a.name).localeCompare(b2.name));cid=data.id;}
+  if(wid==='__new'){const {data,error}=await sbc.from('shows').insert({company_id:+cid,title:wNew}).select('id,company_id,title').single();if(error)throw error;SHOWS.push(data);wid=data.id;}
+  const {data,error}=await sbc.from('tours').insert({show_id:+wid,name,default_fee:12500}).select('id,show_id,name,model,sources,default_fee').single();if(error)throw error;
+  TOURS.push(data);closeNewTour();renderToursPage();
+  toast('“'+esc(name)+'” created — click it in the list to start building.');
+ }catch(e){msg.textContent=e.message;}
+ b.disabled=false;b.textContent='Create tour';}
+function deleteTourById(id){if(!EDIT)return;const t=TOURS.find(x=>x.id===id);if(!t)return;
+ const sh=SHOWS.find(x=>x.id===t.show_id);const co=sh?COMPANIES.find(c=>c.id===sh.company_id):null;
+ openConfirm('Delete tour?','Deleting “'+((co?co.name+' · ':'')+t.name)+'” removes its venue list, fees and frozen model. This cannot be undone.','Delete',async()=>{
+  const {error}=await sbc.from('tours').delete().eq('id',id);if(error){toast(error.message,null,true);return;}
+  TOURS=TOURS.filter(x=>x.id!==id);ALLTV=ALLTV.filter(x=>x.tour_id!==id);
+  if(curTour===id){curTour=null;tourVenues=[];stagedModel=null;stagedSources=null;try{localStorage.setItem('ctii.tour','');}catch(e){}}
+  renderToursPage();render();toast('Tour deleted.');});}
 async function toursPageReport(){const id=tuTour?+tuTour:(curTour||0);
  if(!id){toast('Pick a tour first — use the Tour filter, or activate one from the list.',null,true);if(!tuFiltOpen)toggleTourFilters();return;}
  await openTourFromList(id);}
@@ -1240,6 +1293,7 @@ function renderToursPage(){const head=document.getElementById('toursHead');if(!h
     </div>
     <button class="btn sec" style="padding:6px 12px;font-size:12px" onclick="toggleTourFilters()">Filters${tuFiltCount()?' ('+tuFiltCount()+')':''}</button>
     <button class="btn" style="padding:6px 14px;font-size:12px" onclick="toursPageReport()">Report ▸</button>
+    ${EDIT?`<button class="btn" style="padding:6px 14px;font-size:12px;background:var(--pink);border-color:var(--pink)" onclick="openNewTour()">＋ New tour</button>`:''}
   </div>
   <div class="card" id="tourFilterCard" style="padding:10px 14px 12px;margin-bottom:18px;display:${tuFiltOpen?'block':'none'}">
     <div class="chead" style="cursor:default"><h3 style="margin:0">Filters</h3><span style="margin-left:auto;display:flex;gap:6px"><button class="iconbtn" title="Reset all filters" onclick="resetTuFilters()">⟳</button><button class="iconbtn" title="Close" onclick="toggleTourFilters()">✕</button></span></div>
@@ -1262,7 +1316,7 @@ function renderToursList(rows){const body=document.getElementById('toursBody');i
  const start=(tuSize===Infinity)?0:(tuPage-1)*tuSize;const end=(tuSize===Infinity)?total:Math.min(total,start+tuSize);const pageRows=rows.slice(start,end);
  let h=`<div class="card" style="overflow:hidden"><div class="tablewrap"><table class="tourstable"><thead><tr>${[['company','Company',''],['work','Work',''],['tour','Tour',''],['venues','Venues','center'],['confirmed','Subsidised','center'],['subsidy','Subsidy','right'],['presenter','Presenter','right'],['children','Children','center']].map(c=>`<th class="${c[2]}" style="cursor:pointer" onclick="setTuSort('${c[0]}')">${c[1]}${tuSortK===c[0]?(tuSortD<0?' ▾':' ▴'):''}</th>`).join('')}<th></th></tr></thead><tbody>`;
  if(!pageRows.length)h+='<tr><td colspan="9" style="padding:16px;color:var(--slate)">No tours match these filters.</td></tr>';
- pageRows.forEach(r=>{h+=`<tr onclick="activateTourFromList(${r.t.id})" style="cursor:pointer" title="Open as the active tour on the Venues tab"><td>${esc(r.co?r.co.name:'—')}</td><td>${esc(r.sh?r.sh.title:'—')}</td><td><b>${esc(r.t.name)}</b></td><td class="center">${r.a.venues}</td><td class="center">${r.a.confirmed}</td><td class="right" style="color:var(--pink);font-weight:700">${fmt$(r.a.subsidy)}</td><td class="right">${fmt$(r.a.gross-r.a.subsidy)}</td><td class="center" style="color:#118AB2">${r.a.child.toLocaleString()}</td><td class="center"><button class="btn sec" style="padding:3px 8px;font-size:11px" onclick="event.stopPropagation();openTourFromList(${r.t.id})">Report</button></td></tr>`;});
+ pageRows.forEach(r=>{h+=`<tr onclick="activateTourFromList(${r.t.id})" style="cursor:pointer" title="Open as the active tour on the Venues tab"><td>${esc(r.co?r.co.name:'—')}</td><td>${esc(r.sh?r.sh.title:'—')}</td><td><b>${esc(r.t.name)}</b></td><td class="center">${r.a.venues}</td><td class="center">${r.a.confirmed}</td><td class="right" style="color:var(--pink);font-weight:700">${fmt$(r.a.subsidy)}</td><td class="right">${fmt$(r.a.gross-r.a.subsidy)}</td><td class="center" style="color:#118AB2">${r.a.child.toLocaleString()}</td><td class="center" style="white-space:nowrap"><button class="btn sec" style="padding:3px 8px;font-size:11px" onclick="event.stopPropagation();openTourFromList(${r.t.id})">Report</button>${EDIT?`<button class="iconbtn" style="margin-left:6px" title="Delete this tour" onclick="event.stopPropagation();deleteTourById(${r.t.id})">🗑</button>`:''}</td></tr>`;});
  h+='</tbody></table></div></div>';
  const opts=[20,50,100].map(n=>`<option value="${n}" ${tuSize===n?'selected':''}>${n}</option>`).join('')+`<option value="all" ${tuSize===Infinity?'selected':''}>All</option>`;
  let pg='';if(pages>1){pg=`<div class="pbtns"><button onclick="tuGoto(1)" ${tuPage===1?'disabled':''}>« First</button><button onclick="tuGoto(${tuPage-1})" ${tuPage===1?'disabled':''}>‹ Prev</button><span style="padding:0 6px">Page <b>${tuPage}</b> of <b>${pages}</b></span><button onclick="tuGoto(${tuPage+1})" ${tuPage===pages?'disabled':''}>Next ›</button><button onclick="tuGoto(${pages})" ${tuPage===pages?'disabled':''}>Last »</button></div>`;}
