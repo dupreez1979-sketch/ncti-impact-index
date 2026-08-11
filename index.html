@@ -586,7 +586,6 @@ body.tourmode #mapAllWrap{display:none;}
 <div class="topstats kpirow" id="kpis"></div>
 <div class="xbar" id="exploreBar">
  <label id="groupByWrap" style="font-size:12.5px;color:var(--slate);font-weight:700">Group by <select id="groupBy" onchange="setGroup(this.value)" style="font-family:inherit;font-size:13px;padding:5px 7px;border:1.5px solid var(--navy);border-radius:5px;background:#fff;color:var(--navy)"><option value="">(none)</option><option value="state">State</option><option value="tier">Tier</option></select></label>
- <span id="tourFilterToggles" style="display:flex;gap:10px;align-items:center"></span>
  <span class="xspacer"></span>
  <div class="fchipbar" id="fchips"></div>
  <div class="viewswitch"><button data-view="venues" class="active" onclick="showPage('venues')">List</button><button data-view="map" onclick="showPage('map')">Map</button><button data-view="charts" onclick="showPage('charts')">Analysis</button></div>
@@ -603,6 +602,7 @@ body.tourmode #mapAllWrap{display:none;}
  <div class="fg"><label>Status</label><div class="ms" id="mStatus"></div></div>
  <div class="fg"><label>State</label><div class="ms" id="mState"></div></div>
  <div class="fg"><label>Remoteness</label><div class="ms" id="mRem"></div></div>
+ <div class="fg" id="fgTour" style="display:none"><label style="color:var(--pink)">Tour</label><div style="display:flex;flex-direction:column;gap:6px;padding-top:4px"><label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--pink);font-weight:700;text-transform:none;letter-spacing:0"><input type="checkbox" id="fTourOnlyCb" onchange="fTourOnly=this.checked;pageNum=1;render()"> On tour only</label><label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--pink);font-weight:700;text-transform:none;letter-spacing:0"><input type="checkbox" id="fSubOnlyCb" onchange="fSubOnly=this.checked;pageNum=1;render()"> Subsidised only</label></div></div>
  <div class="fg"><label>&nbsp;</label><button class="btn" onclick="toggleFilterDrawer()">Done</button></div>
  </div>
 </div>
@@ -1048,10 +1048,17 @@ function openPickModel(){const t=activeTourObj();if(!t){toast('Select a tour fir
    return `<button class="btn ${on?'':'sec'}" style="text-align:left;padding:9px 12px;font-size:13px;display:block;width:100%" onclick="pickModelApply(${m.id})"><b>${esc(m.name)}</b>${on?' — current':''}${m.description?`<span style="display:block;font-weight:400;font-size:11px;margin-top:2px;opacity:.8">${esc(m.description)}</span>`:''}</button>`;}).join(''):'<div class="muted">No saved models yet — build one in the Model panel and press “Save this model…”.</div>');
  document.getElementById('pickmodal').classList.add('open');}
 function closePickModel(){document.getElementById('pickmodal').classList.remove('open');}
-async function pickModelApply(id){applyModel(id);await saveModelToTour();closePickModel();}
-async function saveModelToTour(){if(!EDIT){toast('Only admins can change tours.',null,true);return;}const t=activeTourObj();if(!t){toast('Select a tour first.',null,true);return;}
- stagedModel=JSON.parse(JSON.stringify(MODEL));stagedSources=JSON.parse(JSON.stringify(sources));
- renderTourPanel();renderContext();renderTray();toast('Model staged for “'+esc(t.name)+'” — press Save to commit.');}
+async function pickModelApply(id){const t=activeTourObj();const m=MODELS.find(x=>x.id===id);if(!t||!m)return;
+ const curM=stagedModel||t.model;
+ const doIt=async()=>{applyModel(id);await saveModelToTour(true);closePickModel();};
+ if(curM&&!cfgEq(m.config,curM)){closePickModel();openConfirm('Change this tour’s model?','“'+t.name+'” currently uses a different frozen model. Applying “'+m.name+'” re-scores every venue and changes the subsidy amounts. You still need to press Save to commit.','Change model',doIt);return;}
+ doIt();}
+async function saveModelToTour(skipConfirm){if(!EDIT){toast('Only admins can change tours.',null,true);return;}const t=activeTourObj();if(!t){toast('Select a tour first.',null,true);return;}
+ const curM=stagedModel||t.model;
+ const doIt=()=>{stagedModel=JSON.parse(JSON.stringify(MODEL));stagedSources=JSON.parse(JSON.stringify(sources));
+  renderTourPanel();renderContext();renderTray();toast('Model staged for “'+esc(t.name)+'” — press Save to commit.');};
+ if(!skipConfirm&&curM&&!cfgEq(MODEL,curM)){openConfirm('Change this tour’s model?','“'+t.name+'” already has a frozen model. Replacing it re-scores every venue on the tour and changes the subsidy amounts. You still need to press Save to commit.','Change model',doIt);return;}
+ doIt();}
 // ---------- tour venues ----------
 let tourVenues=[];
 let tourBaseline=null,stagedModel=null,stagedSources=null;
@@ -1726,7 +1733,7 @@ function toggleMs(id,ev){ev.stopPropagation();document.querySelectorAll('.ms').f
 function msChange(id,key){const set=F[key];set.clear();document.getElementById(id).querySelectorAll('input:checked').forEach(c=>set.add(c.value));document.getElementById(id+'_lbl').textContent=set.size?set.size+' selected':'All';render();}
 document.addEventListener('click',e=>{if(!e.target.closest('.ms'))document.querySelectorAll('.ms').forEach(m=>m.classList.remove('open'));});
 function initFilters(){buildMulti('mTier','tier',['High','Medium','Low']);buildMulti('mIdx','idx',['0','1','2','3','4','5','6','7','8','9+']);buildMulti('mElig','elig',['Yes','No']);buildMulti('mStatus','status',uniq('status'));buildMulti('mState','state',uniq('state'));buildMulti('mRem','rem',['Major Cities of Australia','Inner Regional Australia','Outer Regional Australia','Remote Australia','Very Remote Australia']);}
-function resetF(){document.getElementById('q').value='';Object.values(F).forEach(s=>s.clear());document.querySelectorAll('.ms input:checked').forEach(c=>c.checked=false);document.querySelectorAll('.ms [id$=_lbl]').forEach(l=>l.textContent='All');render();}
+function resetF(){fTourOnly=false;fSubOnly=false;document.getElementById('q').value='';Object.values(F).forEach(s=>s.clear());document.querySelectorAll('.ms input:checked').forEach(c=>c.checked=false);document.querySelectorAll('.ms [id$=_lbl]').forEach(l=>l.textContent='All');render();}
 // ---- unified toolbar: chips, drawer, report menu ----
 const FMSID={tier:'mTier',idx:'mIdx',elig:'mElig',status:'mStatus',state:'mState',rem:'mRem'};
 const FLBL={tier:'Tier',idx:'Index',elig:'Eligible',status:'Status',state:'State',rem:'Remote'};
@@ -1737,6 +1744,8 @@ function renderFilterChips(){const el=document.getElementById('fchips');if(!el)r
  if(q)h+=`<span class="fchip2" onclick="clearQ()"><b>“${esc(q)}”</b> ✕</span>`;
  let n=q?1:0;
  Object.keys(F).forEach(k=>F[k].forEach(v=>{n++;const short=k==='rem'?String(v).replace(' Australia','').replace(' of','') : v;h+=`<span class="fchip2" onclick="removeFilterVal('${k}','${esc(v)}')">${FLBL[k]}: <b>${esc(short)}</b> ✕</span>`;}));
+ if(fTourOnly){n++;h+=`<span class="fchip2" style="border-color:var(--pink);color:var(--pink)" onclick="fTourOnly=false;render()">On tour only ✕</span>`;}
+ if(fSubOnly){n++;h+=`<span class="fchip2" style="border-color:var(--pink);color:var(--pink)" onclick="fSubOnly=false;render()">Subsidised only ✕</span>`;}
  if(n>1)h+=`<span class="fchip2" style="border-style:dashed" onclick="resetF()">Clear all ✕</span>`;
  el.innerHTML=h;
  const btn=document.getElementById('filtersBtn');if(btn)btn.textContent='Filters'+(n?' ('+n+')':'');}
@@ -1816,8 +1825,7 @@ function render(){const a=filtered();const _cc=document.getElementById('count');
    if(tw)tw.style.maxHeight=(ps===Infinity)?'calc(100vh - 150px)':(34+ps*32)+'px';
    renderPager(total,start,end,pages);
    document.getElementById('tbody').innerHTML=rows.map(v=>rowHtml(v)+(editingId===v._i?editorRowHtml(v):'')).join('');}
- const tft=document.getElementById('tourFilterToggles');
- if(tft)tft.innerHTML=tourActive?`<label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--pink);font-weight:700"><input type="checkbox" ${fTourOnly?'checked':''} onchange="fTourOnly=this.checked;pageNum=1;render()"> On tour only</label><label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--pink);font-weight:700"><input type="checkbox" ${fSubOnly?'checked':''} onchange="fSubOnly=this.checked;pageNum=1;render()"> Subsidised only</label>`:'';
+ const fgT=document.getElementById('fgTour');if(fgT){fgT.style.display=tourActive?'':'none';const c1=document.getElementById('fTourOnlyCb'),c2=document.getElementById('fSubOnlyCb');if(c1)c1.checked=fTourOnly;if(c2)c2.checked=fSubOnly;}
  const cl=document.getElementById('cardlist');
  if(cl&&curPage==='venues'){const rows=a.slice(0,80);
    cl.innerHTML=rows.map(v=>`<div class="vcard" onclick="openD(${v._i})"><input type="checkbox" ${sel.has(v._i)?'checked':''} onclick="event.stopPropagation();toggleSel(${v._i})"><span class="vc-name">${esc(v.name)}</span><span class="chip tier-${v.cTier}" style="font-size:9px;padding:1px 7px">${v.cTier}</span><span class="vc-meta">${v.cIndex!=null?v.cIndex.toFixed(1):'—'}${v.cSub?' · '+Math.round(v.cSub*100)+'%':''}</span></div>`).join('')+(a.length>80?`<div class="muted" style="font-size:11px;text-align:center;padding:6px">Showing first 80 of ${a.length} — refine the filters</div>`:'');}
