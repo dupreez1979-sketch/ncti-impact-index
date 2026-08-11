@@ -341,7 +341,7 @@ body.aboutmode #selTray,body.toursmode #selTray{display:none!important;}
 .repmenuwrap{position:relative;}
 .repmenu{position:absolute;right:0;top:calc(100% + 6px);background:#fff;border:1.5px solid var(--navy);border-radius:9px;box-shadow:4px 4px 0 var(--navy);min-width:250px;z-index:900;display:none;padding:6px;}
 .repmenu.open{display:block;}
-.repmenu button{display:block;width:100%;text-align:left;background:none;border:none;font-family:inherit;font-size:12.5px;color:var(--navy);padding:9px 10px;border-radius:6px;cursor:pointer;}
+.repmenu button{display:block;width:100%;text-align:left;background:none;border:none;font-family:inherit;font-size:14px;color:var(--navy);padding:11px 12px;border-radius:6px;cursor:pointer;}
 .repmenu button:hover{background:#FFF3D6;}
 .repmenu button:disabled{color:#9aa5a1;cursor:default;background:none;}
 .repmenu .rm-sub{display:block;font-size:10px;color:var(--slate);font-weight:400;margin-top:2px;}
@@ -1641,7 +1641,7 @@ let SESSION=null, PROFILE=null, EDIT=false, editingId=null, editData=null, _boot
 function authToken(){return SESSION?SESSION.access_token:SB_KEY;}
 function refreshSBH(){SBH.Authorization='Bearer '+authToken();}
 function renderAuth(){const el=document.getElementById('authbox');if(!el)return;
- if(SESSION){el.innerHTML=`<div class="repmenuwrap"><button class="iconbtn" style="width:36px;height:30px;font-size:15px" title="Menu" onclick="event.stopPropagation();toggleUserMenu()">☰</button>
+ if(SESSION){el.innerHTML=`<div class="repmenuwrap"><button class="iconbtn" style="width:54px;height:45px;font-size:23px" title="Menu" onclick="event.stopPropagation();toggleUserMenu()">☰</button>
   <div class="repmenu" id="usermenu" style="min-width:160px">
     <button onclick="closeUserMenu();openProfile()">Profile</button>
     ${EDIT?'<button onclick="closeUserMenu();openUsers()">Users</button>':''}
