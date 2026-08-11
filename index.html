@@ -305,7 +305,9 @@ body.toursmode .siderail,body.toursmode .railexpand,body.toursmode #kpis{display
 /* ============ UX REDESIGN LAYER ============ */
 /* context chips */
 .ctxbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-left:auto;}
-.ctxchip{display:inline-flex;align-items:center;gap:7px;border:1.5px solid var(--navy);background:#fff;border-radius:20px;padding:4px 12px;font-size:11.5px;font-weight:600;color:var(--navy);cursor:pointer;max-width:290px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ctxchip{display:inline-flex;align-items:center;gap:7px;border:1.5px solid var(--navy);background:#fff;border-radius:20px;padding:4px 12px;font-size:11.5px;font-weight:600;color:var(--navy);cursor:pointer;max-width:290px;white-space:nowrap;}
+.ctxchip>span:not(.cdot):not(.cx){overflow:hidden;text-overflow:ellipsis;min-width:0;}
+.ctxchip .cx{flex:0 0 auto;}
 .ctxchip .cdot{width:8px;height:8px;border-radius:50%;background:var(--teal);flex:0 0 auto;}
 .ctxchip.tourctx{border-color:var(--pink);color:var(--pink);}
 .ctxchip.tourctx .cdot{background:var(--pink);}
@@ -436,11 +438,18 @@ body.aboutmode #filterCard,body.toursmode #filterCard{display:none!important;}
 body.tourmode #venueTableCard{border-color:var(--pink);}
 body.tourmode #venueTableCard thead th{background:var(--pink);}
 body.tourmode tr.ontourrow td{background:#FFF0F4;}
+body.tourmode #mapAllWrap{display:none;}
 /* dock/main splitter */
 #dockSplit{flex:0 0 7px;width:7px;cursor:col-resize;border-radius:4px;background:transparent;align-self:stretch;display:none;transition:background .15s;}
 #dockSplit:hover,#dockSplit.dragging{background:var(--teal);}
 @media(min-width:1280px){.dockwrap.open+#dockSplit{display:block;}}
 /* users admin */
+.userstable{width:100%;border-collapse:collapse;font-size:12.5px;}
+.userstable th{background:var(--navy);color:#fff;font-size:10px;text-transform:uppercase;letter-spacing:.3px;padding:7px 9px;text-align:left;position:sticky;top:0;}
+.userstable td{padding:6px 9px;border-bottom:1px solid #Eee6cf;vertical-align:middle;}
+.userstable td.center{text-align:center;}
+.userstable select{font-family:inherit;font-size:12px;padding:4px 6px;border:1.5px solid var(--navy);border-radius:5px;background:#fff;color:var(--navy);}
+
 .userrow{display:flex;align-items:center;gap:8px;border:1.5px solid var(--navy);border-radius:8px;padding:7px 10px;background:#fff;}
 .userrow .ur-main{flex:1;min-width:0;display:flex;flex-direction:column;}
 .userrow .ur-main b{font-size:13px;color:var(--navy);}
@@ -618,7 +627,7 @@ body.tourmode tr.ontourrow td{background:#FFF0F4;}
    <button class="preset" id="mapmode_index" onclick="setMapMode('index')">Impact Index (0–10)</button>
    <span style="width:1px;height:22px;background:#ccc;margin:0 2px"></span>
    <label style="font-size:12.5px;margin-left:6px"><input type="checkbox" id="mapVenues" checked onchange="paintMarkers()"> show venues</label>
-   <label style="font-size:12.5px"><input type="checkbox" id="mapVenuesAll" onchange="paintMarkers()"> all venues (ignore filter)</label>
+   <label id="mapAllWrap" style="font-size:12.5px"><input type="checkbox" id="mapVenuesAll" onchange="paintMarkers()"> all venues (ignore filter)</label>
    <label id="mapTourWrap" style="font-size:12.5px;display:none;color:var(--pink);font-weight:700"><input type="checkbox" id="mapTourOnly" checked onchange="paintMarkers()"> <span id="mapTourOnlyLbl">only the active tour</span></label>
    <label style="font-size:12.5px"><input type="checkbox" id="mapGaps" onchange="schedulePaint()"> highlight gaps (High, no venue)</label>
  </div>
@@ -715,11 +724,18 @@ body.tourmode tr.ontourrow td{background:#FFF0F4;}
    <div class="muted" style="font-size:10.5px;margin-top:10px">Want something custom? Build it in the Model panel, then press “Re-save current model to tour”.</div>
  </div>
 </div>
+<div class="authmodal" id="dirtymodal">
+ <div class="authcard">
+   <h2>Unsaved <span class="pink">tour changes</span></h2>
+   <p style="font-size:13px;color:var(--slate)">You've made changes to this tour that haven't been saved yet.</p>
+   <div class="authactions"><button class="btn sec" id="dmCancel">Keep editing</button><button class="btn sec" id="dmDiscard">Discard changes</button><button class="btn" id="dmSave">Save changes</button></div>
+ </div>
+</div>
 <div class="authmodal" id="profilemodal" onclick="if(event.target===this)closeProfile()">
  <div class="authcard">
    <button class="authx" onclick="closeProfile()" title="Close">×</button>
    <h2>Your <span class="pink">profile</span></h2>
-   <p style="font-size:12px;color:var(--slate)">Signed in as <b id="pfEmail"></b></p>
+   <p style="font-size:12px;color:var(--slate)">Signed in as <b id="pfEmail"></b> · <b id="pfRole" style="color:var(--pink)"></b></p>
    <input type="text" id="pfName" placeholder="Your name" style="margin-bottom:8px">
    <input type="password" id="pfPw1" placeholder="New password (leave blank to keep current)" autocomplete="new-password" style="margin-bottom:8px">
    <input type="password" id="pfPw2" placeholder="Repeat new password" autocomplete="new-password">
@@ -730,9 +746,8 @@ body.tourmode tr.ontourrow td{background:#FFF0F4;}
 <div class="authmodal" id="usersmodal" onclick="if(event.target===this)closeUsers()">
  <div class="authcard" style="max-width:560px">
    <button class="authx" onclick="closeUsers()" title="Close">×</button>
-   <h2><span class="pink">Users</span> &amp; access</h2>
-   <div id="usersList" style="display:flex;flex-direction:column;gap:6px;max-height:38vh;overflow:auto;margin:8px 0 14px"></div>
-   <div style="border-top:1.5px dashed var(--slate);padding-top:12px">
+   <h2>User <span class="pink">management</span></h2>
+   <div style="margin-bottom:12px">
      <div style="font-family:'Charlie Kingdom';font-size:14px;color:var(--navy);margin-bottom:8px">Add a user</div>
      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
        <input type="email" id="nuEmail" placeholder="Email">
@@ -742,6 +757,9 @@ body.tourmode tr.ontourrow td{background:#FFF0F4;}
      </div>
      <div id="nuMsg" class="authmsg err"></div>
      <div class="authactions"><button class="btn" id="nuBtn" onclick="addUser()">Add user</button></div>
+   </div>
+   <div style="border-top:1.5px dashed var(--slate);padding-top:10px">
+     <div id="usersList" style="max-height:40vh;overflow:auto"></div>
    </div>
  </div>
 </div>
@@ -792,7 +810,7 @@ function selectAllFiltered(check){filtered().forEach(v=>{if(check)sel.add(v._i);
 function clearSel(){sel.clear();render();}
 function setBasketFee(v){basketFee=Math.max(0,+v||0);const e=document.getElementById('bkFee');if(e)e.value=basketFee;renderBasket();}
 function updateSelAll(){const el=document.getElementById('selAll');if(!el)return;const a=filtered();let c=0;a.forEach(v=>{if(sel.has(v._i))c++;});el.checked=a.length>0&&c===a.length;el.indeterminate=c>0&&c<a.length;}
-function persistSourcesIfTour(){if(!EDIT)return;const t=activeTourObj();if(t&&sbc){t.sources=JSON.parse(JSON.stringify(sources));sbc.from('tours').update({sources}).eq('id',t.id).then(r=>{if(r&&r.error)console.warn('save sources',r.error);});}}
+function persistSourcesIfTour(){if(!EDIT)return;const t=activeTourObj();if(t){stagedSources=JSON.parse(JSON.stringify(sources));renderTray();}}
 function renderBasket(){if(!document.getElementById('bkN'))return;const tour=activeTourObj();
  let n=0,elig=0,sub=0,child=0,gross=0;const seen=new Set();const stateSub={};
  if(tour){tourVenues.forEach(tv=>{const v=tv.v;if(!v)return;n++;const fee=tv.fee||0;gross+=fee;const k=areaCode(v);if(k!=null&&!seen.has(k)){seen.add(k);child+=v.cChild||0;}
@@ -894,7 +912,8 @@ function applyModelObj(c){if(!c)return;
  const gv=(i,val)=>{const e=document.getElementById(i);if(e&&val!=null&&!isNaN(val))e.value=val;};
  gv('tHigh',MODEL.thr.high);gv('tMed',MODEL.thr.med);gv('sFloor',Math.round(MODEL.sub.floor*100));gv('sCeil',Math.round(MODEL.sub.ceil*100));gv('sFull',MODEL.sub.full);
  buildInd();updateSubnote();recompute();}
-function exitTour(){const t=activeTourObj();if(!t)return;
+function exitTour(){if(!activeTourObj())return;guardDirty(_exitTourNow);}
+function _exitTourNow(){const t=activeTourObj();if(!t)return;
  const name=t.name;const restore=modelBeforeTour?JSON.parse(JSON.stringify(modelBeforeTour)):null;
  curTour=null;curShow=null;curCompany=null;tourVenues=[];sources=[];
  try{localStorage.setItem('ctii.tour','');}catch(e){}
@@ -908,7 +927,8 @@ function renderContext(){const t=activeTourObj();
  const mEl=document.getElementById('ctxModelTxt'),tEl=document.getElementById('ctxTourTxt');
  if(!mEl)return;
  let mtxt='Custom model',frozen=false;
- if(t&&t.model&&cfgEq(MODEL,t.model)){mtxt='Model: ★ frozen — '+t.name;frozen=true;}
+ const tm=t?(stagedModel||t.model):null;
+ if(t&&tm&&cfgEq(MODEL,tm)){mtxt='Model: ★ frozen — '+t.name+(stagedModel?' (unsaved)':'');frozen=true;}
  else{const m=(typeof MODELS!=='undefined'?MODELS:[]).find(x=>cfgEq(MODEL,x.config));mtxt=m?('Model: '+m.name):'Model: Custom';}
  mtxt+=' · '+MODEL.geo.toUpperCase();
  mEl.textContent=mtxt;
@@ -931,9 +951,10 @@ function renderTray(){const el=document.getElementById('selTray');if(!el)return;
  const explorer=(curPage==='venues'||curPage==='map'||curPage==='charts');
  const t0=activeTourObj();
  if(t0&&explorer){const T=tourTotals();const co=COMPANIES.find(c=>c.id===curCompany);
+  const dirty=tourDirty();
   el.innerHTML=`<span class="trayname" title="${esc((co?co.name+' · ':'')+t0.name)}">${esc((co?co.name+' · ':'')+t0.name)}</span>
    <span style="margin-left:auto"></span>
-   <button class="traybtn" onclick="createTourReport()" title="Tour report (PDF)">Report ▸</button>
+   ${EDIT?`<button class="traybtn ${dirty?'pri':''}" id="traySave" ${dirty?'':'disabled'} style="${dirty?'':'opacity:.45;cursor:default'}" title="${dirty?'Save changes to this tour':'No unsaved changes'}" onclick="saveTour()">Save${dirty?' •':''}</button>`:''}
    ${EDIT?`<button class="traybtn" onclick="editTour()" title="Rename this tour">✎</button><button class="traybtn" onclick="deleteTour()" title="Delete this tour">🗑</button>`:''}
    <button class="trayclear" onclick="exitTour()" title="Deactivate this tour and restore your previous model">✕ Exit</button>`;
   el.classList.add('on');return;}
@@ -973,7 +994,8 @@ async function loadTours(){try{
  }catch(e){console.warn('tours not loaded (run tours.sql):',e);}}
 function selectCompany(id){curCompany=id?+id:null;curShow=null;curTour=null;renderTourPanel();}
 function selectShow(id){curShow=id?+id:null;curTour=null;renderTourPanel();}
-function selectTour(id){curTour=id?+id:null;try{localStorage.setItem('ctii.tour',curTour||'');}catch(e){}loadTourVenues(curTour);const t=activeTourObj();if(t)applyTourViewDefaults();if(t&&t.model){applyTourModel();toast('“'+esc(t.name)+'” is now the active tour — its frozen model has been applied.');}else{renderTourPanel();if(t)toast('“'+esc(t.name)+'” is now the active tour.');}}
+function selectTour(id){guardDirty(()=>_selectTourNow(id));}
+function _selectTourNow(id){curTour=id?+id:null;try{localStorage.setItem('ctii.tour',curTour||'');}catch(e){}loadTourVenues(curTour);const t=activeTourObj();if(t)applyTourViewDefaults();if(t&&t.model){applyTourModel();toast('“'+esc(t.name)+'” is now the active tour — its frozen model has been applied.');}else{renderTourPanel();if(t)toast('“'+esc(t.name)+'” is now the active tour.');}}
 function renderTourPanel(){const el=document.getElementById('tourBody');if(!el)return;
  const RO=!EDIT;
  const compOpts='<option value="">— select company —</option>'+COMPANIES.map(c=>`<option value="${c.id}" ${c.id===curCompany?'selected':''}>${esc(c.name)}</option>`).join('');
@@ -987,15 +1009,13 @@ function renderTourPanel(){const el=document.getElementById('tourBody');if(!el)r
  const t=activeTourObj();
  if(t){const co=COMPANIES.find(c=>c.id===curCompany),sh=SHOWS.find(s=>s.id===curShow);
    const nV=tourVenues.length,nC=tourVenues.filter(x=>x.confirmed).length;
-   const s2=!!t.model,s3=nV>0,s4=s3&&nC>0;
+   const s2=!!(stagedModel||t.model),s3=nV>0,s4=s3&&nC>0;
    const cur=!s2?2:!s3?3:!s4?4:0;
    h+=`<div style="margin-top:10px;border-top:1px dashed var(--slate);padding-top:8px">
      <div style="font-family:'Charlie Kingdom';font-size:15px;color:var(--pink);line-height:1.2">${esc((co?co.name:'')+' · '+(sh?sh.title:'')+' · '+t.name)}</div>
      <ul class="tsteps">
        <li class="done" onclick="editTour()"><span class="stn">✓</span>Details<span class="stsub">edit ✎</span></li>
        <li class="${s2?'done':''} ${cur===2?'cur':''}" onclick="openPickModel()"><span class="stn">${s2?'✓':'2'}</span>Model${s2?' — frozen':''}<span class="stsub">${s2?'choose a different one…':'choose a saved model…'}</span></li>
-       <li class="${s3?'done':''} ${cur===3?'cur':''}" onclick="showPage('venues')"><span class="stn">${s3?'✓':'3'}</span>Venues<span class="stsub">${nV} added — tick “On tour” in the list</span></li>
-       <li class="${s4?'done':''} ${cur===4?'cur':''}" onclick="showPage('venues')"><span class="stn">${s4?'✓':'4'}</span>Fees &amp; confirm<span class="stsub">${nC} of ${nV} confirmed — in the list</span></li>
      </ul>
      <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
        ${RO?'':`<button class="btn sec" style="padding:5px 9px;font-size:11.5px" onclick="saveModelToTour()">${s2?'Re-save current model to tour':'Save current model to tour'}</button>`}
@@ -1028,23 +1048,51 @@ function openPickModel(){const t=activeTourObj();if(!t){toast('Select a tour fir
  document.getElementById('pickmodal').classList.add('open');}
 function closePickModel(){document.getElementById('pickmodal').classList.remove('open');}
 async function pickModelApply(id){applyModel(id);await saveModelToTour();closePickModel();}
-async function saveModelToTour(){if(!EDIT){toast('Only admins can change tours.',null,true);return;}const t=activeTourObj();if(!t){toast('Select a tour first.',null,true);return;}const {error}=await sbc.from('tours').update({model:MODEL,sources:sources}).eq('id',t.id);if(error){toast(error.message,null,true);return;}t.model=JSON.parse(JSON.stringify(MODEL));t.sources=JSON.parse(JSON.stringify(sources));renderTourPanel();renderContext();toast('Model frozen to “'+esc(t.name)+'”.');}
+async function saveModelToTour(){if(!EDIT){toast('Only admins can change tours.',null,true);return;}const t=activeTourObj();if(!t){toast('Select a tour first.',null,true);return;}
+ stagedModel=JSON.parse(JSON.stringify(MODEL));stagedSources=JSON.parse(JSON.stringify(sources));
+ renderTourPanel();renderContext();renderTray();toast('Model staged for “'+esc(t.name)+'” — press Save to commit.');}
 // ---------- tour venues ----------
 let tourVenues=[];
+let tourBaseline=null,stagedModel=null,stagedSources=null;
+function snapshotTour(){tourBaseline={venues:tourVenues.map(x=>({id:x.id,venue_id:x.venue_id,fee:x.fee||0,confirmed:!!x.confirmed}))};stagedModel=null;stagedSources=null;}
+function tourDirty(){const t=activeTourObj();if(!t||!EDIT)return false;if(stagedModel||stagedSources)return true;if(!tourBaseline)return false;
+ const cur=tourVenues;if(cur.length!==tourBaseline.venues.length)return true;
+ const by={};tourBaseline.venues.forEach(b=>by[b.venue_id]=b);
+ return cur.some(c=>{const b=by[c.venue_id];return !b||b.fee!==(c.fee||0)||b.confirmed!==!!c.confirmed;});}
+async function saveTour(){const t=activeTourObj();if(!t||!EDIT)return false;
+ try{
+  const base=tourBaseline?tourBaseline.venues:[];
+  const byB={};base.forEach(b=>byB[b.venue_id]=b);
+  const byC={};tourVenues.forEach(c=>byC[c.venue_id]=c);
+  const removed=base.filter(b=>!byC[b.venue_id]).map(b=>b.id).filter(Boolean);
+  const added=tourVenues.filter(c=>!byB[c.venue_id]);
+  const changed=tourVenues.filter(c=>{const b=byB[c.venue_id];return b&&(((c.fee||0)!==b.fee)||(!!c.confirmed!==b.confirmed));});
+  if(removed.length){const {error}=await sbc.from('tour_venues').delete().in('id',removed);if(error)throw error;}
+  if(added.length){const {error}=await sbc.from('tour_venues').insert(added.map(c=>({tour_id:t.id,venue_id:c.venue_id,fee:c.fee||0,subsidy_confirmed:!!c.confirmed})));if(error)throw error;}
+  for(const c of changed){const {error}=await sbc.from('tour_venues').update({fee:c.fee||0,subsidy_confirmed:!!c.confirmed}).eq('id',c.id);if(error)throw error;}
+  if(stagedModel||stagedSources){const upd={};if(stagedModel)upd.model=stagedModel;if(stagedSources)upd.sources=stagedSources;
+   const {error}=await sbc.from('tours').update(upd).eq('id',t.id);if(error)throw error;
+   if(stagedModel)t.model=stagedModel;if(stagedSources)t.sources=stagedSources;stagedModel=null;stagedSources=null;}
+  await loadTourVenues(t.id);render();toast('Tour saved.');return true;
+ }catch(e){toast('Save failed: '+e.message,null,true);return false;}}
+async function discardTourChanges(){const t=activeTourObj();stagedModel=null;stagedSources=null;if(t)await loadTourVenues(t.id);render();}
+function guardDirty(cb){if(!tourDirty()){cb();return;}
+ const m=document.getElementById('dirtymodal');m.classList.add('open');
+ document.getElementById('dmSave').onclick=async()=>{m.classList.remove('open');if(await saveTour())cb();};
+ document.getElementById('dmDiscard').onclick=async()=>{m.classList.remove('open');await discardTourChanges();cb();};
+ document.getElementById('dmCancel').onclick=()=>m.classList.remove('open');}
 async function loadTourVenues(tourId){tourVenues=[];if(tourId&&sbc){const {data,error}=await sbc.from('tour_venues').select('id,venue_id,fee,subsidy_confirmed').eq('tour_id',tourId);
  if(error)console.warn(error);else tourVenues=(data||[]).map(r=>{const v=V.find(x=>x.id===r.venue_id);return v?{id:r.id,venue_id:r.venue_id,fee:r.fee,confirmed:r.subsidy_confirmed,v}:null;}).filter(Boolean);}
+ snapshotTour();
  renderTourVenues();renderTourBar();renderTourPanel();renderBasket();if(curPage==='map'&&map)paintMarkers();}
-async function addSelectedToTour(){if(!EDIT){toast('Only admins can build tours.',null,true);return;}const t=activeTourObj();if(!t){toast('Select a tour in the Tour panel first.',null,true);openDock('tour',true);return;}if(!sel.size){toast('Tick some venues in the list first.',null,true);return;}
- const have=new Set(tourVenues.map(x=>x.venue_id));
- const rows=[...sel].map(i=>V[i]).filter(v=>v&&v.id&&!have.has(v.id)).map(v=>({tour_id:t.id,venue_id:v.id,fee:t.default_fee||basketFee,subsidy_confirmed:v.cTier==='High'}));
- if(!rows.length){toast('Those venues are already on this tour.',null,true);return;}
- const {data,error}=await sbc.from('tour_venues').insert(rows).select('id');if(error){toast(error.message,null,true);return;}
- await loadTourVenues(t.id);
- const ids=(data||[]).map(r=>r.id);
- toast(rows.length+' venue'+(rows.length>1?'s':'')+' added to “'+esc(t.name)+'”.',ids.length?async()=>{await sbc.from('tour_venues').delete().in('id',ids);await loadTourVenues(t.id);toast('Undone.');}:null);}
-async function setTourVenueFee(id,val){const f=Math.max(0,+val||0);const {error}=await sbc.from('tour_venues').update({fee:f}).eq('id',id);if(error){toast(error.message,null,true);return;}const tv=tourVenues.find(x=>x.id===id);if(tv)tv.fee=f;render();}
-async function toggleTourVenueConfirmed(id,ch){const {error}=await sbc.from('tour_venues').update({subsidy_confirmed:ch}).eq('id',id);if(error){toast(error.message,null,true);return;}const tv=tourVenues.find(x=>x.id===id);if(tv)tv.confirmed=ch;render();}
-async function removeTourVenue(id){const {error}=await sbc.from('tour_venues').delete().eq('id',id);if(error){toast(error.message,null,true);return;}tourVenues=tourVenues.filter(x=>x.id!==id);render();toast('Removed from tour.');}
+function addSelectedToTour(){if(!EDIT){toast('Only admins can build tours.',null,true);return;}const t=activeTourObj();if(!t){toast('Select a tour in the Tour panel first.',null,true);openDock('tour',true);return;}if(!sel.size){toast('Tick some venues in the list first.',null,true);return;}
+ const have=new Set(tourVenues.map(x=>x.venue_id));let n=0;
+ [...sel].map(i=>V[i]).filter(v=>v&&v.id&&!have.has(v.id)).forEach(v=>{tourVenues.push({id:null,venue_id:v.id,fee:t.default_fee||basketFee,confirmed:v.cTier==='High',v});n++;});
+ if(!n){toast('Those venues are already on this tour.',null,true);return;}
+ render();toast(n+' venue'+(n>1?'s':'')+' staged — press Save on the bar below to commit.');}
+function setTourVenueFee(vid,val){const tv=tourVenues.find(x=>x.venue_id===vid);if(tv)tv.fee=Math.max(0,+val||0);render();}
+function toggleTourVenueConfirmed(vid,ch){const tv=tourVenues.find(x=>x.venue_id===vid);if(tv)tv.confirmed=ch;render();}
+function removeTourVenue(vid){tourVenues=tourVenues.filter(x=>x.venue_id!==vid);render();}
 function tourTotals(){let sub=0,child=0,conf=0;const seen=new Set();
  tourVenues.forEach(tv=>{const v=tv.v;const fee=tv.fee||0;if(tv.confirmed&&v.cSub>0){sub+=fee*v.cSub;conf++;}const k=areaCode(v);if(k!=null&&!seen.has(k)){seen.add(k);child+=v.cChild||0;}});
  return {sub,child,conf};}
@@ -1247,8 +1295,8 @@ function renderToursAnalysis(rows,TT){const body=document.getElementById('toursB
  let potential=0,confirmed=0;rows.forEach(r=>{const m=tourModelOf(r.t);r.a.tvs.forEach(x=>{const c=computeWith(x.v,m);if(c.subsidy>0){const amt=(x.fee||0)*c.subsidy;potential+=amt;if(x.confirmed)confirmed+=amt;}});});
  mk('tcConf','bar',{labels:['Confirmed','Full potential'],datasets:[{data:[Math.round(confirmed),Math.round(potential)],backgroundColor:['#EF476F','#5BC0BE'],borderColor:'#073B4C',borderWidth:1}]},{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}});}
 async function loadTourAsActive(tourId){const t=TOURS.find(x=>x.id===tourId);if(!t)return null;const sh=SHOWS.find(s=>s.id===t.show_id);curShow=t.show_id;curCompany=sh?sh.company_id:null;curTour=tourId;try{localStorage.setItem('ctii.tour',tourId);}catch(e){}applyTourViewDefaults();await loadTourVenues(tourId);if(t.model)applyTourModel();renderTourPanel();return t;}
-async function openTourFromList(tourId){const t=await loadTourAsActive(tourId);if(t)createTourReport();}
-async function activateTourFromList(tourId){const t=await loadTourAsActive(tourId);if(t)showPage('venues');}
+function openTourFromList(tourId){guardDirty(async()=>{const t=await loadTourAsActive(tourId);if(t)createTourReport();});}
+function activateTourFromList(tourId){guardDirty(async()=>{const t=await loadTourAsActive(tourId);if(t)showPage('venues');});}
 function toggleBasketFloat(){floatCard('basketCard','basketFloatBtn',380,88,400);renderBasket();}
 function basketDragStart(e){cardDragStart('basketCard',e);}
 function toggleTourFloat(){floatCard('tourCard','tourFloatBtn',160,60,420);renderTourPanel();renderTourVenues();}
@@ -1408,10 +1456,9 @@ function authToken(){return SESSION?SESSION.access_token:SB_KEY;}
 function refreshSBH(){SBH.Authorization='Bearer '+authToken();}
 function renderAuth(){const el=document.getElementById('authbox');if(!el)return;
  if(SESSION){el.innerHTML=`<div class="repmenuwrap"><button class="iconbtn" style="width:36px;height:30px;font-size:15px" title="Menu" onclick="event.stopPropagation();toggleUserMenu()">☰</button>
-  <div class="repmenu" id="usermenu" style="min-width:210px">
-    <div style="padding:8px 10px 4px;font-size:11px;color:var(--slate)">${esc(PROFILE&&PROFILE.name?PROFILE.name:SESSION.user.email)}${EDIT?' · <b style="color:var(--pink)">Admin</b>':' · viewer'}</div>
-    <button onclick="closeUserMenu();openProfile()">Profile<span class="rm-sub">name &amp; password</span></button>
-    ${EDIT?'<button onclick="closeUserMenu();openUsers()">Users<span class="rm-sub">add people &amp; set roles</span></button>':''}
+  <div class="repmenu" id="usermenu" style="min-width:160px">
+    <button onclick="closeUserMenu();openProfile()">Profile</button>
+    ${EDIT?'<button onclick="closeUserMenu();openUsers()">Users</button>':''}
     <button onclick="closeUserMenu();signOut()">Log out</button>
   </div></div>`;}
  else el.innerHTML='';}
@@ -1485,7 +1532,7 @@ function initAuth(){if(!sbc){showGate('login','Auth library failed to load — c
 // ---------- profile modal ----------
 function openProfile(){const m=document.getElementById('profilemodal');
  document.getElementById('pfName').value=(PROFILE&&PROFILE.name)||'';
- document.getElementById('pfEmail').textContent=SESSION.user.email;
+ document.getElementById('pfEmail').textContent=SESSION.user.email;document.getElementById('pfRole').textContent=EDIT?'Admin':'Viewer';
  document.getElementById('pfPw1').value='';document.getElementById('pfPw2').value='';
  document.getElementById('pfMsg').textContent='';m.classList.add('open');}
 function closeProfile(){document.getElementById('profilemodal').classList.remove('open');}
@@ -1499,19 +1546,27 @@ async function saveProfile(){const name=document.getElementById('pfName').value.
 let USERS=[];
 async function openUsers(){if(!EDIT)return;document.getElementById('usersmodal').classList.add('open');await loadUsers();}
 function closeUsers(){document.getElementById('usersmodal').classList.remove('open');}
+let usSortK='created',usSortD=1;
+function setUsSort(k){if(usSortK===k)usSortD*=-1;else{usSortK=k;usSortD=1;}renderUsers();}
 async function loadUsers(){const box=document.getElementById('usersList');box.innerHTML='<div class="muted">Loading…</div>';
  const {data,error}=await sbc.from('profiles').select('id,email,name,role,must_change_password,created_at').order('created_at');
  if(error){box.innerHTML='<div class="authmsg err">'+esc(error.message)+'</div>';return;}
- USERS=data||[];
- box.innerHTML=USERS.map(u=>`<div class="userrow">
-   <div class="ur-main"><b>${esc(u.name||u.email)}</b><span class="muted" style="font-size:11px">${esc(u.email)}${u.must_change_password?' · must change password':''}</span></div>
-   <select onchange="setUserRole('${u.id}',this.value)" ${u.id===SESSION.user.id?'disabled title="You cannot change your own role"':''}>
+ USERS=data||[];renderUsers();}
+function renderUsers(){const box=document.getElementById('usersList');if(!box)return;
+ const kf={name:u=>u.name||u.email||'',email:u=>u.email||'',role:u=>u.role||'',must:u=>u.must_change_password?0:1,created:u=>u.created_at||''}[usSortK];
+ const list=USERS.slice().sort((a,b)=>{const A=kf(a),B=kf(b);if(typeof A==='string')return usSortD*(''+A).localeCompare(''+B);return usSortD*(A-B);});
+ const th=(k,l)=>`<th style="cursor:pointer;white-space:nowrap" onclick="setUsSort('${k}')">${l}${usSortK===k?(usSortD<0?' ▾':' ▴'):''}</th>`;
+ box.innerHTML=`<table class="userstable"><thead><tr>${th('name','Name')}${th('email','Email')}${th('role','Role')}${th('must','Pw change due')}${th('created','Added')}<th></th></tr></thead><tbody>`+
+ list.map(u=>`<tr>
+   <td><b>${esc(u.name||'—')}</b></td><td>${esc(u.email)}</td>
+   <td><select title="Change role" onchange="setUserRole('${u.id}',this.value)" ${u.id===SESSION.user.id?'disabled title="You cannot change your own role"':''}>
      <option value="viewer" ${u.role==='viewer'?'selected':''}>Viewer</option>
-     <option value="admin" ${u.role==='admin'?'selected':''}>Admin</option>
-   </select>
-   <button class="iconbtn" title="Send password reset email" onclick="resetUserPw('${esc(u.email)}')">✉</button>
-   <button class="iconbtn" title="Revoke access" onclick="revokeUser('${u.id}','${esc(u.email)}')" ${u.id===SESSION.user.id?'disabled':''}>✕</button>
- </div>`).join('')||'<div class="muted">No users yet.</div>';}
+     <option value="admin" ${u.role==='admin'?'selected':''}>Admin</option></select></td>
+   <td class="center">${u.must_change_password?'Yes':''}</td>
+   <td style="font-size:11px;color:var(--slate)">${u.created_at?new Date(u.created_at).toLocaleDateString('en-AU'):''}</td>
+   <td style="white-space:nowrap"><button class="iconbtn" title="Send password reset email" onclick="resetUserPw('${esc(u.email)}')">✉</button>
+   <button class="iconbtn" title="Revoke access — they can no longer sign in" onclick="revokeUser('${u.id}','${esc(u.email)}')" ${u.id===SESSION.user.id?'disabled':''}>✕</button></td>
+ </tr>`).join('')+`</tbody></table>`||'<div class="muted">No users yet.</div>';}
 async function setUserRole(id,role){const {error}=await sbc.from('profiles').update({role}).eq('id',id);
  if(error){toast(error.message,null,true);}else toast('Role updated.');loadUsers();}
 async function resetUserPw(email){const {error}=await sbc.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
@@ -1714,14 +1769,13 @@ let charts={};
 function applyTourViewDefaults(){groupBy='state';collapsedGroups.clear();pageSize=Infinity;pageNum=1;const gb=document.getElementById('groupBy');if(gb)gb.value='state';}
 function resetTourViewDefaults(){groupBy='';collapsedGroups.clear();pageSize=20;pageNum=1;const gb=document.getElementById('groupBy');if(gb)gb.value='';}
 function tvOf(v){return tourVenues.find(x=>x.venue_id===v.id);}
-async function toggleVenueOnTour(i){const t=activeTourObj();if(!t||!EDIT)return;const v=V[i];const tv=tvOf(v);
- if(tv){await removeTourVenue(tv.id);}
- else{const {data,error}=await sbc.from('tour_venues').insert({tour_id:t.id,venue_id:v.id,fee:t.default_fee||basketFee,subsidy_confirmed:v.cTier==='High'}).select('id').single();
-  if(error){toast(error.message,null,true);return;}
-  await loadTourVenues(t.id);toast('“'+esc(v.name)+'” added to '+esc(t.name)+'.');render();}}
+function toggleVenueOnTour(i){const t=activeTourObj();if(!t||!EDIT)return;const v=V[i];const tv=tvOf(v);
+ if(tv)tourVenues=tourVenues.filter(x=>x!==tv);
+ else tourVenues.push({id:null,venue_id:v.id,fee:t.default_fee||basketFee,confirmed:v.cTier==='High',v});
+ render();}
 function render(){const a=filtered();const _cc=document.getElementById('count');if(_cc)_cc.textContent=a.length+' of '+V.length+' venues';
  const tourActive=activeTourObj();document.body.classList.toggle('tourmode',!!tourActive);
- const curCols=tourActive?[cols[0],['ontour','On tour'],['tfee','Fee $'],['tsub','Tour subsidy']].concat(cols.slice(1)):cols;
+ const curCols=tourActive?[['name','Venue'],['ontour','On tour'],['index','Index'],['tier','Tier'],['subsidy','Subsidy'],['eligible','Eligible'],['tfee','Fee $'],['tsub','Tour subsidy'],['state','State'],['status','Status'],['ra','Remoteness'],['em_pct','EM %'],['decile','SEIFA dec'],['child','Children 0–14']]:cols;
  const kpiSet=tourActive?tourVenues.map(x=>x.v).filter(Boolean):(sel.size?[...sel].map(i=>V[i]).filter(Boolean):a);
  const kpiLbl=tourActive?'Tour venues':(sel.size?'Selected venues':'Venues');
  const hi=kpiSet.filter(v=>v.cTier==='High').length,me=kpiSet.filter(v=>v.cTier==='Medium').length,lo=kpiSet.filter(v=>v.cTier==='Low').length,el=kpiSet.filter(v=>v.cElig==='Yes').length;
@@ -1737,12 +1791,25 @@ function render(){const a=filtered();const _cc=document.getElementById('count');
    ${tourActive?`<div class="tstat" title="Confirmed subsidy across the active tour."><div class="tsv" style="color:var(--pink)">${fmt$(tourTotals().sub)}</div><div class="tsl">Tour subsidy</div></div>`:''}`;
  document.getElementById('thead').innerHTML='<th style="width:26px;cursor:default"><input type="checkbox" id="selAll" onclick="selectAllFiltered(this.checked)" title="Select all in this view"></th>'+curCols.map(c=>`<th onclick="setSort('${c[0]}')">${c[1]}${sortKey===c[0]?(sortDir<0?' ▾':' ▴'):''}</th>`).join('');
  const tw=document.querySelector('#page-venues .tablewrap');const total=a.length;
- const tourCells=v=>{if(!tourActive)return '';const tv=tvOf(v);const dis=EDIT?'':'disabled';
-   const amt=(tv&&tv.confirmed&&v.cSub>0)?fmt$((tv.fee||0)*v.cSub):'';
-   return `<td class="center" onclick="event.stopPropagation()"><input type="checkbox" ${tv?'checked':''} ${dis} title="${tv?'Remove from':'Add to'} ${esc(tourActive.name)}" onclick="event.stopPropagation();toggleVenueOnTour(${v._i})"></td>`+
-    `<td class="center" onclick="event.stopPropagation()">${tv?`<span class="tvfee">$<input type="number" value="${tv.fee||0}" step="500" min="0" ${dis} onchange="setTourVenueFee(${tv.id},this.value)"></span>`:'<span class="muted">–</span>'}</td>`+
-    `<td onclick="event.stopPropagation()" style="white-space:nowrap">${tv?`<input type="checkbox" ${tv.confirmed?'checked':''} ${dis} title="Subsidy confirmed" onchange="toggleTourVenueConfirmed(${tv.id},this.checked)"> <b style="color:var(--pink)">${amt||'–'}</b>`:'<span class="muted">–</span>'}</td>`;};
- const rowHtml=v=>`<tr onclick="openD(${v._i})" class="${tourActive&&tvOf(v)?'ontourrow':''}"><td class="center" onclick="event.stopPropagation()"><input type="checkbox" ${sel.has(v._i)?'checked':''} onclick="event.stopPropagation();toggleSel(${v._i})"></td><td><b>${v.name}</b>${EDIT?` <button class="pencil" title="Edit venue" onclick="event.stopPropagation();editVenue(${v._i})">✎</button>`:''}</td>${tourCells(v)}<td>${v.state||''}</td><td style="font-size:11.5px">${v.status||''}</td><td>${(v.cRA||'').replace(' Australia','')}</td><td class="right">${v.cEm!=null?(+v.cEm).toFixed(1):''}</td><td class="center">${v.cDec??''}</td><td class="center"><b>${v.cIndex!=null?v.cIndex.toFixed(1):'—'}</b></td><td class="center"><span class="chip tier-${v.cTier}">${v.cTier}</span></td><td class="center">${v.cSub?Math.round(v.cSub*100)+'%':'–'}</td><td class="center"><span class="pill-${v.cElig}">${v.cElig}</span></td><td class="right">${v.cChild!=null?v.cChild.toLocaleString():''}</td></tr>`;
+ const tvfeeCell=v=>{const tv=tvOf(v);const dis=EDIT?'':'disabled';
+   return `<td class="center" onclick="event.stopPropagation()">${tv?`<span class="tvfee"><input type="number" value="${tv.fee||0}" step="500" min="0" ${dis} onchange="setTourVenueFee(${v.id},this.value)"></span>`:'<span class="muted">–</span>'}</td>`;};
+ const CELL={
+  name:v=>`<td><b>${v.name}</b>${EDIT?` <button class="pencil" title="Edit venue" onclick="event.stopPropagation();editVenue(${v._i})">✎</button>`:''}</td>`,
+  ontour:v=>{const tv=tvOf(v);const dis=EDIT?'':'disabled';return `<td class="center" onclick="event.stopPropagation()"><input type="checkbox" ${tv?'checked':''} ${dis} title="${tv?'Remove from':'Add to'} ${esc(tourActive?tourActive.name:'')}" onclick="event.stopPropagation();toggleVenueOnTour(${v._i})"></td>`;},
+  tfee:tvfeeCell,
+  tsub:v=>{const tv=tvOf(v);const dis=EDIT?'':'disabled';const amt=(tv&&tv.confirmed&&v.cSub>0)?fmt$((tv.fee||0)*v.cSub):'';
+   return `<td onclick="event.stopPropagation()" style="white-space:nowrap">${tv?`<input type="checkbox" ${tv.confirmed?'checked':''} ${dis} title="Subsidy confirmed" onchange="toggleTourVenueConfirmed(${v.id},this.checked)"> <b style="color:var(--pink)">${amt||'–'}</b>`:'<span class="muted">–</span>'}</td>`;},
+  state:v=>`<td>${v.state||''}</td>`,
+  status:v=>`<td style="font-size:11.5px">${v.status||''}</td>`,
+  ra:v=>`<td>${(v.cRA||'').replace(' Australia','')}</td>`,
+  em_pct:v=>`<td class="right">${v.cEm!=null?(+v.cEm).toFixed(1):''}</td>`,
+  decile:v=>`<td class="center">${v.cDec??''}</td>`,
+  index:v=>`<td class="center"><b>${v.cIndex!=null?v.cIndex.toFixed(1):'—'}</b></td>`,
+  tier:v=>`<td class="center"><span class="chip tier-${v.cTier}">${v.cTier}</span></td>`,
+  subsidy:v=>`<td class="center">${v.cSub?Math.round(v.cSub*100)+'%':'–'}</td>`,
+  eligible:v=>`<td class="center"><span class="pill-${v.cElig}">${v.cElig}</span></td>`,
+  child:v=>`<td class="right">${v.cChild!=null?v.cChild.toLocaleString():''}</td>`};
+ const rowHtml=v=>`<tr onclick="openD(${v._i})" class="${tourActive&&tvOf(v)?'ontourrow':''}"><td class="center" onclick="event.stopPropagation()"><input type="checkbox" ${sel.has(v._i)?'checked':''} onclick="event.stopPropagation();toggleSel(${v._i})"></td>${curCols.map(c=>CELL[c[0]](v)).join('')}</tr>`;
  if(groupBy){const ord={High:0,Medium:1,Low:2};
    const arr=a.slice().sort((x,y)=>groupBy==='tier'?((ord[x.cTier]??9)-(ord[y.cTier]??9)):(''+(x.state||'')).localeCompare(''+(y.state||'')));
    const groups={};arr.forEach(v=>{const gk=(groupBy==='tier'?v.cTier:v.state)||'—';(groups[gk]=groups[gk]||[]).push(v);});
