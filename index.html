@@ -586,6 +586,7 @@ body.tourmode #mapAllWrap{display:none;}
 <div class="topstats kpirow" id="kpis"></div>
 <div class="xbar" id="exploreBar">
  <label id="groupByWrap" style="font-size:12.5px;color:var(--slate);font-weight:700">Group by <select id="groupBy" onchange="setGroup(this.value)" style="font-family:inherit;font-size:13px;padding:5px 7px;border:1.5px solid var(--navy);border-radius:5px;background:#fff;color:var(--navy)"><option value="">(none)</option><option value="state">State</option><option value="tier">Tier</option></select></label>
+ <span id="tourFilterToggles" style="display:flex;gap:10px;align-items:center"></span>
  <span class="xspacer"></span>
  <div class="fchipbar" id="fchips"></div>
  <div class="viewswitch"><button data-view="venues" class="active" onclick="showPage('venues')">List</button><button data-view="map" onclick="showPage('map')">Map</button><button data-view="charts" onclick="showPage('charts')">Analysis</button></div>
@@ -788,7 +789,7 @@ function uniqueChild(list){const seen=new Set();let s=0;for(const v of list){con
 function round5(x){return Math.round(x/5)*5;}
 function round5pct(x){return Math.round(x*20)/20;}
 function fixSum(changed){let ak=activeKeys();if(!ak.length)return;let s=ak.reduce((a,k)=>a+MODEL.pct[k],0);let diff=100-s;if(diff===0)return;let cand=ak.filter(k=>k!==changed).sort((a,b)=>MODEL.pct[b]-MODEL.pct[a]);let t=cand[0]||ak[0];MODEL.pct[t]=Math.max(0,MODEL.pct[t]+diff);}
-let sortKey='index',sortDir=-1,curPage='venues';
+let sortKey='index',sortDir=-1,curPage='venues',fTourOnly=false,fSubOnly=false;
 let pageSize=20,pageNum=1,groupBy='';
 let sel=new Set(),basketFee=12500;
 let sources=[],_srcSeq=0;
@@ -1101,16 +1102,7 @@ function setTvSort(k){if(tvSort===k)tvSortDir*=-1;else{tvSort=k;tvSortDir=(k==='
 function setTvFilter(which,v){if(which==='tier')tvfTier=v;else if(which==='state')tvfState=v;else if(which==='conf')tvfConf=v;else tvGroup=v;renderTourVenues();}
 function tvRow(x){const v=x.v;const amt=(x.confirmed&&v.cSub>0)?(x.fee||0)*v.cSub:0;
  return `<tr><td>${esc(v.name)}</td><td>${esc(v.state||'')}</td><td><span class="chip tier-${v.cTier}" style="font-size:9px;padding:1px 6px">${v.cTier}</span></td><td class="center">${v.cIndex!=null?v.cIndex.toFixed(1):'—'}</td><td><span class="tvfee">$<input type="number" value="${x.fee||0}" step="500" min="0" onchange="setTourVenueFee(${x.id},this.value)"></span></td><td class="center"><input type="checkbox" ${x.confirmed?'checked':''} onchange="toggleTourVenueConfirmed(${x.id},this.checked)"></td><td class="right">${amt?fmt$(amt):'–'}</td><td><button class="srcx" onclick="removeTourVenue(${x.id})" title="Remove from tour">✕</button></td></tr>`;}
-function renderTourVenues(){const el=document.getElementById('tourVenuesBody');if(!el)return;const t=activeTourObj();
-
- if(!t){el.innerHTML='';return;}
- const T=tourTotals();
- let h=`<div class="muted" style="font-size:11px;margin-bottom:6px">${tourVenues.length} venue${tourVenues.length!=1?'s':''} on this tour · ${T.conf} with confirmed subsidy</div>`;
- if(!tourVenues.length)h+='<div class="muted" style="font-size:11.5px">Add venues in the main list — tick the <b style="color:var(--pink)">On tour</b> column.</div>';
- else h+='<div class="muted" style="font-size:11.5px">Manage venues, fees and confirmations in the main list — the pink <b style="color:var(--pink)">On tour / Fee / Tour subsidy</b> columns.</div>';
- h+=`<div class="fundrow total" style="margin-top:8px"><b>Subsidy required</b><b style="color:var(--pink)">${fmt$(T.sub)}</b></div><div class="statline" style="border:none;padding-top:4px"><span class="sl">Children 0–14 reached</span><span class="sv" style="color:#118AB2">${T.child.toLocaleString()}</span></div>`;
- h+='<button class="btn" style="margin-top:10px;width:100%;font-size:12px" onclick="createTourReport()">Tour report (PDF)</button>';
- el.innerHTML=h;}
+function renderTourVenues(){const el=document.getElementById('tourVenuesBody');if(!el)return;el.innerHTML='';el.style.display='none';}
 function renderTourBar(){const el=document.getElementById('tourBar');if(el)el.innerHTML='';}
 function createTourReport(){const t=activeTourObj();if(!t){toast('Select a tour first.',null,true);return;}
  if(!tourVenues.length){toast('This tour has no venues yet.',null,true);return;}
@@ -1758,7 +1750,8 @@ function toggleRepMenu(ev){ev.stopPropagation();const m=document.getElementById(
 function closeRepMenu(){document.getElementById('repmenu').classList.remove('open');}
 document.addEventListener('click',e=>{if(!e.target.closest('.repmenuwrap'))closeRepMenu();});
 function filtered(){const q=document.getElementById('q').value.toLowerCase();
- let a=V.filter(v=>(!q||(v.name||'').toLowerCase().includes(q))&&(F.tier.size===0||F.tier.has(v.cTier))&&(F.idx.size===0||(v.cIndex!=null&&F.idx.has(bandLabel(v.cIndex))))&&(F.elig.size===0||F.elig.has(v.cElig))&&(F.status.size===0||F.status.has(v.status))&&(F.state.size===0||F.state.has(v.state))&&(F.rem.size===0||F.rem.has(v.cRA)));
+ const _tA=activeTourObj();
+ let a=V.filter(v=>{if(_tA){const tv=tvOf(v);if(fTourOnly&&!tv)return false;if(fSubOnly&&!(tv&&tv.confirmed&&v.cSub>0))return false;}return true;}).filter(v=>(!q||(v.name||'').toLowerCase().includes(q))&&(F.tier.size===0||F.tier.has(v.cTier))&&(F.idx.size===0||(v.cIndex!=null&&F.idx.has(bandLabel(v.cIndex))))&&(F.elig.size===0||F.elig.has(v.cElig))&&(F.status.size===0||F.status.has(v.status))&&(F.state.size===0||F.state.has(v.state))&&(F.rem.size===0||F.rem.has(v.cRA)));
  const tourKeyFns={ontour:v=>{return tvOf(v)?0:1;},tfee:v=>{const tv=tvOf(v);return tv?(tv.fee||0):-1;},tsub:v=>{const tv=tvOf(v);return (tv&&tv.confirmed&&v.cSub>0)?(tv.fee||0)*v.cSub:-1;}};
  if(tourKeyFns[sortKey]){const f=tourKeyFns[sortKey];a.sort((x,y)=>sortDir*(f(x)-f(y)));return a;}
  const g={index:'cIndex',em_pct:'cEm',decile:'cDec',subsidy:'cSub',tier:'cTier',eligible:'cElig',ra:'cRA',child:'cChild'};const sk=g[sortKey]||sortKey;
@@ -1766,8 +1759,8 @@ function filtered(){const q=document.getElementById('q').value.toLowerCase();
 
 const cols=[['name','Venue'],['state','State'],['status','Status'],['ra','Remoteness'],['em_pct','EM %'],['decile','SEIFA dec'],['index','Index'],['tier','Tier'],['subsidy','Subsidy'],['eligible','Eligible'],['child','Children 0–14']];
 let charts={};
-function applyTourViewDefaults(){groupBy='state';collapsedGroups.clear();pageSize=Infinity;pageNum=1;const gb=document.getElementById('groupBy');if(gb)gb.value='state';}
-function resetTourViewDefaults(){groupBy='';collapsedGroups.clear();pageSize=20;pageNum=1;const gb=document.getElementById('groupBy');if(gb)gb.value='';}
+function applyTourViewDefaults(){fTourOnly=false;fSubOnly=false;groupBy='state';collapsedGroups.clear();pageSize=Infinity;pageNum=1;const gb=document.getElementById('groupBy');if(gb)gb.value='state';}
+function resetTourViewDefaults(){fTourOnly=false;fSubOnly=false;groupBy='';collapsedGroups.clear();pageSize=20;pageNum=1;const gb=document.getElementById('groupBy');if(gb)gb.value='';}
 function tvOf(v){return tourVenues.find(x=>x.venue_id===v.id);}
 function toggleVenueOnTour(i){const t=activeTourObj();if(!t||!EDIT)return;const v=V[i];const tv=tvOf(v);
  if(tv)tourVenues=tourVenues.filter(x=>x!==tv);
@@ -1823,6 +1816,8 @@ function render(){const a=filtered();const _cc=document.getElementById('count');
    if(tw)tw.style.maxHeight=(ps===Infinity)?'calc(100vh - 150px)':(34+ps*32)+'px';
    renderPager(total,start,end,pages);
    document.getElementById('tbody').innerHTML=rows.map(v=>rowHtml(v)+(editingId===v._i?editorRowHtml(v):'')).join('');}
+ const tft=document.getElementById('tourFilterToggles');
+ if(tft)tft.innerHTML=tourActive?`<label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--pink);font-weight:700"><input type="checkbox" ${fTourOnly?'checked':''} onchange="fTourOnly=this.checked;pageNum=1;render()"> On tour only</label><label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--pink);font-weight:700"><input type="checkbox" ${fSubOnly?'checked':''} onchange="fSubOnly=this.checked;pageNum=1;render()"> Subsidised only</label>`:'';
  const cl=document.getElementById('cardlist');
  if(cl&&curPage==='venues'){const rows=a.slice(0,80);
    cl.innerHTML=rows.map(v=>`<div class="vcard" onclick="openD(${v._i})"><input type="checkbox" ${sel.has(v._i)?'checked':''} onclick="event.stopPropagation();toggleSel(${v._i})"><span class="vc-name">${esc(v.name)}</span><span class="chip tier-${v.cTier}" style="font-size:9px;padding:1px 7px">${v.cTier}</span><span class="vc-meta">${v.cIndex!=null?v.cIndex.toFixed(1):'—'}${v.cSub?' · '+Math.round(v.cSub*100)+'%':''}</span></div>`).join('')+(a.length>80?`<div class="muted" style="font-size:11px;text-align:center;padding:6px">Showing first 80 of ${a.length} — refine the filters</div>`:'');}
