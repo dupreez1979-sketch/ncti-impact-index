@@ -1096,7 +1096,9 @@ async function saveTour(){const t=activeTourObj();if(!t||!EDIT)return false;
   const changed=tourVenues.filter(c=>{const b=byB[c.venue_id];return b&&(((c.fee||0)!==b.fee)||(!!c.confirmed!==b.confirmed));});
   if(removed.length){const {error}=await sbc.from('tour_venues').delete().in('id',removed);if(error)throw error;}
   if(added.length){const {error}=await sbc.from('tour_venues').insert(added.map(c=>({tour_id:t.id,venue_id:c.venue_id,fee:c.fee||0,subsidy_confirmed:!!c.confirmed})));if(error)throw error;}
-  for(const c of changed){const {error}=await sbc.from('tour_venues').update({fee:c.fee||0,subsidy_confirmed:!!c.confirmed}).eq('id',c.id);if(error)throw error;}
+  for(const c of changed){const rid=c.id!=null?c.id:(byB[c.venue_id]&&byB[c.venue_id].id);
+   if(rid==null){const {error}=await sbc.from('tour_venues').insert({tour_id:t.id,venue_id:c.venue_id,fee:c.fee||0,subsidy_confirmed:!!c.confirmed});if(error)throw error;continue;}
+   const {error}=await sbc.from('tour_venues').update({fee:c.fee||0,subsidy_confirmed:!!c.confirmed}).eq('id',rid);if(error)throw error;}
   if(stagedModel||stagedSources){const upd={};if(stagedModel)upd.model=stagedModel;if(stagedSources)upd.sources=stagedSources;
    const {error}=await sbc.from('tours').update(upd).eq('id',t.id);if(error)throw error;
    if(stagedModel)t.model=stagedModel;if(stagedSources)t.sources=stagedSources;stagedModel=null;stagedSources=null;}
@@ -1827,7 +1829,8 @@ function resetTourViewDefaults(){fTourOnly=false;fSubOnly=false;groupBy='';colla
 function tvOf(v){return tourVenues.find(x=>x.venue_id===v.id);}
 function toggleVenueOnTour(i){const t=activeTourObj();if(!t||!EDIT)return;const v=V[i];const tv=tvOf(v);
  if(tv)tourVenues=tourVenues.filter(x=>x!==tv);
- else tourVenues.push({id:null,venue_id:v.id,fee:t.default_fee||basketFee,confirmed:v.cTier==='High',v});
+ else{const b=tourBaseline&&tourBaseline.venues.find(x=>x.venue_id===v.id);
+  tourVenues.push(b?{id:b.id,venue_id:v.id,fee:b.fee,confirmed:b.confirmed,v}:{id:null,venue_id:v.id,fee:t.default_fee||basketFee,confirmed:v.cTier==='High',v});}
  render();}
 function render(){const a=filtered();const _cc=document.getElementById('count');if(_cc)_cc.textContent=a.length+' of '+V.length+' venues';
  const tourActive=activeTourObj();document.body.classList.toggle('tourmode',!!tourActive);
