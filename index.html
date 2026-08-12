@@ -2662,15 +2662,34 @@ function showPage(p){curPage=p;const explorer=(p==='venues'||p==='map'||p==='cha
 function drawCharts(a){const tiers=['High','Medium','Low'],tc=tiers.map(t=>a.filter(v=>v.cTier===t).length);
  const rlab=['Major Cities of Australia','Inner Regional Australia','Outer Regional Australia','Remote Australia','Very Remote Australia'];const rc=rlab.map(r=>a.filter(v=>v.cRA===r).length);
  const bins=[0,1,2,3,4,5,6,7,8,9];const hc=bins.map(b=>a.filter(v=>v.cIndex>=b&&v.cIndex<b+1).length);
- const states=[...new Set(a.map(v=>v.state).filter(Boolean))].sort();const sc=states.map(s=>a.filter(v=>v.state===s).length);
+ const stCount={};a.forEach(v=>{if(v.state)stCount[v.state]=(stCount[v.state]||0)+1;});
+ const states=Object.keys(stCount).sort((x,y)=>stCount[y]-stCount[x]||x.localeCompare(y));const sc=states.map(s=>stCount[s]);
  const ctc=tiers.map(t=>uniqueChild(a.filter(v=>v.cTier===t)));
- mk('cChildTier','bar',{labels:tiers,datasets:[{data:ctc,backgroundColor:[TIERCOL.High,TIERCOL.Medium,TIERCOL.Low],borderColor:'#073B4C',borderWidth:1}]},{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}});
- mk('cTier','doughnut',{labels:tiers,datasets:[{data:tc,backgroundColor:[TIERCOL.High,TIERCOL.Medium,TIERCOL.Low],borderColor:'#073B4C',borderWidth:1.5}]},{plugins:{legend:{position:'right'}}});
+ mk('cChildTier','bar',{labels:tiers,datasets:[{data:ctc,backgroundColor:[TIERCOL.High,TIERCOL.Medium,TIERCOL.Low],borderColor:'#073B4C',borderWidth:1}]},{layout:{padding:{top:18}},plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{callback:v=>Number(v).toLocaleString()}}}},[barValuePlugin]);
+ const tcTot=tc.reduce((x,y)=>x+y,0)||1;
+ mk('cTier','doughnut',{labels:tiers,datasets:[{data:tc,backgroundColor:[TIERCOL.High,TIERCOL.Medium,TIERCOL.Low],borderColor:'#073B4C',borderWidth:1.5}]},
+  {plugins:{legend:{position:'right',labels:{generateLabels(c){return c.data.labels.map((l,i)=>({text:l+'  '+Math.round(c.data.datasets[0].data[i]/tcTot*100)+'%',fillStyle:c.data.datasets[0].backgroundColor[i],strokeStyle:'#073B4C',lineWidth:1.5,index:i}));}}},
+   tooltip:{callbacks:{label:cx=>cx.label+': '+cx.parsed+' venues ('+Math.round(cx.parsed/tcTot*100)+'%)'}}}},[pctPlugin]);
  mk('cRem','bar',{labels:['Major\nCities','Inner\nReg','Outer\nReg','Remote','Very\nRemote'],datasets:[{data:rc,backgroundColor:'#3E6BA3',borderColor:'#073B4C',borderWidth:1}]},{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}});
  const histCol=bins.map(b=>{const mid=b+0.5;const t=mid>=MODEL.thr.high?'High':mid>=MODEL.thr.med?'Medium':'Low';return TIERCOL[t];});
  mk('cHist','bar',{labels:bins.map(b=>b+'–'+(b+1)),datasets:[{data:hc,backgroundColor:histCol,borderColor:'#073B4C',borderWidth:1}]},{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}});
- mk('cState','bar',{labels:states,datasets:[{data:sc,backgroundColor:'#EF476F',borderColor:'#073B4C',borderWidth:1}]},{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}});}
-function mk(id,type,data,opts){if(charts[id])charts[id].destroy();charts[id]=new Chart(document.getElementById(id),{type,data,options:Object.assign({responsive:true,maintainAspectRatio:false},opts)});}
+ mk('cState','bar',{labels:states,datasets:[{data:sc,backgroundColor:'#EF476F',borderColor:'#073B4C',borderWidth:1}]},{layout:{padding:{top:18}},plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}},[barValuePlugin]);}
+function mk(id,type,data,opts,plugins){if(charts[id])charts[id].destroy();charts[id]=new Chart(document.getElementById(id),{type,data,options:Object.assign({responsive:true,maintainAspectRatio:false},opts),plugins:plugins||[]});}
+const barValuePlugin={id:'barValue',afterDatasetsDraw(c){const{ctx}=c;ctx.save();
+ ctx.font='700 11px Inter, sans-serif';ctx.fillStyle='#073B4C';ctx.textAlign='center';ctx.textBaseline='bottom';
+ c.data.datasets.forEach((ds,di)=>{const meta=c.getDatasetMeta(di);if(meta.hidden)return;
+  meta.data.forEach((el,i)=>{const v=ds.data[i];if(v==null||v===0)return;
+   ctx.fillText(Number(v).toLocaleString(),el.x,el.y-4);});});
+ ctx.restore();}};
+const pctPlugin={id:'pctLabel',afterDatasetsDraw(c){const{ctx}=c;const ds=c.data.datasets[0];
+ const tot=ds.data.reduce((a,b)=>a+(+b||0),0);if(!tot)return;ctx.save();
+ ctx.font='800 12px Inter, sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+ c.getDatasetMeta(0).data.forEach((el,i)=>{const v=+ds.data[i]||0;if(!v)return;
+  const pct=Math.round(v/tot*100);if(pct<5)return;
+  const pos=el.tooltipPosition();
+  ctx.fillStyle=(c.data.labels[i]==='Medium')?'#073B4C':'#fff';
+  ctx.fillText(pct+'%',pos.x,pos.y);});
+ ctx.restore();}};
 
 // ---- profile ----
 let curIdx=null;
