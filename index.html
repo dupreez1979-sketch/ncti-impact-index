@@ -1365,6 +1365,7 @@ function saveFilters(){try{const o={q:document.getElementById('q')?document.getE
 function restoreFilters(){try{const o=JSON.parse(localStorage.getItem('ctii.filters')||'null');if(!o)return;
  if(o.q&&document.getElementById('q'))document.getElementById('q').value=o.q;
  Object.keys(F).forEach(k=>{F[k]=new Set(o[k]||[]);const box=document.getElementById(FMSID[k]);if(box){box.querySelectorAll('input').forEach(c=>c.checked=F[k].has(c.value));const l=document.getElementById(FMSID[k]+'_lbl');if(l)l.textContent=F[k].size?F[k].size+' selected':'All';}});}catch(e){}}
+function routeOK(pg){return ['venues','map','charts','tours','about'].includes(pg)||(EXPLORE_ON&&isCommPage(pg));}
 function restoreState(){let pg='venues';
  try{pg=(location.hash.match(/^#\/([a-z]+)/)||[])[1]||localStorage.getItem('ctii.page')||'venues';}catch(e){}
  try{const tid=+localStorage.getItem('ctii.tour')||0;
@@ -1373,8 +1374,8 @@ function restoreState(){let pg='venues';
  try{const dk=localStorage.getItem('ctii.dock');
   if(window.innerWidth>=600){if(dk&&DOCKCARDS[dk])openDock(dk);else if(dk===null&&window.innerWidth>=1280)openDock('model');}
  }catch(e){}
- showPage(['venues','map','charts','xmap','xlist','xchart','tours','about'].includes(pg)?pg:'venues');}
-window.addEventListener('hashchange',()=>{const pg=(location.hash.match(/^#\/([a-z]+)/)||[])[1];if(pg&&pg!==curPage&&['venues','map','charts','xmap','xlist','xchart','tours','about'].includes(pg))showPage(pg);});
+ showPage(routeOK(pg)?pg:'venues');}
+window.addEventListener('hashchange',()=>{const pg=(location.hash.match(/^#\/([a-z]+)/)||[])[1];if(pg&&pg!==curPage&&routeOK(pg))showPage(pg);});
 let _rsz;window.addEventListener('resize',()=>{clearTimeout(_rsz);_rsz=setTimeout(()=>{render();if(map)map.invalidateSize();},220);});
 // ---------- tours (companies → shows → tours) ----------
 let COMPANIES=[],SHOWS=[],TOURS=[],curCompany=null,curShow=null,curTour=null,modelBeforeTour=null;
@@ -2761,7 +2762,8 @@ function render(){const a=filtered();const _cc=document.getElementById('count');
  renderFilterChips();renderContext();renderTray();saveFilters();
  if(isCommPage(curPage))renderComm();}
 function setSort(k){if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=(['name','state','status','ra','tier','eligible','ontour'].includes(k))?1:-1;}render();}
-function showPage(p){curPage=p;const explorer=(p==='venues'||p==='map'||p==='charts');const comm=isCommPage(p);
+function showPage(p){if(!EXPLORE_ON&&isCommPage(p))p='venues';
+ curPage=p;const explorer=(p==='venues'||p==='map'||p==='charts');const comm=isCommPage(p);
  document.body.classList.toggle('aboutmode',p==='about');document.body.classList.toggle('toursmode',p==='tours');
  document.querySelectorAll('.page').forEach(e=>e.classList.remove('active'));document.getElementById('page-'+p).classList.add('active');
  document.getElementById('nav-venues').classList.toggle('active',explorer);
@@ -2960,6 +2962,15 @@ function initMap(){if(map)return;
 // Unit of analysis is the community, not the venue. Every community
 // in Australia appears here, whether or not a venue sits in it.
 // ============================================================
+// Explore is built but switched off. Set EXPLORE_ON=true to bring it back:
+// the nav item, the mobile tab, the burger link and its routes all follow this
+// one flag. Nothing else needs changing.
+const EXPLORE_ON=false;
+if(!EXPLORE_ON){
+ ['nav-explore','wb-mapb'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none';});
+ const mt=document.querySelector('#mobtabs button[data-mt="comm"]');if(mt)mt.style.display='none';
+ document.querySelectorAll('.sfnav a').forEach(a=>{if(a.textContent.trim()==='Explore')a.style.display='none';});
+}
 let COMM={sa2:null,sa3:null,state:null},COMM_LOADING=false,COMM_ERR=null;
 let CGEO='sa2',CLAYER='index',AEDCMODE='r';
 let CLS={method:'q',n:5,ramp:'need',rev:false,opacity:78},CBREAKS=null;
