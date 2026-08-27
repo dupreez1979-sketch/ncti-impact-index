@@ -1725,7 +1725,7 @@ function renderToursMap(rows){const body=document.getElementById('toursBody');if
  if(toursMapObj){try{toursMapObj.remove();}catch(e){}toursMapObj=null;}
  setTimeout(()=>{try{
   toursMapObj=L.map('tourmap',{preferCanvas:true}).setView([-27,134],4);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:12,attribution:'© OpenStreetMap © CARTO'}).addTo(toursMapObj);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxZoom:12,attribution:'\u00a9 Esri \u00b7 \u00a9 OpenStreetMap contributors'}).addTo(toursMapObj);
   const lg=L.layerGroup().addTo(toursMapObj);
   const draw=sub=>pts.filter(p=>!!p.sub===sub&&p.ll).forEach(p=>{L.circleMarker(p.ll,{radius:6,weight:1.5,color:'#073B4C',fillColor:sub?'#EF476F':'#118AB2',fillOpacity:1}).bindTooltip(`${p.name?p.name+' — ':''}${p.tour}${sub?' · subsidised':''}`).addTo(lg);});
   draw(false);draw(true);
@@ -2206,7 +2206,7 @@ function openAreaChecker(mode,i){
  setTimeout(()=>{
   if(!areaMap){
    areaMap=L.map('areamap',{preferCanvas:true});
-   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:14,attribution:'\u00a9 OpenStreetMap \u00a9 CARTO'}).addTo(areaMap);
+   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxZoom:14,attribution:'\u00a9 Esri \u00b7 \u00a9 OpenStreetMap contributors'}).addTo(areaMap);
    window._amLayer=L.geoJSON(SA2GEO,{style:amStyle,onEachFeature:(f,l)=>{l.on('click',()=>amSelect(f.properties.c));}}).addTo(areaMap);
   }
   const start=(isFinite(lat)&&isFinite(lng))?[lat,lng]:[-27,134];
@@ -2950,7 +2950,7 @@ function updateLegend(){if(!legendCtl)return;let h='';
  legendCtl.getContainer().innerHTML='<div class="maplegend">'+h+'</div>';}
 function initMap(){if(map)return;
  map=L.map('map',{preferCanvas:true}).setView([-27,134],4);
- L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:12,attribution:'© OpenStreetMap © CARTO'}).addTo(map);
+ L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxZoom:12,attribution:'\u00a9 Esri \u00b7 \u00a9 OpenStreetMap contributors'}).addTo(map);
  sa2Layer=L.geoJSON(SA2GEO,{style:styleSA2,onEachFeature:(f,l)=>{l.on('click',()=>{const r=computeSA2(f.properties.c);const t=r?`Impact ${r.idx.toFixed(1)} · ${r.tier}<br>~${(r.ch||0).toLocaleString()} children 0–14${r.hv?'<br><b>has a venue</b>':''}`:'not scored';l.bindPopup(`<b>SA2 ${f.properties.c}</b><br>${t}`).openPopup();});}}).addTo(map);
  venueLayer=L.layerGroup().addTo(map);
  mapMode='tier';document.getElementById('mapmode_tier').classList.add('on');
@@ -3200,7 +3200,7 @@ function attachComm(f,l){l.on('click',()=>{const r=CLOOK[parentOf(f.properties.c
  l.bindPopup(r?commPopup(r):'<b>Not scored</b>').openPopup();});}
 function initCommMap(){if(cmap)return;
  cmap=L.map('cmap',{preferCanvas:true}).setView([-27,134],4);
- L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:12,attribution:'© OpenStreetMap © CARTO'}).addTo(cmap);
+ L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxZoom:12,attribution:'\u00a9 Esri \u00b7 \u00a9 OpenStreetMap contributors'}).addTo(cmap);
  rebuildLookup();
  cLayer=L.geoJSON(SA2GEO,{style:styleComm,onEachFeature:attachComm}).addTo(cmap);
  cVenLayer=L.layerGroup().addTo(cmap);
