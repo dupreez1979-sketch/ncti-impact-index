@@ -1501,6 +1501,8 @@ function addSelectedToTour(){if(!EDIT){toast('Only admins can build tours.',null
  if(!n){toast('Those venues are already on this tour.',null,true);return;}
  render();toast(n+' venue'+(n>1?'s':'')+' staged — press Save on the bar below to commit.');}
 function setTourVenueFee(vid,val){const tv=tourVenues.find(x=>x.venue_id===vid);if(tv)tv.fee=Math.max(0,+val||0);render();}
+// What the venue actually pays: fee minus the tour subsidy (subsidy counts once confirmed).
+function tourNetFee(tv,v){const fee=tv.fee||0;const sub=(tv.confirmed&&v.cSub>0)?fee*v.cSub:0;return fee-sub;}
 function toggleTourVenueConfirmed(vid,ch){const tv=tourVenues.find(x=>x.venue_id===vid);if(tv)tv.confirmed=ch;render();}
 function removeTourVenue(vid){tourVenues=tourVenues.filter(x=>x.venue_id!==vid);render();}
 function tourTotals(){let sub=0,child=0,conf=0;const seen=new Set();
@@ -2684,7 +2686,7 @@ document.addEventListener('click',e=>{if(!e.target.closest('.repmenuwrap'))close
 function filtered(){const q=document.getElementById('q').value.toLowerCase();
  const _tA=activeTourObj();
  let a=V.filter(v=>{if(_tA){const tv=tvOf(v);if(fTourOnly&&!tv)return false;if(fSubOnly&&!(tv&&tv.confirmed&&v.cSub>0))return false;}return true;}).filter(v=>(!q||(v.name||'').toLowerCase().includes(q))&&(F.tier.size===0||F.tier.has(v.cTier))&&(F.idx.size===0||(v.cIndex!=null&&F.idx.has(bandLabel(v.cIndex))))&&(F.elig.size===0||F.elig.has(v.cElig))&&(F.status.size===0||F.status.has(v.status))&&(F.state.size===0||F.state.has(v.state))&&(F.rem.size===0||F.rem.has(v.cRA)));
- const tourKeyFns={ontour:v=>{return tvOf(v)?0:1;},tfee:v=>{const tv=tvOf(v);return tv?(tv.fee||0):-1;},tsub:v=>{const tv=tvOf(v);return (tv&&tv.confirmed&&v.cSub>0)?(tv.fee||0)*v.cSub:-1;}};
+ const tourKeyFns={ontour:v=>{return tvOf(v)?0:1;},tfee:v=>{const tv=tvOf(v);return tv?(tv.fee||0):-1;},tsub:v=>{const tv=tvOf(v);return (tv&&tv.confirmed&&v.cSub>0)?(tv.fee||0)*v.cSub:-1;},tnet:v=>{const tv=tvOf(v);return tv?tourNetFee(tv,v):-1;}};
  if(tourKeyFns[sortKey]){const f=tourKeyFns[sortKey];a.sort((x,y)=>sortDir*(f(x)-f(y)));return a;}
  const g={index:'cIndex',em_pct:'cEm',decile:'cDec',subsidy:'cSub',tier:'cTier',eligible:'cElig',ra:'cRA',child:'cChild'};const sk=g[sortKey]||sortKey;
  a.sort((x,y)=>{let A=x[sk],B=y[sk];if(typeof A==='string')return sortDir*(''+A).localeCompare(''+B);return sortDir*((A??-999)-(B??-999));});return a;}
@@ -2701,7 +2703,7 @@ function toggleVenueOnTour(i){const t=activeTourObj();if(!t||!EDIT)return;const 
  render();}
 function render(){const a=filtered();const _cc=document.getElementById('count');if(_cc)_cc.textContent=a.length+' of '+V.length+' venues';
  const tourActive=activeTourObj();document.body.classList.toggle('tourmode',!!tourActive);
- const curCols=tourActive?[['name','Venue'],['ontour','On tour'],['index','Index'],['tier','Tier'],['subsidy','Subsidy'],['eligible','Eligible'],['tfee','Fee $'],['tsub','Tour subsidy'],['state','State'],['status','Status'],['ra','Remoteness'],['em_pct','EM %'],['decile','D decile'],['child','Children 0–14']]:cols;
+ const curCols=tourActive?[['name','Venue'],['ontour','On tour'],['index','Index'],['tier','Tier'],['subsidy','Subsidy'],['eligible','Eligible'],['tfee','Fee $'],['tsub','Tour subsidy'],['tnet','Net fee $'],['state','State'],['status','Status'],['ra','Remoteness'],['em_pct','EM %'],['decile','D decile'],['child','Children 0–14']]:cols;
  const kpiSet=tourActive?tourVenues.map(x=>x.v).filter(Boolean):(sel.size?[...sel].map(i=>V[i]).filter(Boolean):a);
  const kpiLbl=tourActive?'Tour venues':(sel.size?'Selected venues':'Venues');
  const hi=kpiSet.filter(v=>v.cTier==='High').length,me=kpiSet.filter(v=>v.cTier==='Medium').length,lo=kpiSet.filter(v=>v.cTier==='Low').length,el=kpiSet.filter(v=>v.cElig==='Yes').length;
@@ -2725,6 +2727,9 @@ function render(){const a=filtered();const _cc=document.getElementById('count');
   tfee:tvfeeCell,
   tsub:v=>{const tv=tvOf(v);const dis=EDIT?'':'disabled';const amt=(tv&&tv.confirmed&&v.cSub>0)?fmt$((tv.fee||0)*v.cSub):'';
    return `<td onclick="event.stopPropagation()" style="white-space:nowrap">${tv?`<input type="checkbox" ${tv.confirmed?'checked':''} ${dis} title="Subsidy confirmed" onchange="toggleTourVenueConfirmed(${v.id},this.checked)"> <b style="color:var(--pink)">${amt||'–'}</b>`:'<span class="muted">–</span>'}</td>`;},
+  tnet:v=>{const tv=tvOf(v);if(!tv)return '<td class="right"><span class="muted">–</span></td>';
+   const net=tourNetFee(tv,v);const subbed=tv.confirmed&&v.cSub>0;
+   return `<td class="right" title="${subbed?'Fee minus the confirmed tour subsidy':'Full fee — no confirmed subsidy'}"><b${subbed?' style="color:#0F7B57"':''}>${fmt$(net)}</b></td>`;},
   state:v=>`<td>${v.state||''}</td>`,
   status:v=>`<td style="font-size:11.5px">${v.status||''}</td>`,
   ra:v=>`<td>${(v.cRA||'').replace(' Australia','')}</td>`,
@@ -2895,8 +2900,10 @@ function openD(i){curIdx=i;const v=V[i];const g=v[MODEL.geo];let den=activeKeys(
    <button class="btn sec" style="margin-top:14px" onclick="const p=document.getElementById('aboutArea');const h=p.classList.toggle('hidden');this.textContent=(h?'About the area ▾':'About the area ▴')">About the area ▾</button>
    <div class="hidden card" id="aboutArea" style="padding:12px 14px;margin-top:10px;box-shadow:none;border:1.5px solid var(--navy)">${areaSummary(v,g)}</div>
    <div class="calc"><h3>Fee &amp; discount calculator</h3>
+     ${(()=>{const _t=activeTourObj();const _tv=_t?tvOf(v):null;if(!_tv)return '';
+       return `<div style="font-size:11.5px;color:var(--pink);font-weight:700;margin-bottom:6px">● Linked to ${esc(_t.name)}${EDIT?' — changing the fee here updates the tour (staged until Save)':' — fee shown from the tour'}</div>`;})()}
      <div class="presets"><span class="muted" style="align-self:center">Package fee:</span><button onclick="setFee(12500)">$12.5k</button><button onclick="setFee(14000)">$14k</button><button onclick="setFee(16000)">$16k</button></div>
-     <div class="row"><span>Presenter fee (editable)</span><span>$ <input type="number" id="fee" value="12500" step="500" style="width:110px" oninput="calc()"></span></div>
+     <div class="row"><span>Presenter fee (editable)</span><span>$ <input type="number" id="fee" value="${(()=>{const _t=activeTourObj();const _tv=_t?tvOf(v):null;return _tv?(_tv.fee||0):12500;})()}" step="500" style="width:110px" oninput="calc()"></span></div>
      <div class="row"><span>Subsidy (from tier)</span><b id="cSubp"></b></div>
      <div class="row"><span>Discount</span><b id="cDisc" style="color:#06D6A0"></b></div>
      <hr style="border:none;border-top:1.5px solid var(--navy)"><div class="row"><span><b>Net fee to venue</b></span><span class="net" id="cNet"></span></div>
@@ -2904,9 +2911,16 @@ function openD(i){curIdx=i;const v=V[i];const g=v[MODEL.geo];let den=activeKeys(
    <button class="btn" style="margin-top:14px;width:100%" onclick="createVenueReport(${i})">Create venue report (PDF)</button></div>`;
  document.getElementById('drawer').innerHTML=html;document.getElementById('drawer').classList.add('open');document.getElementById('ov').classList.add('open');calc();}
 function setFee(f){document.getElementById('fee').value=f;calc();}
+let _calcSync=null;
 function calc(){const v=V[curIdx];const fee=parseFloat(document.getElementById('fee').value)||0;const s=v.cSub||0;const disc=fee*s;
  document.getElementById('cSubp').textContent=Math.round(s*100)+'%';document.getElementById('cDisc').textContent=fmt$(disc);document.getElementById('cNet').textContent=fmt$(fee-disc);
- document.getElementById('calcnote').textContent=s>0?`${v.name} is High tier under this model, so it receives a ${Math.round(s*100)}% subsidy.`:`${v.name} is ${v.cTier} tier under this model, so no subsidy.`;}
+ const t=activeTourObj();const tv=t?tvOf(v):null;
+ let note=s>0?`${v.name} is High tier under this model, so it receives a ${Math.round(s*100)}% subsidy.`:`${v.name} is ${v.cTier} tier under this model, so no subsidy.`;
+ if(tv&&s>0)note+=tv.confirmed?' Subsidy is confirmed on this tour.':' Subsidy is not yet confirmed on this tour (tick Tour subsidy in the list).';
+ document.getElementById('calcnote').textContent=note;
+ // Two-way link: on the active tour, the calculator edits the staged tour fee.
+ if(tv&&EDIT&&(tv.fee||0)!==fee){tv.fee=Math.max(0,fee);
+  clearTimeout(_calcSync);_calcSync=setTimeout(()=>{render();},350);}}
 function closeD(){document.getElementById('drawer').classList.remove('open');document.getElementById('ov').classList.remove('open');}
 
 // ---------- MAP ----------
