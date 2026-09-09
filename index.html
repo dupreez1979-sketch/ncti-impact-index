@@ -71,6 +71,10 @@ header h1{font-size:29px;margin:0;} header .sub{color:var(--slate);font-size:13p
 .editform input[type=checkbox]{width:auto;}
 .editform .chk{display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:13px;color:var(--navy);font-weight:600;margin:0;cursor:pointer;}
 .authmodal{position:fixed;inset:0;background:rgba(7,59,76,.42);display:none;align-items:center;justify-content:center;z-index:6000;padding:20px;}
+.telbl{display:block;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--slate);margin:12px 0 4px;}
+.terow{display:flex;gap:6px;align-items:center;}
+.terow select{flex:1;min-width:0;font-family:inherit;font-size:13.5px;padding:9px 10px;border:1.5px solid var(--navy);border-radius:6px;background:#fff;color:var(--navy);}
+#tourEditModal input{width:100%;font-family:inherit;font-size:13.5px;padding:9px 10px;border:1.5px solid var(--navy);border-radius:6px;background:#fff;color:var(--navy);}
 .authmodal.open{display:flex;}
 .authcard{background:var(--cream);border:2px solid var(--navy);border-radius:10px;box-shadow:6px 6px 0 var(--navy);padding:26px 26px 20px;max-width:420px;width:100%;position:relative;}
 .authcard h2{margin:0 0 6px;font-size:25px;color:var(--navy);}.authcard h2 .pink{color:var(--pink);}
@@ -991,6 +995,23 @@ body.aboutmode .sitefoot{margin-top:26px;}
 </div>
 </div></div>
 </div>
+<div class="authmodal" id="tourEditModal" style="z-index:5900" onclick="if(event.target===this)closeTourEdit()">
+ <div class="authcard" style="max-width:470px">
+   <button class="authx" onclick="closeTourEdit()" title="Close">×</button>
+   <h2>Edit tour details</h2>
+   <p style="font-size:12px;color:var(--slate);margin:4px 0 12px">Rename things or move the tour. Renaming a company or work changes it everywhere it appears; picking a different one moves this tour only.</p>
+   <label class="telbl">Company</label>
+   <div class="terow"><select id="te_co" onchange="teCoChanged()"></select><button class="iconbtn" title="Rename this company" onclick="teRenameCompany()">✎</button></div>
+   <label class="telbl">Work / show</label>
+   <div class="terow"><select id="te_sh"></select><button class="iconbtn" title="Rename this work" onclick="teRenameShow()">✎</button></div>
+   <label class="telbl">Tour name</label>
+   <input type="text" id="te_name" onkeydown="if(event.key==='Enter')saveTourEdit()">
+   <label class="telbl">Default fee — used when a venue is added to the tour</label>
+   <input type="number" id="te_fee" step="500" min="0">
+   <div id="te_msg" class="authmsg"></div>
+   <div class="authactions"><button class="btn sec" onclick="closeTourEdit()">Cancel</button><button class="btn" onclick="saveTourEdit()">Save</button></div>
+ </div>
+</div>
 <div class="authmodal" id="modelmodal" onclick="if(event.target===this)closeName()">
  <div class="authcard">
    <button class="authx" onclick="closeName()" title="Close">×</button>
@@ -1423,7 +1444,49 @@ function addShow(){if(!curCompany)return;openModel('New work / show','','','Crea
 function editShow(){const s=SHOWS.find(x=>x.id===curShow);if(!s)return;openModel('Edit work',s.title,'','Save',async name=>{const {error}=await sbc.from('shows').update({title:name}).eq('id',s.id);if(error){toast(error.message,null,true);return;}s.title=name;renderTourPanel();},{showDesc:false,namePlaceholder:'Show title'});}
 function deleteShow(){const s=SHOWS.find(x=>x.id===curShow);if(!s)return;openConfirm('Delete work?','Deleting “'+s.title+'” also removes its tours. This cannot be undone.','Delete',async()=>{const {error}=await sbc.from('shows').delete().eq('id',s.id);if(error){toast(error.message,null,true);return;}SHOWS=SHOWS.filter(x=>x.id!==s.id);TOURS=TOURS.filter(t=>t.show_id!==s.id);curShow=curTour=null;renderTourPanel();});}
 function addTour(){if(!curShow)return;openModel('New tour','','','Create',async name=>{const {data,error}=await sbc.from('tours').insert({show_id:curShow,name,default_fee:12500}).select('id,show_id,name,model,sources,default_fee').single();if(error){toast(error.message,null,true);return;}TOURS.push(data);curTour=data.id;renderTourPanel();},{sub:'Name this tour, e.g. “2027 National Tour”.',showDesc:false,namePlaceholder:'Tour name'});}
-function editTour(){const t=activeTourObj();if(!t)return;openModel('Edit tour',t.name,'','Save',async name=>{const {error}=await sbc.from('tours').update({name}).eq('id',t.id);if(error){toast(error.message,null,true);return;}t.name=name;renderTourPanel();},{showDesc:false,namePlaceholder:'Tour name'});}
+function editTour(){const t=activeTourObj();if(t)openTourEdit(t.id);}
+// ---- Edit tour details: company, work, tour name, default fee ----
+let teTourId=null;
+function openTourEdit(tourId){if(!EDIT){toast('Only admins can edit tours.',null,true);return;}
+ const t=TOURS.find(x=>x.id===tourId);if(!t)return;teTourId=tourId;
+ const sh=SHOWS.find(s=>s.id===t.show_id);
+ teFill(sh?sh.company_id:(COMPANIES[0]&&COMPANIES[0].id),t.show_id);
+ document.getElementById('te_name').value=t.name||'';
+ document.getElementById('te_fee').value=t.default_fee??12500;
+ document.getElementById('te_msg').textContent='';
+ document.getElementById('tourEditModal').classList.add('open');}
+function teFill(coId,shId){const co=document.getElementById('te_co'),shSel=document.getElementById('te_sh');
+ co.innerHTML=COMPANIES.map(c=>`<option value="${c.id}" ${c.id===coId?'selected':''}>${esc(c.name)}</option>`).join('');
+ const shows=SHOWS.filter(s=>s.company_id===+co.value).slice().sort((a,b)=>(''+a.title).localeCompare(b.title));
+ shSel.innerHTML=shows.length?shows.map(s=>`<option value="${s.id}" ${s.id===shId?'selected':''}>${esc(s.title)}</option>`).join(''):'<option value="">This company has no works yet</option>';}
+function teCoChanged(){teFill(+document.getElementById('te_co').value,null);}
+function teRenameCompany(){const id=+document.getElementById('te_co').value;const c=COMPANIES.find(x=>x.id===id);if(!c)return;
+ openModel('Rename company',c.name,c.address||'','Save',async(name,addr)=>{
+  const {error}=await sbc.from('companies').update({name,address:addr||null}).eq('id',id);
+  if(error){toast(error.message,null,true);return;}
+  c.name=name;c.address=addr;COMPANIES.sort((a,b)=>(''+a.name).localeCompare(b.name));
+  teFill(id,+document.getElementById('te_sh').value||null);renderToursPage();renderContext();
+ },{sub:'Renaming changes this company everywhere it appears.',namePlaceholder:'Company name',descPlaceholder:'Address (optional)'});}
+function teRenameShow(){const id=+document.getElementById('te_sh').value;const s=SHOWS.find(x=>x.id===id);if(!s)return;
+ openModel('Rename work',s.title,'','Save',async name=>{
+  const {error}=await sbc.from('shows').update({title:name}).eq('id',id);
+  if(error){toast(error.message,null,true);return;}
+  s.title=name;teFill(s.company_id,id);renderToursPage();
+ },{showDesc:false,sub:'Renaming changes this work everywhere it appears.',namePlaceholder:'Show title'});}
+async function saveTourEdit(){const t=TOURS.find(x=>x.id===teTourId);if(!t)return;
+ const name=document.getElementById('te_name').value.trim();
+ const shId=+document.getElementById('te_sh').value||null;
+ const fee=Math.max(0,+document.getElementById('te_fee').value||0);
+ const msg=document.getElementById('te_msg');msg.textContent='';
+ if(!name){msg.textContent='Enter a tour name.';return;}
+ if(!shId){msg.textContent='This company has no works yet — rename an existing work into place, or create one first.';return;}
+ const {error}=await sbc.from('tours').update({name,show_id:shId,default_fee:fee}).eq('id',t.id);
+ if(error){msg.textContent=error.message;return;}
+ t.name=name;t.show_id=shId;t.default_fee=fee;
+ if(curTour===t.id){const sh=SHOWS.find(s=>s.id===shId);curShow=shId;curCompany=sh?sh.company_id:null;}
+ closeTourEdit();toast('Tour details saved.');
+ renderToursPage();render();}
+function closeTourEdit(){document.getElementById('tourEditModal').classList.remove('open');teTourId=null;}
 function deleteTour(){const t=activeTourObj();if(!t)return;openConfirm('Delete tour?','Deleting “'+t.name+'” removes its venue list. This cannot be undone.','Delete',async()=>{const {error}=await sbc.from('tours').delete().eq('id',t.id);if(error){toast(error.message,null,true);return;}TOURS=TOURS.filter(x=>x.id!==t.id);curTour=null;renderTourPanel();});}
 function applyTourModel(){const t=activeTourObj();if(!t||!t.model)return;const c=t.model;
  if(!modelBeforeTour)modelBeforeTour=JSON.parse(JSON.stringify(MODEL));
@@ -1711,7 +1774,7 @@ function renderToursList(rows){const body=document.getElementById('toursBody');i
  const start=(tuSize===Infinity)?0:(tuPage-1)*tuSize;const end=(tuSize===Infinity)?total:Math.min(total,start+tuSize);const pageRows=rows.slice(start,end);
  let h=`<div class="card" style="overflow:hidden"><div class="tablewrap" style="max-height:none;overflow:visible"><table class="tourstable"><thead><tr>${[['company','Company',''],['work','Work',''],['tour','Tour',''],['venues','Venues','center'],['confirmed','Subsidised','center'],['subsidy','Subsidy','right'],['presenter','Presenter','right'],['children','Children','center']].map(c=>`<th class="${c[2]}" style="cursor:pointer" onclick="setTuSort('${c[0]}')">${c[1]}${tuSortK===c[0]?(tuSortD<0?' ▾':' ▴'):''}</th>`).join('')}<th></th></tr></thead><tbody>`;
  if(!pageRows.length)h+='<tr><td colspan="9" style="padding:16px;color:var(--slate)">No tours match these filters.</td></tr>';
- pageRows.forEach(r=>{h+=`<tr class="${r.t.archived?'archrow':''}" onclick="activateTourFromList(${r.t.id})" style="cursor:pointer" title="Open as the active tour on the Venues tab"><td>${esc(r.co?r.co.name:'—')}</td><td>${esc(r.sh?r.sh.title:'—')}</td><td><b>${esc(r.t.name)}</b>${r.t.archived?'<span class="archbadge">Archived</span>':''}</td><td class="center">${r.a.venues}</td><td class="center">${r.a.confirmed}</td><td class="right" style="color:var(--pink);font-weight:700">${fmt$(r.a.subsidy)}</td><td class="right">${fmt$(r.a.gross-r.a.subsidy)}</td><td class="center" style="color:#118AB2">${r.a.child.toLocaleString()}</td><td class="center" style="white-space:nowrap"><button class="btn sec" style="padding:3px 8px;font-size:11px" onclick="event.stopPropagation();openTourFromList(${r.t.id})">Report</button>${EDIT?`<button class="iconbtn" style="margin-left:6px" title="${r.t.archived?'Restore “'+esc(r.t.name)+'” — show it in the list and include it in the totals again':'Archive “'+esc(r.t.name)+'” — hide it from the list and leave it out of the totals. Nothing is deleted.'}" onclick="event.stopPropagation();toggleArchiveTour(${r.t.id})"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block">${r.t.archived?'<path d="M3 10h13a5 5 0 0 1 0 10h-6"/><polyline points="7 6 3 10 7 14"/>':'<rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><line x1="10" y1="13" x2="14" y2="13"/>'}</svg></button><button class="iconbtn" style="margin-left:6px" title="Delete “${esc(r.t.name)}” permanently — this cannot be undone" onclick="event.stopPropagation();deleteTourById(${r.t.id})"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>`:''}</td></tr>`;});
+ pageRows.forEach(r=>{h+=`<tr class="${r.t.archived?'archrow':''}" onclick="activateTourFromList(${r.t.id})" style="cursor:pointer" title="Open as the active tour on the Venues tab"><td>${esc(r.co?r.co.name:'—')}</td><td>${esc(r.sh?r.sh.title:'—')}</td><td><b>${esc(r.t.name)}</b>${r.t.archived?'<span class="archbadge">Archived</span>':''}</td><td class="center">${r.a.venues}</td><td class="center">${r.a.confirmed}</td><td class="right" style="color:var(--pink);font-weight:700">${fmt$(r.a.subsidy)}</td><td class="right">${fmt$(r.a.gross-r.a.subsidy)}</td><td class="center" style="color:#118AB2">${r.a.child.toLocaleString()}</td><td class="center" style="white-space:nowrap"><button class="btn sec" style="padding:3px 8px;font-size:11px" onclick="event.stopPropagation();openTourFromList(${r.t.id})">Report</button>${EDIT?`<button class="iconbtn" style="margin-left:6px" title="Edit details — company, work, tour name, default fee" onclick="event.stopPropagation();openTourEdit(${r.t.id})"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg></button><button class="iconbtn" style="margin-left:6px" title="${r.t.archived?'Restore “'+esc(r.t.name)+'” — show it in the list and include it in the totals again':'Archive “'+esc(r.t.name)+'” — hide it from the list and leave it out of the totals. Nothing is deleted.'}" onclick="event.stopPropagation();toggleArchiveTour(${r.t.id})"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block">${r.t.archived?'<path d="M3 10h13a5 5 0 0 1 0 10h-6"/><polyline points="7 6 3 10 7 14"/>':'<rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><line x1="10" y1="13" x2="14" y2="13"/>'}</svg></button><button class="iconbtn" style="margin-left:6px" title="Delete “${esc(r.t.name)}” permanently — this cannot be undone" onclick="event.stopPropagation();deleteTourById(${r.t.id})"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>`:''}</td></tr>`;});
  h+='</tbody></table></div></div>';
  const opts=[20,50,100].map(n=>`<option value="${n}" ${tuSize===n?'selected':''}>${n}</option>`).join('')+`<option value="all" ${tuSize===Infinity?'selected':''}>All</option>`;
  let pg='';if(pages>1){pg=`<div class="pbtns"><button onclick="tuGoto(1)" ${tuPage===1?'disabled':''}>« First</button><button onclick="tuGoto(${tuPage-1})" ${tuPage===1?'disabled':''}>‹ Prev</button><span style="padding:0 6px">Page <b>${tuPage}</b> of <b>${pages}</b></span><button onclick="tuGoto(${tuPage+1})" ${tuPage===pages?'disabled':''}>Next ›</button><button onclick="tuGoto(${pages})" ${tuPage===pages?'disabled':''}>Last »</button></div>`;}
