@@ -953,7 +953,7 @@ body.aboutmode .sitefoot{margin-top:26px;}
      <div class="accitem"><div class="acch" onclick="toggleAcc(this)"><span>5 · Tiers and the subsidy model</span><span class="caret">▾</span></div><div class="accb">
        <p>Scores band into three priority tiers — <b>High, Medium, Low</b> — at thresholds you set (default High ≥ 6.3, Medium ≥ 3.8).</p>
        <p>Subsidy applies to <b>High-tier</b> areas only, and ramps up within the band: from a floor (default 50%) at the High threshold to <b>full subsidy (100%)</b> near the top of the scale (default index 8.0+), in 5% steps — so the highest-impact places attract the deepest support.</p>
-       <p>When a tour or scenario is costed, its subsidy is funded through <b>income sources</b> you assemble: state touring grants (calculated automatically from each state's venues, and editable), Playing Australia, philanthropy and other contributions — with the <b>Children's Theatre Investment Fund</b> carrying whatever balance remains. The split flows through to every report.</p>
+       <p>When a tour or scenario is costed, its subsidy is funded through <b>income sources</b> you assemble from scratch: the <b>Children's Theatre Investment Fund</b>, state touring grants (calculated automatically from each state's venues, and editable), Playing Australia, philanthropy and other contributions. The panel shows the balance still needed until the subsidy is fully funded, and the split flows through to every report.</p>
      </div></div>
      <div class="accitem"><div class="acch" onclick="toggleAcc(this)"><span>6 · The modelling sandbox and saved models</span><span class="caret">▾</span></div><div class="accb">
        <p>There is no single "correct" weighting — different funders and purposes justify different emphases. The dashboard is a <b>sandbox</b>: change the weights, geography, thresholds and subsidy shape, and every area and venue re-scores instantly.</p>
@@ -1200,7 +1200,7 @@ let sortKey='index',sortDir=-1,curPage='venues',fTourOnly=false,fSubOnly=false;
 let pageSize=20,pageNum=1,groupBy='';
 let sel=new Set(),basketFee=12500;
 let sources=[],_srcSeq=0;
-const SRC_PRESETS={pa:'Playing Australia',phil:'Philanthropy',gov:'Other government funding',other:'Other source'};
+const SRC_PRESETS={fund:"Children's Theatre Investment Fund",pa:'Playing Australia',phil:'Philanthropy',gov:'Other government funding',other:'Other source'};
 function togglePsec(el){el.closest('.psec').classList.toggle('collapsed');}
 function addSource(kind){_srcSeq++;if(kind==='state')sources.push({id:_srcSeq,kind:'state',state:'NSW',name:'State touring grant',amount:0,overridden:false});else sources.push({id:_srcSeq,kind:'manual',name:SRC_PRESETS[kind]||'Other source',amount:0});renderBasket();persistSourcesIfTour();}
 function removeSource(id){sources=sources.filter(s=>s.id!==id);renderBasket();persistSourcesIfTour();}
@@ -1209,7 +1209,9 @@ function setSourceAmount(id,v){const s=sources.find(x=>x.id===id);if(s){s.amount
 function setSourceState(id,v){const s=sources.find(x=>x.id===id);if(s){s.state=v;s.overridden=false;}renderBasket();persistSourcesIfTour();}
 function stateOpts(cur){return ['NSW','VIC','QLD','SA','WA','TAS','NT','ACT'].map(x=>`<option ${x===cur?'selected':''}>${x}</option>`).join('');}
 function srcAmt(s,stateSub){return s.kind==='state'?(s.overridden?(s.amount||0):(stateSub[s.state]||0)):(s.amount||0);}
-function resolveSources(sub,stateSub,list){list=list||sources;let other=0;const rows=list.map(s=>{const amt=srcAmt(s,stateSub);other+=amt;return {name:s.name,amount:amt};});const fund=Math.max(0,sub-other);return {rows,fund,total:fund+other,over:other>sub+0.5};}
+// Income is built from scratch: every source (including the Children's Theatre
+// Investment Fund) is an explicit line. `remaining` is what is still unfunded.
+function resolveSources(sub,stateSub,list){list=list||sources;let total=0;const rows=list.map(s=>{const amt=srcAmt(s,stateSub);total+=amt;return {name:s.name,amount:amt};});const remaining=Math.max(0,sub-total);return {rows,total,remaining,over:total>sub+0.5};}
 let collapsedGroups=new Set();
 function setGroup(v){groupBy=v;collapsedGroups.clear();pageNum=1;render();}
 function toggleGroup(k){if(collapsedGroups.has(k))collapsedGroups.delete(k);else collapsedGroups.add(k);render();}
@@ -1241,12 +1243,16 @@ function renderBasket(){if(!document.getElementById('bkN'))return;const tour=act
  const box=document.getElementById('sourcesBox');
  if(box){const R=resolveSources(sub,stateSub);
    let h='';
-   h+=`<div class="fundrow"><div><div class="fundlbl">Children's Theatre Investment Fund</div></div><b>${fmt$(R.fund)}</b></div>`;
+   h+=`<div class="fundrow"><div><div class="fundlbl">Subsidy required</div></div><b style="color:var(--pink)">${fmt$(sub)}</b></div>`;
+   if(!sources.length)h+=`<div class="muted" style="font-size:11px;margin:4px 0 6px">Build the funding from scratch — add income sources below.</div>`;
    sources.forEach(s=>{const amt=srcAmt(s,stateSub);
      if(s.kind==='state')h+=`<div class="srcrow"><input class="srcname" value="${esc(s.name)}" onchange="setSourceName(${s.id},this.value)"><select onchange="setSourceState(${s.id},this.value)">${stateOpts(s.state)}</select><span class="srcamt">$<input type="number" value="${Math.round(amt)}" step="500" min="0" onchange="setSourceAmount(${s.id},this.value)" title="Auto from ${s.state}; edit to override"></span><button class="srcx" title="Remove" onclick="removeSource(${s.id})">✕</button></div>`;
      else h+=`<div class="srcrow"><input class="srcname" value="${esc(s.name)}" onchange="setSourceName(${s.id},this.value)"><span class="srcamt">$<input type="number" value="${s.amount||0}" step="500" min="0" onchange="setSourceAmount(${s.id},this.value)"></span><button class="srcx" title="Remove" onclick="removeSource(${s.id})">✕</button></div>`;});
-   h+='<div style="margin:8px 0 2px"><select class="addsrc" onchange="if(this.value){addSource(this.value);this.value=\'\';}"><option value="">+ Add a source…</option><option value="state">State touring grant</option><option value="pa">Playing Australia</option><option value="phil">Philanthropy</option><option value="gov">Other government funding</option><option value="other">Other source</option></select></div>';
-   h+=`<div class="fundrow total"><b>Total sources</b><b style="color:${R.over?'#EF476F':'inherit'}">${fmt$(R.total)}${R.over?' — over':''}</b></div>`;
+   h+='<div style="margin:8px 0 2px"><select class="addsrc" onchange="if(this.value){addSource(this.value);this.value=\'\';}"><option value="">+ Add a source…</option><option value="fund">Children\'s Theatre Investment Fund</option><option value="state">State touring grant</option><option value="pa">Playing Australia</option><option value="phil">Philanthropy</option><option value="gov">Other government funding</option><option value="other">Other source</option></select></div>';
+   h+=`<div class="fundrow total"><b>Total sources</b><b>${fmt$(R.total)}</b></div>`;
+   if(R.over)h+=`<div class="fundrow"><div><div class="fundlbl" style="color:#EF476F">Over-funded</div></div><b style="color:#EF476F">${fmt$(R.total-sub)}</b></div>`;
+   else if(R.remaining>0.5)h+=`<div class="fundrow"><div><div class="fundlbl" style="color:var(--pink)">Balance still needed</div></div><b style="color:var(--pink)">${fmt$(R.remaining)}</b></div>`;
+   else if(sub>0)h+=`<div class="fundrow"><div><div class="fundlbl" style="color:#0F7B57">Fully funded</div></div><b style="color:#0F7B57">✓</b></div>`;
    box.innerHTML=h;}}
 function setPageSize(v){pageSize=(v==='all')?Infinity:+v;pageNum=1;render();}
 function gotoPage(n){pageNum=n;render();}
@@ -1597,7 +1603,7 @@ function createTourReport(){const t=activeTourObj();if(!t){toast('Select a tour 
    if(multi)vrows+=`<tr class="grp"><td colspan="5">${esc(st)} — ${arr.length} venue${arr.length!=1?'s':''} · subsidy ${fmt$(stSub)}</td></tr>`;
    arr.forEach(x=>{const v=x.tv.v;vrows+=`<tr><td>${esc(v.name)}</td>${multi?'':`<td>${esc(v.state||'')}</td>`}<td class="center">${v.cIndex!=null?v.cIndex.toFixed(1):'—'}</td><td class="center">${v.cTier}</td><td class="right">${fmt$(x.tv.fee||0)}</td><td class="right">${x.s?fmt$(x.s):'–'}</td></tr>`;});});
  const vhead=`<tr><th>Venue</th>${multi?'':'<th>State</th>'}<th class="center">Index</th><th>Tier</th><th class="right">Fee</th><th class="right">Subsidy</th></tr>`;
- const fundRows=`<tr><td>Children's Theatre Investment Fund <span style="color:#6b7a80">(balance)</span></td><td class="right">${fmt$(R.fund)}</td></tr>`+R.rows.map(r=>`<tr><td>${esc(r.name)}</td><td class="right">${fmt$(r.amount)}</td></tr>`).join('');
+ const fundRows=R.rows.map(r=>`<tr><td>${esc(r.name)}</td><td class="right">${fmt$(r.amount)}</td></tr>`).join('')+(R.remaining>0.5?`<tr><td>Balance to be funded <span style="color:#6b7a80">(unallocated)</span></td><td class="right">${fmt$(R.remaining)}</td></tr>`:'');
  const html=`<div class="rpt">
    <div class="rpt-headbar">${logo?`<img class="rpt-logo" src="${logo}">`:''}<div class="rpt-title">${esc((co?co.name:'')+(sh?' · '+sh.title:''))}</div><div class="rpt-subt">${esc(t.name)} — tour subsidy proposal · ${dt}</div></div>
    <div class="rpt-body">
@@ -1614,7 +1620,7 @@ function createTourReport(){const t=activeTourObj();if(!t){toast('Select a tour 
      <h3>Who pays</h3>
      ${rptStackBar([{label:'Subsidy',value:sub,color:'#EF476F'},{label:'Presenters',value:pay,color:'#118AB2'}])}
      <h3>Funding sources</h3>
-     ${rptDonut([{label:"Children's Theatre Investment Fund",value:R.fund,color:'#EF476F'}].concat(R.rows.map((r,i)=>({label:r.name,value:r.amount,color:['#118AB2','#5BC0BE','#FFD166','#9B5DE5','#F79256','#06D6A0'][i%6]}))))}
+     ${rptDonut(R.rows.map((r,i)=>({label:r.name,value:r.amount,color:['#EF476F','#118AB2','#5BC0BE','#FFD166','#9B5DE5','#F79256','#06D6A0'][i%7]})).concat(R.remaining>0.5?[{label:'Balance to be funded',value:R.remaining,color:'#C9D2D6'}]:[]))}
      <table><tbody>${fundRows}<tr class="grp"><td><b>Total subsidy sought</b></td><td class="right"><b>${fmt$(sub)}</b></td></tr></tbody></table>
      <p style="color:#6b7a80;font-size:11px">Gross presenter fees across the tour: ${fmt$(gross)}. Subsidy applies to confirmed High-tier venues only.</p>
      <h3>The model used</h3>
@@ -1959,7 +1965,7 @@ function createReport(){
    arr.forEach(v=>{const s=v.cSub>0?basketFee*v.cSub:0;
      vrows+=`<tr><td>${esc(v.name)}</td>${multi?'':`<td>${esc(v.state||'')}</td>`}<td>${esc(v.status||'')}</td><td class="center">${v.cIndex!=null?v.cIndex.toFixed(1):'—'}</td><td class="center">${v.cTier}</td><td class="right">${v.cSub?Math.round(v.cSub*100)+'%':'–'}</td><td class="right">${s?fmt$(s):'–'}</td></tr>`;});});
  const vhead=`<tr><th>Venue</th>${multi?'':'<th>State</th>'}<th>Status</th><th class="center">Index</th><th>Tier</th><th class="right">Subsidy</th><th class="right">Amount</th></tr>`;
- const fundRows=`<tr><td>Children's Theatre Investment Fund <span style="color:#6b7a80">(balance)</span></td><td class="right">${fmt$(R.fund)}</td></tr>`+R.rows.map(r=>`<tr><td>${esc(r.name)}</td><td class="right">${fmt$(r.amount)}</td></tr>`).join('');
+ const fundRows=R.rows.map(r=>`<tr><td>${esc(r.name)}</td><td class="right">${fmt$(r.amount)}</td></tr>`).join('')+(R.remaining>0.5?`<tr><td>Balance to be funded <span style="color:#6b7a80">(unallocated)</span></td><td class="right">${fmt$(R.remaining)}</td></tr>`:'');
  const html=`<div class="rpt">
    <div class="rpt-headbar">${logo?`<img class="rpt-logo" src="${logo}">`:''}<div class="rpt-title">Children's Theatre Impact Index</div><div class="rpt-subt">Subsidy investment proposal · ${dt}</div></div>
    <div class="rpt-body">
@@ -1974,7 +1980,7 @@ function createReport(){
      <h3>Who pays</h3>
      ${rptStackBar([{label:'Subsidy',value:sub,color:'#EF476F'},{label:'Presenters',value:pay,color:'#118AB2'}])}
      <h3>Funding sources</h3>
-     ${rptDonut([{label:"Children's Theatre Investment Fund",value:R.fund,color:'#EF476F'}].concat(R.rows.map((r,i)=>({label:r.name,value:r.amount,color:['#118AB2','#5BC0BE','#FFD166','#9B5DE5','#F79256','#06D6A0'][i%6]}))))}
+     ${rptDonut(R.rows.map((r,i)=>({label:r.name,value:r.amount,color:['#EF476F','#118AB2','#5BC0BE','#FFD166','#9B5DE5','#F79256','#06D6A0'][i%7]})).concat(R.remaining>0.5?[{label:'Balance to be funded',value:R.remaining,color:'#C9D2D6'}]:[]))}
      <table><tbody>${fundRows}<tr class="grp"><td><b>Total subsidy sought</b></td><td class="right"><b>${fmt$(sub)}</b></td></tr></tbody></table>
      <p style="color:#6b7a80;font-size:11px">Gross presenter fees across the package: ${fmt$(gross)} · venues contribute ${fmt$(pay)} · subsidy covers the balance.</p>
      <h3>The model used</h3>
@@ -2779,7 +2785,8 @@ function render(){const a=filtered();const _cc=document.getElementById('count');
    <div class="tstat"><div class="tsv" style="color:#06D6A0">${el}</div><div class="tsl">Subsidy eligible</div></div>
    <div class="tstat" title="Children aged 0–14 living in the distinct areas that host these venues — each SA2/SA3 counted once."><div class="tsv" style="color:#118AB2">${totChild.toLocaleString()}</div><div class="tsl">Children 0–14 ${MODEL.geo==='sa3'?'(SA3)':'(SA2)'}</div></div>
    <div class="tstat" title="Of those, children living in High-tier areas."><div class="tsv" style="color:#EF476F">${highChild.toLocaleString()}</div><div class="tsl">In High areas</div></div>
-   ${tourActive?`<div class="tstat" title="Confirmed subsidy across the active tour."><div class="tsv" style="color:var(--pink)">${fmt$(tourTotals().sub)}</div><div class="tsl">Tour subsidy</div></div>`:''}`;
+   ${tourActive?`<div class="tstat" title="Confirmed subsidy across the active tour."><div class="tsv" style="color:var(--pink)">${fmt$(tourTotals().sub)}</div><div class="tsl">Tour subsidy</div></div>`
+    :`<div class="tstat" title="Total subsidy required for ${sel.size?'the selected venues':'these venues'} at the ${fmt$(basketFee)} package fee, under the current model. The Subsidy panel shows how it is funded."><div class="tsv" style="color:var(--pink)">${fmt$(kpiSet.reduce((s,v)=>s+(v.cSub>0?basketFee*v.cSub:0),0))}</div><div class="tsl">Subsidy required</div></div>`}`;
  document.getElementById('thead').innerHTML='<th style="width:26px;cursor:default"><input type="checkbox" id="selAll" onclick="selectAllFiltered(this.checked)" title="Select all in this view"></th>'+curCols.map(c=>`<th onclick="setSort('${c[0]}')">${c[1]}${sortKey===c[0]?(sortDir<0?' ▾':' ▴'):''}</th>`).join('');
  const tw=document.querySelector('#page-venues .tablewrap');const total=a.length;
  const tvfeeCell=v=>{const tv=tvOf(v);const dis=EDIT?'':'disabled';
