@@ -928,6 +928,7 @@ body.aboutmode .sitefoot{margin-top:26px;}
          <li><b>Disadvantage (D)</b> — the area's SEIFA decile, flipped so the most disadvantaged 10% of areas score 10 and the least disadvantaged score 1.</li>
          <li><b>Remoteness (R)</b> — 0 for major cities, rising through 2.5 (inner regional), 5 (outer regional) and 7.5 (remote) to 10 (very remote).</li>
          <li><b>Developmentally Vulnerable (DV2)</b> — the share of children vulnerable on <i>two or more</i> AEDC domains, scaled against the national average (~12.5%). Off in the default model; available for models targeting compounded need.</li>
+         <li><b>Distance Barrier (DB)</b> — <i>experimental.</i> Straight-line distance from the community's centre to the nearest eligible venue in our register, as a percentile: a sub-score of 8 means poorer physical access than about 80% of communities. Because the register is a pilot (~161 venues), missing venues overstate the barrier nearby; the register snapshot behind every computation is recorded under Audit → Maintenance. Off in the default model.</li>
        </ul>
        <p>The default weighting is <b>EM 40%, D 40%, R 20%</b> with DV2 off. Every weight is adjustable, and any indicator can be switched on or off — the remaining weights rebalance to 100%. Where a measure has no data for an area, it is skipped and the rest rebalance.</p>
        <p style="margin-top:12px">Precisely:</p>
@@ -1028,6 +1029,14 @@ body.aboutmode .sitefoot{margin-top:26px;}
    <textarea id="mm_desc" rows="3" placeholder="Description (optional) — shown in the ⓘ tooltip" style="width:100%;font-family:inherit;font-size:14px;padding:10px 12px;border:1.5px solid var(--navy);border-radius:6px;background:#fff;color:var(--navy);margin-top:8px;resize:vertical"></textarea>
    <div id="mm_msg" class="authmsg"></div>
    <div class="authactions"><button class="btn sec" onclick="closeName()">Cancel</button><button class="btn" id="mm_ok" onclick="submitName()">Save</button></div>
+ </div>
+</div>
+<div class="authmodal" id="maintmodal" onclick="if(event.target===this)closeMaint()">
+ <div class="authcard" style="max-width:700px;width:96vw;max-height:88vh;overflow:auto">
+   <button class="authx" onclick="closeMaint()" title="Close">×</button>
+   <h2>Maintenance</h2>
+   <p style="font-size:12px;color:var(--slate);margin:4px 0 10px">Computed indicators depend on the venue register. When the register changes, recompute here so scores, the register snapshot and the run log stay in step.</p>
+   <div id="maintBody"></div>
  </div>
 </div>
 <div class="authmodal" id="versmodal" onclick="if(event.target===this)closeVersions()">
@@ -1197,15 +1206,16 @@ body.aboutmode .sitefoot{margin-top:26px;}
 const SB_URL="https://ezvpiobtzftmrqxdnebh.supabase.co", SB_KEY="sb_publishable_8gY1ugFsn9jDQPHKu81PPA_Z_xERC-c";
 let DATA={venues:[],params:{}}, V=[], P={};
 let SA2GEO={type:'FeatureCollection',features:[]}, SA2LOOK={}, AUS={w:200,h:185,states:[],lonmin:112.5,latmax:-9.5,coslat:0.9,scale:5};
-const IND=[['em','Emotional Maturity (EM)','#06D6A0','EM'],['seifa','Disadvantage (D)','#118AB2','D'],['rem','Remoteness (R)','#9B5DE5','R'],['dv2','Developmentally Vulnerable (DV2)','#F79256','DV2']];
+const INDKEYS=['em','seifa','rem','dv2','db'];
+const IND=[['em','Emotional Maturity (EM)','#06D6A0','EM'],['seifa','Disadvantage (D)','#118AB2','D'],['rem','Remoteness (R)','#9B5DE5','R'],['dv2','Developmentally Vulnerable (DV2)','#F79256','DV2'],['db','Distance Barrier (DB)','#0F7B57','DB']];
 const TIERCOL={High:'#EF476F',Medium:'#FFD166',Low:'#5BC0BE'};
 const fmt$=n=>'$'+Math.round(n).toLocaleString();
 function costPerChild(sub,child){if(!child||child<=0||!sub||sub<=0)return null;
  const v=sub/child;
  return v<1?('$'+v.toFixed(2)):('$'+v.toFixed(v<10?2:0));}
-let MODEL={geo:'sa2',scoring:'anchored',on:{em:true,seifa:true,rem:true,dv2:false},pct:{em:40,seifa:40,rem:20,dv2:0},
+let MODEL={geo:'sa2',scoring:'anchored',on:{em:true,seifa:true,rem:true,dv2:false,db:false},pct:{em:40,seifa:40,rem:20,dv2:0,db:0},
  thr:{high:6.3,med:3.8}, sub:{floor:0.5,ceil:1.0,full:8.0}};
-function activeKeys(){return ['em','seifa','rem','dv2'].filter(k=>MODEL.on[k]);}
+function activeKeys(){return INDKEYS.filter(k=>MODEL.on[k]);}
 function areaCode(v){return MODEL.geo==='sa3'?v.sa3code:v.sa2code;}
 function uniqueChild(list){const seen=new Set();let s=0;for(const v of list){const k=areaCode(v);if(k==null||seen.has(k))continue;seen.add(k);s+=v.cChild||0;}return s;}
 function round5(x){return Math.round(x/5)*5;}
@@ -1339,7 +1349,7 @@ function closeDock(){dockOpen=null;document.getElementById('dockwrap').classList
 function openTourFullEditor(){showPage('venues');}
 function toggleRail(){}
 function applyModelObj(c){if(!c)return;
- MODEL.geo=c.geo||'sa2';MODEL.on={em:!!c.on.em,seifa:!!c.on.seifa,rem:!!c.on.rem,dv2:!!c.on.dv2};MODEL.pct={em:+c.pct.em||0,seifa:+c.pct.seifa||0,rem:+c.pct.rem||0,dv2:+c.pct.dv2||0};MODEL.thr={high:+c.thr.high,med:+c.thr.med};MODEL.sub={floor:+c.sub.floor,ceil:+c.sub.ceil,full:+c.sub.full};MODEL.scoring=c.scoring||'anchored';setScoringButtons();
+ MODEL.geo=c.geo||'sa2';MODEL.on={em:!!c.on.em,seifa:!!c.on.seifa,rem:!!c.on.rem,dv2:!!c.on.dv2,db:!!c.on.db};MODEL.pct={em:+c.pct.em||0,seifa:+c.pct.seifa||0,rem:+c.pct.rem||0,dv2:+c.pct.dv2||0,db:+c.pct.db||0};MODEL.thr={high:+c.thr.high,med:+c.thr.med};MODEL.sub={floor:+c.sub.floor,ceil:+c.sub.ceil,full:+c.sub.full};MODEL.scoring=c.scoring||'anchored';setScoringButtons();
  document.querySelectorAll('#geo button').forEach(b=>b.classList.toggle('on',b.dataset.g===MODEL.geo));
  const gv=(i,val)=>{const e=document.getElementById(i);if(e&&val!=null&&!isNaN(val))e.value=val;};
  gv('tHigh',MODEL.thr.high);gv('tMed',MODEL.thr.med);gv('sFloor',Math.round(MODEL.sub.floor*100));gv('sCeil',Math.round(MODEL.sub.ceil*100));gv('sFull',MODEL.sub.full);
@@ -1356,7 +1366,7 @@ function _exitTourNow(){const t=activeTourObj();if(!t)return;
  renderTourPanel();renderTourVenues();renderBasket();render();
  toast('Left “'+esc(name)+'”'+(restore?' — your previous model is back.':'.'));}
 function deactivateTour(){exitTour();}
-function cfgEq(a,b){if(!a||!b)return false;try{return (a.geo||'sa2')===(b.geo||'sa2')&&(a.scoring||'anchored')===(b.scoring||'anchored')&&['em','seifa','rem','dv2'].every(k=>!!a.on[k]===!!b.on[k]&&(+a.pct[k]||0)===(+b.pct[k]||0))&&+a.thr.high===+b.thr.high&&+a.thr.med===+b.thr.med&&+a.sub.floor===+b.sub.floor&&+a.sub.ceil===+b.sub.ceil&&+a.sub.full===+b.sub.full;}catch(e){return false;}}
+function cfgEq(a,b){if(!a||!b)return false;try{return (a.geo||'sa2')===(b.geo||'sa2')&&(a.scoring||'anchored')===(b.scoring||'anchored')&&INDKEYS.every(k=>!!a.on[k]===!!b.on[k]&&(+a.pct[k]||0)===(+b.pct[k]||0))&&+a.thr.high===+b.thr.high&&+a.thr.med===+b.thr.med&&+a.sub.floor===+b.sub.floor&&+a.sub.ceil===+b.sub.ceil&&+a.sub.full===+b.sub.full;}catch(e){return false;}}
 function renderContext(){const t=activeTourObj();
  const mEl=document.getElementById('ctxModelTxt'),tEl=document.getElementById('ctxTourTxt');
  if(!mEl)return;
@@ -1511,7 +1521,7 @@ function closeTourEdit(){document.getElementById('tourEditModal').classList.remo
 function deleteTour(){const t=activeTourObj();if(!t)return;openConfirm('Delete tour?','Deleting “'+t.name+'” removes its venue list. This cannot be undone.','Delete',async()=>{const {error}=await sbc.from('tours').delete().eq('id',t.id);if(error){toast(error.message,null,true);return;}TOURS=TOURS.filter(x=>x.id!==t.id);curTour=null;renderTourPanel();});}
 function applyTourModel(){const t=activeTourObj();if(!t||!t.model)return;const c=t.model;
  if(!modelBeforeTour)modelBeforeTour=JSON.parse(JSON.stringify(MODEL));
- MODEL.geo=c.geo||'sa2';MODEL.on={em:!!c.on.em,seifa:!!c.on.seifa,rem:!!c.on.rem,dv2:!!c.on.dv2};MODEL.pct={em:+c.pct.em||0,seifa:+c.pct.seifa||0,rem:+c.pct.rem||0,dv2:+c.pct.dv2||0};MODEL.thr={high:+c.thr.high,med:+c.thr.med};MODEL.sub={floor:+c.sub.floor,ceil:+c.sub.ceil,full:+c.sub.full};MODEL.scoring=c.scoring||'anchored';if(typeof setScoringButtons==='function')setScoringButtons();
+ MODEL.geo=c.geo||'sa2';MODEL.on={em:!!c.on.em,seifa:!!c.on.seifa,rem:!!c.on.rem,dv2:!!c.on.dv2,db:!!c.on.db};MODEL.pct={em:+c.pct.em||0,seifa:+c.pct.seifa||0,rem:+c.pct.rem||0,dv2:+c.pct.dv2||0,db:+c.pct.db||0};MODEL.thr={high:+c.thr.high,med:+c.thr.med};MODEL.sub={floor:+c.sub.floor,ceil:+c.sub.ceil,full:+c.sub.full};MODEL.scoring=c.scoring||'anchored';if(typeof setScoringButtons==='function')setScoringButtons();
  document.querySelectorAll('#geo button').forEach(b=>b.classList.toggle('on',b.dataset.g===MODEL.geo));
  const gv=(i,val)=>{const e=document.getElementById(i);if(e&&val!=null&&!isNaN(val))e.value=val;};
  gv('tHigh',MODEL.thr.high);gv('tMed',MODEL.thr.med);gv('sFloor',Math.round(MODEL.sub.floor*100));gv('sCeil',Math.round(MODEL.sub.ceil*100));gv('sFull',MODEL.sub.full);
@@ -2111,7 +2121,7 @@ function renderAuth(){const el=document.getElementById('authbox');if(!el)return;
  if(SESSION){el.innerHTML=`<div class="repmenuwrap"><button class="iconbtn" style="width:54px;height:45px;font-size:23px" title="Menu" onclick="event.stopPropagation();toggleUserMenu()">☰</button>
   <div class="repmenu" id="usermenu" style="min-width:160px">
     <button onclick="closeUserMenu();openProfile()">Profile</button>
-    ${EDIT?'<button onclick="closeUserMenu();openUsers()">Users</button><div class="menugrp">Audit</div><button onclick="closeUserMenu();openAudit()">Location audit</button><button onclick="closeUserMenu();openChangeLog()">Change log</button><button onclick="closeUserMenu();openVersions()">Version history</button>':''}
+    ${EDIT?'<button onclick="closeUserMenu();openUsers()">Users</button><div class="menugrp">Audit</div><button onclick="closeUserMenu();openAudit()">Location audit</button><button onclick="closeUserMenu();openChangeLog()">Change log</button><button onclick="closeUserMenu();openVersions()">Version history</button><button onclick="closeUserMenu();openMaint()">Maintenance</button>':''}
     <button onclick="closeUserMenu();signOut()">Log out</button>
   </div></div>`;}
  else el.innerHTML='';}
@@ -2338,7 +2348,102 @@ let clogRows=[],clogOldest=null,clogTable='',clogQ='',clogSortK='at',clogSortD=-
 const CLOG_FIELDS={sa2_code:'SA2',sa3_code:'SA3',sa2_em_pct:'EM % (SA2)',sa3_em_pct:'EM % (SA3)',sa2_decile:'D decile (SA2)',sa3_decile:'D decile (SA3)',sa2_ra:'Remoteness (SA2)',sa3_ra:'Remoteness (SA3)',subsidy_confirmed:'Subsidy confirmed',default_fee:'Default fee',must_change_password:'Password change due',sort_order:'Order'};
 function clogFieldName(k){return CLOG_FIELDS[k]||k.replace(/_/g,' ');}
 function clogVal(v){if(v===null||v===undefined)return '—';if(typeof v==='object')return JSON.stringify(v).slice(0,60)+(JSON.stringify(v).length>60?'…':'');return String(v);}
+// ---------- Maintenance: Distance Barrier recomputation ----------
+const DB_RULE='Venues with coordinates, excluding status Not active/Closed';
+const DB_METHOD='Straight-line (great-circle) distance in km from each SA2 geometric centroid (app boundary file) to the nearest eligible venue. SA3 = child-population-weighted mean of member SA2 distances. Sub-score = mid-rank percentile, 0\u201310, higher = poorer access.';
+let MAINT_RUNS;
+function dbReady(){for(const k in SA2LOOK){return SA2LOOK[k].pdb2!=null;}return false;}
+function venueRegisterSnapshot(){const el=V.filter(v=>v.ll&&v.ll.length===2&&!/not\s*active|closed/i.test(v.status||''));
+ const key=el.map(v=>v.id+':'+(+v.ll[0]).toFixed(4)+':'+(+v.ll[1]).toFixed(4)).sort().join('|');
+ let h=0;for(let i=0;i<key.length;i++){h=(h*31+key.charCodeAt(i))>>>0;}
+ return {venues:el,count:el.length,hash:'v'+el.length+'-'+h.toString(36)};}
+function polyCentroid(geom){if(!geom)return null;let rings=[];
+ if(geom.type==='Polygon')rings=[geom.coordinates[0]];
+ else if(geom.type==='MultiPolygon')rings=geom.coordinates.map(p=>p[0]);
+ let best=null,bestA=0;
+ for(const ring of rings){let a=0,cx=0,cy=0;
+  for(let i=0;i<ring.length-1;i++){const f=ring[i][0]*ring[i+1][1]-ring[i+1][0]*ring[i][1];a+=f;cx+=(ring[i][0]+ring[i+1][0])*f;cy+=(ring[i][1]+ring[i+1][1])*f;}
+  a=a/2;if(Math.abs(a)>Math.abs(bestA)){bestA=a;best=a!==0?[cy/(6*a),cx/(6*a)]:null;}}
+ return best;} // returns [lat,lng]
+function havKm(a,b){const R=6371,d=Math.PI/180;const dLat=(b[0]-a[0])*d,dLon=(b[1]-a[1])*d;
+ const q=Math.sin(dLat/2)**2+Math.cos(a[0]*d)*Math.cos(b[0]*d)*Math.sin(dLon/2)**2;
+ return 2*R*Math.asin(Math.sqrt(q));}
+function midrankSubs(pairs){const vals=pairs.filter(p=>p[1]!=null).map(p=>p[1]);
+ const sorted=vals.slice().sort((x,y)=>x-y);const n=sorted.length;const out={};
+ pairs.forEach(([k,v])=>{if(v==null){out[k]=null;return;}
+  let lo=0,hi=0;for(const x of sorted){if(x<v)lo++;else if(x===v)hi++;}
+  out[k]=Math.round(((lo+0.5*hi)/n*100)/10*100)/100;});
+ return out;}
+async function openMaint(){if(!EDIT){toast('Only admins can open Maintenance.',null,true);return;}
+ document.getElementById('maintmodal').classList.add('open');renderMaint();
+ try{MAINT_RUNS=await sbAll('indicator_runs','id,indicator,run_at,user_email,venue_count,venue_rule,venue_hash,method,notes');}
+ catch(e){MAINT_RUNS=null;}
+ renderMaint();}
+function closeMaint(){document.getElementById('maintmodal').classList.remove('open');}
+function renderMaint(){const el=document.getElementById('maintBody');if(!el)return;
+ const snap=venueRegisterSnapshot();
+ const runs=(MAINT_RUNS||[]).filter(r=>r.indicator==='db').sort((a,b)=>(''+b.run_at).localeCompare(''+a.run_at));
+ const last=runs[0];
+ let st,col;
+ if(MAINT_RUNS===null){st='Run distance-barrier.sql in Supabase first \u2014 the run log and DB columns are not set up yet.';col='var(--pink)';}
+ else if(!last&&!dbReady()){st='Not yet computed.';col='var(--slate)';}
+ else if(last&&last.venue_hash===snap.hash){st='Up to date with the current venue register.';col='#0F7B57';}
+ else{st='The venue register has changed since the last computation \u2014 recompute recommended.';col='var(--pink)';}
+ el.innerHTML=`
+  <div class="card" style="box-shadow:none;border:1.5px solid var(--navy);padding:12px 14px;margin-bottom:10px">
+   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><b style="font-family:'Charlie Kingdom';font-size:15px;color:var(--navy)">Distance Barrier (DB)</b>
+     <span style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--pink);border:1.2px solid currentColor;border-radius:10px;padding:1px 8px">experimental \u00b7 pilot register</span></div>
+   <div style="font-size:12px;color:${col};font-weight:700;margin:6px 0">${st}</div>
+   <div style="font-size:11.5px;color:var(--slate);line-height:1.5">
+     Eligible venues now: <b>${snap.count}</b> \u00b7 register fingerprint <b>${snap.hash}</b><br>
+     ${last?`Last computed <b>${fmtDate(last.run_at)}</b> by ${esc(last.user_email||'\u2014')} against <b>${last.venue_count}</b> venues (fingerprint ${esc(last.venue_hash||'\u2014')}).`:'No runs recorded.'}<br>
+     Rule: ${esc(DB_RULE)}<br>Method: ${esc(DB_METHOD)}</div>
+   ${EDIT?`<button class="btn" style="margin-top:10px" id="dbRecomputeBtn" onclick="recomputeDB()">Recompute Distance Barrier</button>`:''}
+   <div class="muted" id="dbRecompMsg" style="font-size:11px;margin-top:6px"></div>
+  </div>
+  <div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--slate);margin:10px 0 6px">Run history</div>
+  ${runs.length?runs.map(r=>`<div style="font-size:11.5px;border-bottom:1px solid #EAE1C4;padding:5px 0"><b>${fmtDate(r.run_at)}</b> \u00b7 ${esc(r.user_email||'\u2014')} \u00b7 ${r.venue_count} venues \u00b7 ${esc(r.venue_hash||'')}${r.notes?` \u00b7 ${esc(r.notes)}`:''}</div>`).join(''):'<div class="muted" style="font-size:11.5px">No runs yet.</div>'}`;}
+async function recomputeDB(){if(!EDIT)return;
+ const msg=document.getElementById('dbRecompMsg');const btn=document.getElementById('dbRecomputeBtn');
+ if(!GEO_READY||!SA2GEO.features.length){toast('Area boundaries are still loading \u2014 try again in a moment.',null,true);return;}
+ const snap=venueRegisterSnapshot();
+ if(!snap.count){toast('No eligible venues with coordinates in the register.',null,true);return;}
+ btn.disabled=true;msg.textContent='Computing centroids and distances\u2026';
+ try{
+  const cent={};SA2GEO.features.forEach(f=>{const c=polyCentroid(f.geometry);if(c)cent[f.properties.c]=c;});
+  const pts=snap.venues.map(v=>v.ll);
+  const km={};
+  for(const code in SA2LOOK){const c=cent[code];if(!c){km[code]=null;continue;}
+   let m=Infinity;for(const p of pts){const d=havKm(c,p);if(d<m)m=d;}
+   km[code]=Math.round(m*10)/10;}
+  // SA3: child-weighted mean of member SA2 distances
+  const g={};for(const code in SA2LOOK){const s3=code.slice(0,5);const d=km[code];if(d==null)continue;
+   const w=SA2LOOK[code].ch||0;const a=g[s3]||(g[s3]={n:0,d:0});a.n+=d*(w||1);a.d+=(w||1);}
+  const km3={};for(const s3 in g)km3[s3]=Math.round(g[s3].n/g[s3].d*10)/10;
+  const p2=midrankSubs(Object.keys(SA2LOOK).map(c=>[c,km[c]]));
+  const s3codes=Object.keys(km3);
+  const p3raw=midrankSubs(s3codes.map(c=>[c,km3[c]]));
+  msg.textContent='Saving to the database\u2026';
+  const rows=Object.keys(SA2LOOK).map(c=>({sa2_code:c,db2:km[c],pdb2:p2[c],db3:km3[c.slice(0,5)]??null,pdb3:p3raw[c.slice(0,5)]??null}));
+  for(let i=0;i<rows.length;i+=400){
+   const {error}=await sbc.from('sa2_scores').upsert(rows.slice(i,i+400),{onConflict:'sa2_code'});
+   if(error)throw error;
+   msg.textContent='Saving to the database\u2026 '+Math.min(i+400,rows.length)+' of '+rows.length;}
+  rows.forEach(r=>{const L=SA2LOOK[r.sa2_code];if(L){L.db2=r.db2;L.pdb2=r.pdb2;L.db3=r.db3;L.pdb3=r.pdb3;}});
+  const {error:e2}=await sbc.from('indicator_runs').insert({indicator:'db',user_email:(SESSION&&SESSION.user&&SESSION.user.email)||null,venue_count:snap.count,venue_rule:DB_RULE,venue_hash:snap.hash,method:DB_METHOD,notes:'Recomputed from the app'});
+  if(e2)throw e2;
+  msg.textContent='';toast('Distance Barrier recomputed across '+rows.length+' communities against '+snap.count+' venues.');
+  recompute();render();
+  MAINT_RUNS=await sbAll('indicator_runs','id,indicator,run_at,user_email,venue_count,venue_rule,venue_hash,method,notes');
+  renderMaint();
+ }catch(e){msg.textContent='';toast('Recompute failed: '+e.message,null,true);}
+ btn.disabled=false;}
+function maintTouchRegister(){if(!EDIT)return;if(!dbReady())return;
+ toast('The venue register changed \u2014 Distance Barrier scores may be stale. Recompute from the burger menu \u2192 Audit \u2192 Maintenance.');}
 const VERSIONS=[
+ {v:'1.2',when:'October 2026',status:'in development',title:'Access measurement (review R3, stage one)',items:[
+  ['Distance Barrier (DB) indicator \u2014 experimental','Straight-line distance from each community\u2019s centre to the nearest eligible venue in the pilot register, converted to a 0\u201310 mid-rank percentile (percentile in both scoring methods, since distance has no national-average anchor). Added alongside Remoteness, which is retained as the reviewers recommended, so the two can be compared. Off by default. The register snapshot, eligibility rule and method are recorded with every computation.'],
+  ['Maintenance section','New page under Audit for computed indicators: shows the register fingerprint the scores were built against, warns when venues have changed since, recomputes in one step, and keeps a permanent run log.']]},
  {v:'1.1',when:'October 2026',status:'in development',title:'Methodology review, round one',items:[
   ['R1 · Renamed to the Children\u2019s Theatre Access Index','Previously the Impact Index. The score is now described as relative priority for children\u2019s theatre support, with explicit \u201cuse it to / it does not mean\u201d guidance and the three decision layers (priority \u2192 readiness and delivery \u2192 funding) on the About page and in every report. Scoring is unchanged.'],
   ['R2 · Common percentile scoring, as a model option','Models can now score every indicator on one common rule: the sub-score is the share of communities with less need (8.0 \u2248 80th percentile), with disadvantage measured from the raw SEIFA IRSD score rather than the decile. The original method is kept and named Anchored (each indicator\u2019s own rule, 5 = national average). Two saved models \u2014 Balanced · Anchored and Balanced · Percentile — hold everything else equal so the methods can be compared side by side.']]},
@@ -2576,7 +2681,7 @@ async function createVenue(){const g=id=>document.getElementById(id);const msg=g
   if(e2)throw e2;
   full._i=V.length;V.push(full);DATA.venues=V;
   recompute();initFilters();restoreFilters();render();if(map)paintMarkers();
-  closeAddVenue();toast('\u201c'+esc(name)+'\u201d added.');
+  closeAddVenue();toast('\u201c'+esc(name)+'\u201d added.');maintTouchRegister();
  }catch(e){msg.textContent=e.message;}
  btn.disabled=false;btn.textContent='Add venue';}
 function deleteVenue(i){if(!EDIT)return;const v=V[i];if(!v)return;
@@ -2586,7 +2691,7 @@ function deleteVenue(i){if(!EDIT)return;const v=V[i];if(!v)return;
   V=V.filter(x=>x.id!==v.id);V.forEach((x,n)=>x._i=n);DATA.venues=V;
   tourVenues=tourVenues.filter(x=>x.venue_id!==v.id);ALLTV=ALLTV.filter(x=>x.venue_id!==v.id);
   sel.clear();editingId=null;editData=null;
-  recompute();render();if(map)paintMarkers();toast('Venue deleted.');});}
+  recompute();render();if(map)paintMarkers();toast('Venue deleted.');maintTouchRegister();});}
 async function efGeocode(){const q=document.getElementById('ef_address').value;const box=document.getElementById('ef_geo');
  box.textContent='Searching…';
  let hits=[];try{const r=await geocodeSmart(q);hits=r.hits;}catch(e){hits=[];}
@@ -2602,14 +2707,14 @@ async function saveVenue(){const g=id=>document.getElementById(id);
  const id=editData.id;const {error}=await sbc.from('venues').update(upd).eq('id',id);
  if(error){toast('Save failed: '+error.message,null,true);return;}
  const v=V.find(x=>x.id===id);if(v){v.name=upd.name;v.state=upd.state;v.status=upd.status;v.postcode=upd.postcode;v.address=upd.address;v.ll=[upd.lat,upd.lng];}
- editingId=null;editData=null;recompute();render();if(map){paintMarkers();}}
+ editingId=null;editData=null;recompute();render();if(map){paintMarkers();}maintTouchRegister();}
 // ---------- saved models ----------
 let MODELS=[];
 function fmtDate(iso){try{return new Date(iso).toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'});}catch(e){return '';}}
 function modelEq(c){if(!c)return false;const M=MODEL;
  if((c.geo||'sa2')!==M.geo)return false;
  if((c.scoring||'anchored')!==(M.scoring||'anchored'))return false;
- for(const k of ['em','seifa','rem','dv2']){if(!!(c.on&&c.on[k])!==!!M.on[k])return false;if((+((c.pct&&c.pct[k])||0))!==(+M.pct[k]))return false;}
+ for(const k of INDKEYS){if(!!(c.on&&c.on[k])!==!!M.on[k])return false;if((+((c.pct&&c.pct[k])||0))!==(+M.pct[k]))return false;}
  if(c.thr&&(+c.thr.high!==+M.thr.high||+c.thr.med!==+M.thr.med))return false;
  if(c.sub&&(+c.sub.floor!==+M.sub.floor||+c.sub.ceil!==+M.sub.ceil||+c.sub.full!==+M.sub.full))return false;
  return true;}
@@ -2641,8 +2746,8 @@ function renderModels(){const el=document.getElementById('savedmodels');if(!el)r
   h+=`<span class="modelchip ${on?'on':''}">${EDIT?`<button class="modelstar ${m.starred?'on':''}" title="${m.starred?'Unstar — return to the ordinary list':'Star — pin this model to the top'}" onclick="event.stopPropagation();toggleStar(${m.id})">${m.starred?'★':'☆'}</button>`:(m.starred?'<span class="modelstar on" title="Starred">★</span>':'')}<button class="modelapply" onclick="applyModel(${m.id})" title="Apply: ${esc(m.name)}">${esc(m.name)}</button><span class="modelicons2"><span class="modelinfo" title="${esc(tip)}">ⓘ</span>${EDIT?`<button title="Move up" ${gi<=0?'disabled style="opacity:.3"':''} onclick="event.stopPropagation();moveModel(${m.id},-1)">▲</button><button title="Move down" ${gi>=grp.length-1?'disabled style="opacity:.3"':''} onclick="event.stopPropagation();moveModel(${m.id},1)">▼</button><button title="Edit name &amp; description" onclick="event.stopPropagation();renameModel(${m.id})">✎</button><button title="Delete" onclick="event.stopPropagation();deleteModel(${m.id})">✕</button>`:''}</span></span>`;});
  el.innerHTML=h;}
 function applyModel(id){const m=MODELS.find(x=>x.id===id);if(!m||!m.config)return;const c=m.config;
- MODEL.geo=c.geo||'sa2';MODEL.on={em:!!c.on.em,seifa:!!c.on.seifa,rem:!!c.on.rem,dv2:!!c.on.dv2};
- MODEL.pct={em:+c.pct.em||0,seifa:+c.pct.seifa||0,rem:+c.pct.rem||0,dv2:+c.pct.dv2||0};
+ MODEL.geo=c.geo||'sa2';MODEL.on={em:!!c.on.em,seifa:!!c.on.seifa,rem:!!c.on.rem,dv2:!!c.on.dv2,db:!!c.on.db};
+ MODEL.pct={em:+c.pct.em||0,seifa:+c.pct.seifa||0,rem:+c.pct.rem||0,dv2:+c.pct.dv2||0,db:+c.pct.db||0};
  MODEL.thr={high:+c.thr.high,med:+c.thr.med};MODEL.sub={floor:+c.sub.floor,ceil:+c.sub.ceil,full:+c.sub.full};MODEL.scoring=c.scoring||'anchored';if(typeof setScoringButtons==='function')setScoringButtons();
  document.querySelectorAll('#geo button').forEach(b=>b.classList.toggle('on',b.dataset.g===MODEL.geo));
  const gv=(i,v)=>{const e=document.getElementById(i);if(e&&v!=null&&!isNaN(v))e.value=v;};
@@ -2700,7 +2805,8 @@ function submitName(){if(!_mmCb)return;
 
 function computeWith(v,m){const g=v[m.geo||'sa2'];if(!g)return{index:null,tier:'—',subsidy:0,elig:'No'};let map={em:g.em_sub,seifa:g.seifa_sub,rem:g.rem_sub,dv2:g.dv2_sub};
  if((m.scoring||'anchored')==='percentile'){const L=SA2LOOK[v.sa2code];if(L&&L.pe2!=null)map=(m.geo==='sa3')?{em:L.pe3,seifa:L.pd3,rem:L.pr3,dv2:L.pv3}:{em:L.pe2,seifa:L.pd2,rem:L.pr2,dv2:L.pv2};else if(!window._pctWarned){window._pctWarned=true;toast('Percentile scoring needs percentile-scoring.sql — using anchored sub-scores until it is run.',null,true);}}
- let num=0,den=0;for(const k of ['em','seifa','rem','dv2']){if(m.on[k]&&map[k]!=null){num+=m.pct[k]*map[k];den+=m.pct[k];}}
+ const Ldb=SA2LOOK[v.sa2code];map.db=Ldb?((m.geo==='sa3')?Ldb.pdb3:Ldb.pdb2):null;
+ let num=0,den=0;for(const k of INDKEYS){if(m.on[k]&&map[k]!=null){num+=m.pct[k]*map[k];den+=m.pct[k];}}
  if(den===0)return{index:null,tier:'—',subsidy:0,elig:'No'};
  const idx=Math.round(num/den*10)/10;const tier=idx>=m.thr.high?'High':idx>=m.thr.med?'Medium':'Low';
  let sub=0;if(tier==='High'){const span=m.sub.full-m.thr.high;const frac=span<=0?1:Math.min(1,Math.max(0,(idx-m.thr.high)/span));sub=round5pct(m.sub.floor+(m.sub.ceil-m.sub.floor)*frac);}
@@ -2714,19 +2820,20 @@ function recompute(){for(const v of V){const c=computeOne(v);const g=v[MODEL.geo
 const INDTIP={em:'Emotional Maturity (EM)\nSource: AEDC 2024, emotional maturity domain — prosocial behaviour, anxiety, aggression, hyperactivity/inattention.\nMeasure: % of children developmentally vulnerable or at risk.\nSub-score: min(10, EM% ÷ 25.17 × 5) — 5 = national average.',
  seifa:'Disadvantage (D)\nSource: ABS SEIFA 2021, Index of Relative Socio-economic Disadvantage (IRSD).\nMeasure: national decile (1 = most disadvantaged 10%).\nSub-score: 11 − decile.',
  rem:'Remoteness (R)\nSource: ABS ASGS 2021 Remoteness Structure.\nMeasure: remoteness class of the area.\nSub-score: Major Cities 0 · Inner Regional 2.5 · Outer Regional 5 · Remote 7.5 · Very Remote 10.',
- dv2:'Developmentally Vulnerable (DV2)\nSource: AEDC 2024 summary measure.\nMeasure: % of children developmentally vulnerable on two or more of the five AEDC domains.\nSub-score: min(10, DV2% ÷ 12.46 × 5) — 5 = national average.\nCoverage: 91% of SA2s (AEDC suppresses small areas).'};
+ dv2:'Developmentally Vulnerable (DV2)\nSource: AEDC 2024 summary measure.\nMeasure: % of children developmentally vulnerable on two or more of the five AEDC domains.\nSub-score: min(10, DV2% ÷ 12.46 × 5) — 5 = national average.\nCoverage: 91% of SA2s (AEDC suppresses small areas).',
+ db:'Distance Barrier (DB) — experimental, pilot venue register\nSource: straight-line distance from each community\u2019s centre to the nearest eligible venue in the register (Audit → Maintenance shows the snapshot used).\nMeasure: kilometres to the nearest venue able to host children\u2019s theatre.\nSub-score: mid-rank percentile of communities with poorer access (always percentile, in both scoring methods).\nCaveat: the register is a pilot (~161 venues); missing venues overstate the barrier nearby. Recompute after register changes.'};
 function buildInd(){document.getElementById('ind').innerHTML=IND.map(([k,label,col])=>`
  <div class="name" id="row_${k}" title="${esc(INDTIP[k]||'')}"><input type="checkbox" ${MODEL.on[k]?'checked':''} onchange="setOn('${k}',this.checked)">
    <span class="indname">${label}</span><span class="indinfo" title="${esc(INDTIP[k]||'')}">ⓘ</span></div>
  <input type="range" id="sl_${k}" min="0" max="100" step="5" value="${MODEL.pct[k]}" oninput="setW('${k}',this.value)" ${MODEL.on[k]?'':'disabled'}>
  <div class="wv" id="wv_${k}" style="color:${col}">${MODEL.pct[k]}%</div>`).join('');updateEff();}
-function syncSliders(){['em','seifa','rem','dv2'].forEach(k=>{const sl=document.getElementById('sl_'+k),wv=document.getElementById('wv_'+k);if(sl){sl.value=MODEL.pct[k];sl.disabled=!MODEL.on[k];}if(wv)wv.textContent=MODEL.pct[k]+'%';});updateEff();}
+function syncSliders(){INDKEYS.forEach(k=>{const sl=document.getElementById('sl_'+k),wv=document.getElementById('wv_'+k);if(sl){sl.value=MODEL.pct[k];sl.disabled=!MODEL.on[k];}if(wv)wv.textContent=MODEL.pct[k]+'%';});updateEff();}
 function updateEff(){IND.forEach(([k])=>{document.getElementById('row_'+k)?.classList.toggle('off',!MODEL.on[k]);});}
 const PRESETS={em_seifa:{on:{em:true,seifa:true,rem:false},pct:{em:50,seifa:50,rem:0},high:7},all:{on:{em:true,seifa:true,rem:true},pct:{em:40,seifa:40,rem:20},high:6.3},em_only:{on:{em:true,seifa:false,rem:false},pct:{em:100,seifa:0,rem:0}}};
 function applyPreset(key){const p=PRESETS[key];MODEL.on={em:!!p.on.em,seifa:!!p.on.seifa,rem:!!p.on.rem,dv2:!!p.on.dv2};MODEL.pct={em:+p.pct.em||0,seifa:+p.pct.seifa||0,rem:+p.pct.rem||0,dv2:+p.pct.dv2||0};
  if(p.high!=null){MODEL.thr.high=p.high;const e=document.getElementById('tHigh');if(e)e.value=p.high;}
  buildInd();updateSubnote();recompute();render();}
-function markActivePreset(){for(const key in PRESETS){const p=PRESETS[key];const m=['em','seifa','rem','dv2'].every(k=>!!MODEL.on[k]===!!p.on[k]&&(+MODEL.pct[k]||0)===(+p.pct[k]||0));const b=document.getElementById('ps_'+key);if(b)b.classList.toggle('on',m);}}
+function markActivePreset(){for(const key in PRESETS){const p=PRESETS[key];const m=INDKEYS.every(k=>!!MODEL.on[k]===!!p.on[k]&&(+MODEL.pct[k]||0)===(+p.pct[k]||0));const b=document.getElementById('ps_'+key);if(b)b.classList.toggle('on',m);}}
 function setGeo(g){MODEL.geo=g;document.querySelectorAll('#geo button').forEach(b=>b.classList.toggle('on',b.dataset.g===g));recompute();render();}
 function pctReady(){const L=SA2LOOK[Object.keys(SA2LOOK)[0]];return !!(L&&L.pe2!=null);}
 function setScoring(sc){MODEL.scoring=sc;setScoringButtons();recompute();render();}
@@ -2753,7 +2860,7 @@ function setThr(){const h=parseFloat(document.getElementById('tHigh').value),m=p
 function setSub(){const f=parseFloat(document.getElementById('sFloor').value),c=parseFloat(document.getElementById('sCeil').value),u=parseFloat(document.getElementById('sFull').value);
  if(!isNaN(f))MODEL.sub.floor=f/100;if(!isNaN(c))MODEL.sub.ceil=c/100;if(!isNaN(u))MODEL.sub.full=u;updateSubnote();recompute();render();}
 function updateSubnote(){}
-function resetModel(){MODEL={geo:'sa2',scoring:'anchored',on:{em:true,seifa:true,rem:true,dv2:false},pct:{em:40,seifa:40,rem:20,dv2:0},thr:{high:6.3,med:3.8},sub:{floor:0.5,ceil:1.0,full:8.0}};
+function resetModel(){MODEL={geo:'sa2',scoring:'anchored',on:{em:true,seifa:true,rem:true,dv2:false,db:false},pct:{em:40,seifa:40,rem:20,dv2:0,db:0},thr:{high:6.3,med:3.8},sub:{floor:0.5,ceil:1.0,full:8.0}};
  setScoringButtons();
  document.querySelectorAll('#geo button').forEach(b=>b.classList.toggle('on',b.dataset.g==='sa2'));
  const gv=(id,val)=>{const e=document.getElementById(id);if(e)e.value=val;};
@@ -2990,9 +3097,11 @@ function areaSummary(v,g){const em=g.em_pct,dec=g.decile,ra=(g.ra||'').replace('
 function openD(i){curIdx=i;const v=V[i];const g=v[MODEL.geo];let den=activeKeys().reduce((a,k)=>a+MODEL.pct[k],0);
  const _pct=(MODEL.scoring||'anchored')==='percentile';const _L=_pct?SA2LOOK[v.sa2code]:null;
  const submap=(_pct&&_L&&_L.pe2!=null)?(MODEL.geo==='sa3'?{em:_L.pe3,seifa:_L.pd3,rem:_L.pr3,dv2:_L.pv3}:{em:_L.pe2,seifa:_L.pd2,rem:_L.pr2,dv2:_L.pv2}):{em:g.em_sub,seifa:g.seifa_sub,rem:g.rem_sub,dv2:g.dv2_sub};
- const meta={em:'EM '+(g.em_pct!=null?(+g.em_pct).toFixed(1)+'% at-risk/vuln':'—'),seifa:'SEIFA decile '+(g.decile??'—'),rem:(g.ra||'').replace(' Australia','')};
+ const _Ld=SA2LOOK[v.sa2code];submap.db=_Ld?((MODEL.geo==='sa3')?_Ld.pdb3:_Ld.pdb2):null;
+ const meta={em:'EM '+(g.em_pct!=null?(+g.em_pct).toFixed(1)+'% at-risk/vuln':'—'),seifa:'SEIFA decile '+(g.decile??'—'),rem:(g.ra||'').replace(' Australia',''),
+   dv2:'vulnerable 2+ domains',db:_Ld&&_Ld.db2!=null?((MODEL.geo==='sa3'?_Ld.db3:_Ld.db2).toFixed(0)+' km to nearest venue'):'not computed yet'};
  const rows=IND.map(([k,label,col])=>{const on=MODEL.on[k];const sub=submap[k];const contrib=(on&&den&&sub!=null)?MODEL.pct[k]/den*sub:0;
-  return `<div class="comprow"><div class="top"><span>${label} <span class="muted">(${meta[k]})</span>${on?'':' <span style="color:#EF476F">· OFF</span>'}</span><span>${sub!=null?(+sub).toFixed(1):'—'} / 10</span></div>
+  return `<div class="comprow"><div class="top"><span>${label} <span class="muted">(${meta[k]||'—'})</span>${on?'':' <span style="color:#EF476F">· OFF</span>'}</span><span>${sub!=null?(+sub).toFixed(1):'—'} / 10</span></div>
    <div class="compbar"><span style="width:${sub!=null?sub*10:0}%;background:${on?col:'#ccc'}"></span></div>
    <div class="muted" style="margin-top:2px">${on?`sub-score ${(+sub).toFixed(1)} × weight ${den?Math.round(MODEL.pct[k]/den*100):0}% = <b>${contrib.toFixed(2)}</b>`:'excluded from this model'}</div></div>`;}).join('');
  const activeParts=IND.filter(([k])=>MODEL.on[k]&&submap[k]!=null).map(([k,l,col])=>`<span style="color:${col};font-weight:700">${(+submap[k]).toFixed(1)}×${den?Math.round(MODEL.pct[k]/den*100):0}%</span>`).join(' + ')||'—';
@@ -3057,7 +3166,8 @@ function computeSA2(code){const L=SA2LOOK[code];if(!L)return null;
  const pct=(MODEL.scoring||'anchored')==='percentile'&&L.pe2!=null;
  const sub=pct?(MODEL.geo==='sa3'?{em:L.pe3,seifa:L.pd3,rem:L.pr3,dv2:L.pv3}:{em:L.pe2,seifa:L.pd2,rem:L.pr2,dv2:L.pv2})
           :(MODEL.geo==='sa3'?{em:L.e3,seifa:L.d3,rem:L.r3,dv2:L.v3}:{em:L.e2,seifa:L.d2,rem:L.r2,dv2:L.v2});
- let num=0,den=0;for(const k of ['em','seifa','rem','dv2']){if(MODEL.on[k]&&sub[k]!=null){num+=MODEL.pct[k]*sub[k];den+=MODEL.pct[k];}}
+ sub.db=MODEL.geo==='sa3'?L.pdb3:L.pdb2;
+ let num=0,den=0;for(const k of INDKEYS){if(MODEL.on[k]&&sub[k]!=null){num+=MODEL.pct[k]*sub[k];den+=MODEL.pct[k];}}
  if(den===0)return null;const idx=Math.round(num/den*10)/10;const tier=idx>=MODEL.thr.high?'High':idx>=MODEL.thr.med?'Medium':'Low';
  return {idx,tier,hv:L.hv,ch:L.ch,st:sa2State(code)};}
 function idxColor(x){x=Math.max(0,Math.min(10,x));const s=[[0,[91,192,190]],[5,[255,209,102]],[10,[239,71,111]]];let a=s[0],b=s[2];for(let i=0;i<s.length-1;i++){if(x>=s[i][0]&&x<=s[i+1][0]){a=s[i];b=s[i+1];break;}}const t=(x-a[0])/((b[0]-a[0])||1);const c=a[1].map((v,i)=>Math.round(v+(b[1][i]-v)*t));return `rgb(${c[0]},${c[1]},${c[2]})`;}
@@ -3169,7 +3279,7 @@ function cfmt(v,f){if(v==null||(typeof v==='number'&&!isFinite(v)))return '—';
 
 // ---- scoring ----
 function applyModelSub(sub){let num=0,den=0;
- for(const k of ['em','seifa','rem','dv2']){if(MODEL.on[k]&&sub[k]!=null){num+=MODEL.pct[k]*sub[k];den+=MODEL.pct[k];}}
+ for(const k of INDKEYS){if(MODEL.on[k]&&sub[k]!=null){num+=MODEL.pct[k]*sub[k];den+=MODEL.pct[k];}}
  if(den===0)return null;return Math.round(num/den*10)/10;}
 function cTierOf(x){return x==null?null:(x>=MODEL.thr.high?'High':x>=MODEL.thr.med?'Medium':'Low');}
 
@@ -3554,12 +3664,12 @@ async function boot(){
   setProgress(12);
   const [venues,scores,cfg]=await Promise.all([
     sbAll('venue_full','*'),
-    sbAll('sa2_scores','sa2_code,e2,d2,r2,e3,d3,r3,v2,v3,ch,hv,irsd,pe2,pd2,pr2,pv2,pe3,pd3,pr3,pv3').catch(()=>sbAll('sa2_scores','sa2_code,e2,d2,r2,e3,d3,r3,v2,v3,ch,hv')),
+    sbAll('sa2_scores','sa2_code,e2,d2,r2,e3,d3,r3,v2,v3,ch,hv,irsd,pe2,pd2,pr2,pv2,pe3,pd3,pr3,pv3,db2,pdb2,db3,pdb3').catch(()=>sbAll('sa2_scores','sa2_code,e2,d2,r2,e3,d3,r3,v2,v3,ch,hv,irsd,pe2,pd2,pr2,pv2,pe3,pd3,pr3,pv3').catch(()=>sbAll('sa2_scores','sa2_code,e2,d2,r2,e3,d3,r3,v2,v3,ch,hv'))),
     sbOne('app_config?select=key,value')
   ]);
   setProgress(62);
   V=venues; V.forEach((v,i)=>v._i=i); DATA.venues=V;
-  SA2LOOK={}; const nn=x=>x==null?null:+x; scores.forEach(s=>{SA2LOOK[s.sa2_code]={e2:+s.e2,d2:+s.d2,r2:+s.r2,e3:+s.e3,d3:+s.d3,r3:+s.r3,v2:nn(s.v2),v3:nn(s.v3),ch:nn(s.ch),hv:+s.hv,irsd:nn(s.irsd),pe2:nn(s.pe2),pd2:nn(s.pd2),pr2:nn(s.pr2),pv2:nn(s.pv2),pe3:nn(s.pe3),pd3:nn(s.pd3),pr3:nn(s.pr3),pv3:nn(s.pv3)};});
+  SA2LOOK={}; const nn=x=>x==null?null:+x; scores.forEach(s=>{SA2LOOK[s.sa2_code]={e2:+s.e2,d2:+s.d2,r2:+s.r2,e3:+s.e3,d3:+s.d3,r3:+s.r3,v2:nn(s.v2),v3:nn(s.v3),ch:nn(s.ch),hv:+s.hv,irsd:nn(s.irsd),pe2:nn(s.pe2),pd2:nn(s.pd2),pr2:nn(s.pr2),pv2:nn(s.pv2),pe3:nn(s.pe3),pd3:nn(s.pd3),pr3:nn(s.pr3),pv3:nn(s.pv3),db2:nn(s.db2),pdb2:nn(s.pdb2),db3:nn(s.db3),pdb3:nn(s.pdb3)};});
   const cf={}; (cfg||[]).forEach(r=>cf[r.key]=r.value); if(cf.aus_locator)AUS=cf.aus_locator; if(cf.params){P=cf.params; if(P.medThr!=null){MODEL.thr.med=+P.medThr; const e=document.getElementById('tMed'); if(e)e.value=P.medThr;}}
   DATA.params=P;
   hideSkeleton();
