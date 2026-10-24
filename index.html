@@ -71,6 +71,21 @@ header h1{font-size:29px;margin:0;} header .sub{color:var(--slate);font-size:13p
 .editform input[type=checkbox]{width:auto;}
 .editform .chk{display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:13px;color:var(--navy);font-weight:600;margin:0;cursor:pointer;}
 .authmodal{position:fixed;inset:0;background:rgba(7,59,76,.42);display:none;align-items:center;justify-content:center;z-index:6000;padding:20px;}
+/* Area checker: community stat tiles */
+.amcard{border:1.5px solid var(--navy);border-radius:9px;padding:10px 12px;background:#fff;}
+.amhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13.5px;color:var(--navy);}
+.ammeta{font-size:10.5px;color:var(--slate);}
+.amindex{margin-left:auto;font-weight:800;font-size:11.5px;color:var(--navy);border-radius:12px;padding:2px 10px;white-space:nowrap;}
+.amtiles{display:grid;grid-template-columns:1.7fr 1fr 1fr 1fr 1fr;gap:8px;margin-top:9px;}
+.amtile{background:var(--cream);border:1px solid #E3DCC4;border-radius:7px;padding:7px 8px 6px;text-align:center;}
+.amtile .amv{font-weight:800;font-size:15px;color:var(--navy);line-height:1.15;}
+.amtile .aml{font-size:9px;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-top:2px;}
+.amtile .ams{font-size:9.5px;margin-top:3px;line-height:1.25;}
+.amdist{background:var(--navy);border-color:var(--navy);}
+.amdist .amv{color:#fff;font-size:17px;}
+.amdist .aml{color:#9DB8C2;}
+.amdist .ams{color:#5BC0BE;font-weight:700;}
+@media(max-width:700px){.amtiles{grid-template-columns:1fr 1fr;}.amdist{grid-column:span 2;}}
 .telbl{display:block;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--slate);margin:12px 0 4px;}
 .terow{display:flex;gap:6px;align-items:center;}
 .terow select{flex:1;min-width:0;font-family:inherit;font-size:13.5px;padding:9px 10px;border:1.5px solid var(--navy);border-radius:6px;background:#fff;color:var(--navy);}
@@ -2330,8 +2345,20 @@ function amSetGeo(g2){areaState.geo=g2;document.querySelectorAll('#amGeo button'
 function amZoom(code){if(!window._amLayer)return;let bb=null;window._amLayer.eachLayer(l=>{if(l.feature&&String(l.feature.properties.c)===String(code))bb=l.getBounds();});if(bb)areaMap.fitBounds(bb.pad(0.5));}
 function amInfo(){const el=document.getElementById('amInfo');if(!el)return;const c=areaState.code;const cands=amCandidates();
  let h='';
- if(c){const f=areaFieldsFor(c);const idx=computeSA2(c);
-  h+=`<div style="font-size:12.5px"><b>SA2 ${esc(c)}</b>${(f&&f.sa2_name)?' \u00b7 '+esc(f.sa2_name):''} \u2014 SA3 ${c.slice(0,5)}${idx?` \u00b7 Index <b>${idx.idx.toFixed(1)}</b> (${idx.tier})`:''}${f?` \u00b7 ~${(f.c2_t||0).toLocaleString()} children 0\u201314`:''}</div>`;}
+ if(c){const f=areaFieldsFor(c);const idx=computeSA2(c);const L=SA2LOOK[c];
+  const sa3v=areaState.geo==='sa3';
+  const km=L?(sa3v?L.db3:L.db2):null, pdb=L?(sa3v?L.pdb3:L.pdb2):null;
+  const ra=f&&f.sa2_ra?String(f.sa2_ra).replace(' Australia','').replace(' of',''):null;
+  h+=`<div class="amcard">
+    <div class="amhead"><b>${f&&f.sa2_name?esc(f.sa2_name):'SA2 '+esc(c)}</b><span class="ammeta">SA2 ${esc(c)} \u00b7 SA3 ${c.slice(0,5)}${sa3v?' (showing SA3 catchment)':''}</span>
+      ${idx?`<span class="amindex" style="background:${TIERCOL[idx.tier]}">${idx.idx.toFixed(1)} \u00b7 ${idx.tier}</span>`:''}</div>
+    <div class="amtiles">
+      <div class="amtile amdist"><div class="amv">${km!=null?((km<1?'<1':Math.round(km).toLocaleString())+' km'):'\u2014'}</div><div class="aml">to nearest venue${sa3v?' \u00b7 sa3':''}</div><div class="ams">${pdb!=null?('poorer access than '+Math.round(pdb*10)+'% of communities'):(km==null?'not computed yet \u2014 Audit \u2192 Maintenance':'')}</div></div>
+      <div class="amtile"><div class="amv">${f&&f.c2_t!=null?(+f.c2_t).toLocaleString():'\u2014'}</div><div class="aml">children 0\u201314</div></div>
+      <div class="amtile"><div class="amv">${f&&f.sa2_decile!=null?f.sa2_decile:'\u2014'}</div><div class="aml">SEIFA decile</div></div>
+      <div class="amtile"><div class="amv" style="font-size:12px;padding-top:3px">${ra?esc(ra):'\u2014'}</div><div class="aml">remoteness</div></div>
+      <div class="amtile"><div class="amv">${f&&f.sa2_em_pct!=null?(+f.sa2_em_pct).toFixed(1)+'%':'\u2014'}</div><div class="aml">EM at risk / vuln</div></div>
+    </div></div>`;}
  else h+='<div class="muted" style="font-size:12px">No SA2 selected \u2014 drag the pin onto the venue, or click an area.</div>';
  if(areaState.pc)h+=`<div style="margin-top:6px;font-size:11px;color:var(--slate)">Postcode ${esc(areaState.pc)} ${cands.length?('overlaps '+cands.length+' scored SA2'+(cands.length>1?'s':'')+' \u2014 click to compare:'):'\u2014 no scored SA2 overlap on record.'}</div>`;
  if(cands.length)h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:5px">'+cands.map(x=>`<button class="fchip2" style="${x.c===c?'background:var(--pink);color:#fff;border-color:var(--pink)':''}" onclick="amSelect('${x.c}');amZoom('${x.c}')">${x.c} \u00b7 ${Math.round(x.r*100)}%</button>`).join('')+'</div>';
