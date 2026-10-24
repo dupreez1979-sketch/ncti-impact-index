@@ -671,7 +671,8 @@ body.aboutmode .sitefoot{margin-top:26px;}
    <div class="subsec collapsed" id="sec-ind"><div class="subhead" onclick="toggleSub(this)">Indicators <span class="caret">▾</span></div>
      <div class="subbody"><div class="ind" id="ind"></div></div></div>
    <div class="subsec collapsed" id="sec-geo"><div class="subhead" onclick="toggleSub(this)">Geography <span class="caret">▾</span></div>
-     <div class="subbody"><span class="geo" id="geo"><button data-g="sa2" class="on" onclick="setGeo('sa2')">SA2</button><button data-g="sa3" onclick="setGeo('sa3')">SA3</button></span></div></div>
+     <div class="subbody"><span class="geo" id="geo"><button data-g="sa2" class="on" onclick="setGeo('sa2')">SA2</button><button data-g="sa3" onclick="setGeo('sa3')">SA3</button><button data-g="catch" onclick="setGeo('catch')" title="Score each venue as the child-weighted average of the communities in its curated catchment (Maintain area). Venues without a catchment fall back to their own SA2.">Catchment</button></span>
+       <div class="muted" id="geoNote" style="margin-top:7px;font-size:11px;display:none">Catchment: venues with a locked-in catchment are scored as the child-weighted average of their member communities; all others use their own SA2.</div></div></div>
    <div class="subsec" id="sec-scoring"><div class="subhead" onclick="toggleSub(this)">Scoring method <span class="caret">▾</span></div>
      <div class="subbody">
        <span class="geo" id="scoringBtns"><button data-sc="anchored" class="on" onclick="setScoring('anchored')" title="The current method: each indicator keeps its own conversion rule, with 5 anchored to the national average (EM 25.2% = 5.0, decile flipped, remoteness in fixed steps).">Anchored</button><button data-sc="percentile" onclick="setScoring('percentile')" title="UWA review R2: one common rule for every indicator — the sub-score is the share of communities with less need, so 8.0 means roughly the 80th percentile. Disadvantage uses the raw IRSD score.">Percentile</button></span>
@@ -1091,7 +1092,7 @@ body.aboutmode .sitefoot{margin-top:26px;}
 <div class="authmodal" id="areamodal" style="z-index:6500" onclick="if(event.target===this)closeAreaChecker()">
  <div class="authcard" style="max-width:760px;width:96vw">
    <button class="authx" onclick="closeAreaChecker()" title="Close">×</button>
-   <h2>Check <span class="pink">area</span> — <span id="amName" style="font-size:16px"></span></h2>
+   <h2>Maintain <span class="pink">area</span> — <span id="amName" style="font-size:16px"></span></h2>
    <div style="display:flex;gap:10px;align-items:center;margin:2px 0 8px;flex-wrap:wrap">
      <span class="muted" style="font-size:11.5px">Drag the pin, click an area, or pick a postcode match. View:</span>
      <span class="geo" id="amGeo"><button data-g="sa2" class="on" onclick="amSetGeo('sa2')">SA2</button><button data-g="sa3" onclick="amSetGeo('sa3')">SA3</button></span>
@@ -1099,7 +1100,7 @@ body.aboutmode .sitefoot{margin-top:26px;}
    <div style="display:flex;gap:8px;margin:0 0 8px"><input id="amAddr" placeholder="Search an address to move the pin…" style="flex:1" onkeydown="if(event.key==='Enter'){event.preventDefault();amGeocode();}"><button class="btn sec efbtn" style="height:38px" onclick="amGeocode()">Find</button></div>
    <div id="areamap" style="height:380px;border:1.5px solid var(--navy);border-radius:9px"></div>
    <div id="amInfo" style="margin-top:10px;min-height:34px"></div>
-   <div class="authactions"><button class="btn sec" onclick="closeAreaChecker()">Cancel</button><button class="btn" onclick="applyAreaChecker()">Use this area</button></div>
+   <div class="authactions"><button class="btn sec" id="amCatEdit" style="display:none;border-color:#B97E00;color:#7A5200" onclick="toggleCatEdit()">Edit catchment</button><button class="btn sec" id="amCatClear" style="display:none" onclick="clearCatchment()">Clear catchment</button><button class="btn" id="amCatLock" style="display:none;background:#B97E00;border-color:#B97E00" onclick="lockCatchment()">Lock in catchment</button><span style="flex:1"></span><button class="btn sec" onclick="closeAreaChecker()">Cancel</button><button class="btn" id="amUseBtn" onclick="applyAreaChecker()">Use this area</button></div>
  </div>
 </div>
 <div class="authmodal" id="addvenuemodal" onclick="if(event.target===this)closeAddVenue()">
@@ -1231,8 +1232,14 @@ function costPerChild(sub,child){if(!child||child<=0||!sub||sub<=0)return null;
 let MODEL={geo:'sa2',scoring:'anchored',on:{em:true,seifa:true,rem:true,dv2:false,db:false},pct:{em:40,seifa:40,rem:20,dv2:0,db:0},
  thr:{high:6.3,med:3.8}, sub:{floor:0.5,ceil:1.0,full:8.0}};
 function activeKeys(){return INDKEYS.filter(k=>MODEL.on[k]);}
+function geoLabel(g){return {sa2:'SA2',sa3:'SA3',catch:'Catchment'}[g||MODEL.geo]||'SA2';}
+let CATCH={};
+function venueCatchCodes(v){const c=CATCH[v.id];return (c&&c.length)?c:(v.sa2code?[String(v.sa2code)]:[]);}
+function hasCatchment(v){const c=CATCH[v.id];return !!(c&&c.length>1);}
 function areaCode(v){return MODEL.geo==='sa3'?v.sa3code:v.sa2code;}
-function uniqueChild(list){const seen=new Set();let s=0;for(const v of list){const k=areaCode(v);if(k==null||seen.has(k))continue;seen.add(k);s+=v.cChild||0;}return s;}
+function uniqueChild(list){const seen=new Set();let s=0;
+ if(MODEL.geo==='catch'){for(const v of list){for(const code of venueCatchCodes(v)){if(seen.has(code))continue;seen.add(code);const L=SA2LOOK[code];s+=(L&&L.ch)||0;}}return s;}
+ for(const v of list){const k=areaCode(v);if(k==null||seen.has(k))continue;seen.add(k);s+=v.cChild||0;}return s;}
 function round5(x){return Math.round(x/5)*5;}
 function round5pct(x){return Math.round(x*20)/20;}
 function fixSum(changed){let ak=activeKeys();if(!ak.length)return;let s=ak.reduce((a,k)=>a+MODEL.pct[k],0);let diff=100-s;if(diff===0)return;let cand=ak.filter(k=>k!==changed).sort((a,b)=>MODEL.pct[b]-MODEL.pct[a]);let t=cand[0]||ak[0];MODEL.pct[t]=Math.max(0,MODEL.pct[t]+diff);}
@@ -1389,7 +1396,7 @@ function renderContext(){const t=activeTourObj();
  const tm=t?(stagedModel||t.model):null;
  if(t&&tm&&cfgEq(MODEL,tm)){mtxt='Model: ★ frozen — '+t.name+(stagedModel?' (unsaved)':'');frozen=true;}
  else{const m=(typeof MODELS!=='undefined'?MODELS:[]).find(x=>cfgEq(MODEL,x.config));mtxt=m?('Model: '+m.name):'Model: Custom';}
- mtxt+=' · '+MODEL.geo.toUpperCase();
+ mtxt+=' · '+geoLabel().toUpperCase();
  mEl.textContent=mtxt;
  document.getElementById('ctxModel').classList.toggle('tourctx',frozen);
  if(t){const sh=SHOWS.find(s=>s.id===t.show_id);const co=sh?COMPANIES.find(c=>c.id===sh.company_id):null;
@@ -1665,7 +1672,7 @@ function createTourReport(){const t=activeTourObj();if(!t){toast('Select a tour 
      <p style="color:#6b7a80;font-size:11px">Gross presenter fees across the tour: ${fmt$(gross)}. Subsidy applies to confirmed High-tier venues only.</p>
      <h3>The model used</h3>
      <div class="settings">
-       <div>Geography: <b>${MODEL.geo.toUpperCase()}</b></div>
+       <div>Geography: <b>${geoLabel().toUpperCase()}</b></div>
        <div>Indicator weights: <b>${wtxt}</b></div>
        <div>Priority tiers: <b>High ≥ ${(+MODEL.thr.high).toFixed(1)}</b>, Medium ≥ ${(+MODEL.thr.med).toFixed(1)}</div>
        <div style="grid-column:1/-1">Subsidy: <b>${Math.round(MODEL.sub.floor*100)}% → ${Math.round(MODEL.sub.ceil*100)}%</b> across the High band, full at index ${(+MODEL.sub.full).toFixed(1)}+.</div>
@@ -1943,7 +1950,7 @@ function createModelReport(){
      ${nm.desc?`<p>${esc(nm.desc)}</p>`:''}
      <p>This document specifies how the model scores every Australian community 0–10 for the relative priority of children's theatre support, how scores become priority tiers and subsidy rates, and what the model produces across the venue network.</p><p style="font-size:11px;color:#6b7a80">The Access Index indicates relative priority for children's theatre support. It does not measure delivered impact, guarantee benefit, or make any subsidy automatic; funding decisions also weigh delivery readiness and the available budget.</p>
      <div class="rpt-hero">
-       <div><div class="h">${MODEL.geo.toUpperCase()}</div><div class="l">Geography</div></div>
+       <div><div class="h">${geoLabel().toUpperCase()}</div><div class="l">Geography</div></div>
        <div><div class="h">${weights.length}</div><div class="l">Indicators in use</div></div>
        <div><div class="h pink">${elig.length}</div><div class="l">Venues subsidised</div></div>
        <div><div class="h">${childHigh.toLocaleString()}</div><div class="l">Children 0–14 in High venue areas</div></div>
@@ -2025,7 +2032,7 @@ function createReport(){
      <p style="color:#6b7a80;font-size:11px">Gross presenter fees across the package: ${fmt$(gross)} · venues contribute ${fmt$(pay)} · subsidy covers the balance.</p>
      <h3>The model used</h3>
      <div class="settings">
-       <div>Geography: <b>${MODEL.geo.toUpperCase()}</b></div>
+       <div>Geography: <b>${geoLabel().toUpperCase()}</b></div>
        <div>Indicator weights: <b>${wtxt}</b></div>
        <div>Priority tiers: <b>High ≥ ${(+MODEL.thr.high).toFixed(1)}</b>, Medium ≥ ${(+MODEL.thr.med).toFixed(1)}</div>
        <div>Assumed package fee: <b>${fmt$(basketFee)}</b></div>
@@ -2042,7 +2049,7 @@ function createReport(){
  document.getElementById('reportBody').innerHTML=html;
  document.getElementById('reportView').classList.add('open');
  document.getElementById('reportView').scrollTop=0;}
-function createVenueReport(i){const v=V[i];if(!v)return;const g=v[MODEL.geo]||{};
+function createVenueReport(i){const v=V[i];if(!v)return;const g=v[MODEL.geo==='catch'?'sa2':MODEL.geo]||{};
  const feeEl=document.getElementById('fee');const fee=feeEl?(parseFloat(feeEl.value)||basketFee):basketFee;
  const subPct=v.cSub||0,disc=fee*subPct,net=fee-disc;
  const submap={em:g.em_sub,seifa:g.seifa_sub,rem:g.rem_sub,dv2:g.dv2_sub};
@@ -2288,7 +2295,7 @@ function editorRowHtml(v){const d=editData;
    <div><label>Longitude</label><input id="ef_lng" type="number" step="0.0001" value="${d.lng==null?'':d.lng}"></div>
    <div class="full"><label>Notes</label><textarea id="ef_notes" rows="2">${esc(d.notes||'')}</textarea></div>
    <div class="full"><label class="chk"><input id="ef_active" type="checkbox" ${d.active?'checked':''}> Active — shown in the venue list, charts and map</label></div>
-   <div class="full" style="display:flex;gap:8px;justify-content:flex-end;align-items:center;flex-wrap:wrap"><span class="muted" style="margin-right:auto;font-size:11px">Scores &amp; census are computed — not editable here.</span><button class="btn sec efbtn" onclick="openAreaChecker('edit',${v._i})" title="Check the SA2/SA3 assignment on a map">Check area</button><button class="btn sec efbtn" style="border-color:var(--pink);color:var(--pink)" onclick="deleteVenue(${v._i})">Delete</button><button class="btn sec efbtn" onclick="cancelEdit()">Cancel</button><button class="btn efbtn" onclick="saveVenue()">Save</button></div>
+   <div class="full" style="display:flex;gap:8px;justify-content:flex-end;align-items:center;flex-wrap:wrap"><span class="muted" style="margin-right:auto;font-size:11px">Scores &amp; census are computed — not editable here.</span><button class="btn sec efbtn" onclick="openAreaChecker('edit',${v._i})" title="Check the SA2/SA3 assignment on a map, and maintain the venue’s catchment">Maintain area</button><button class="btn sec efbtn" style="border-color:var(--pink);color:var(--pink)" onclick="deleteVenue(${v._i})">Delete</button><button class="btn sec efbtn" onclick="cancelEdit()">Cancel</button><button class="btn efbtn" onclick="saveVenue()">Save</button></div>
  </div></td></tr>`;}
 const STATE_ABBR={'New South Wales':'NSW','Victoria':'VIC','Queensland':'QLD','South Australia':'SA','Western Australia':'WA','Tasmania':'TAS','Northern Territory':'NT','Australian Capital Territory':'ACT'};
 async function geocodeAddress(q){
@@ -2310,7 +2317,9 @@ function openAreaChecker(mode,i){
  else{const v=V[i];if(!v)return;lat=v.ll?v.ll[0]:NaN;lng=v.ll?v.ll[1]:NaN;pc=v.postcode||'';code=v.sa2code;name=v.name;
   const la=g('ef_lat'),lo=g('ef_lng'),pf=g('ef_postcode');
   if(la&&la.value!=='')lat=parseFloat(la.value);if(lo&&lo.value!=='')lng=parseFloat(lo.value);if(pf)pc=pf.value||pc;}
- areaState={mode,i,code:(code&&SA2LOOK[code])?String(code):null,geo:'sa2',pc:(''+pc).trim()};
+ areaState={mode,i,code:(code&&SA2LOOK[code])?String(code):null,geo:'sa2',pc:(''+pc).trim(),catEdit:false,cat:new Set()};
+ if(mode==='edit'&&V[i]&&CATCH[V[i].id])CATCH[V[i].id].forEach(c2=>areaState.cat.add(String(c2)));
+ amCatButtons();
  document.getElementById('amName').textContent=name||'';
  document.getElementById('areamodal').classList.add('open');
  document.querySelectorAll('#amGeo button').forEach(b=>b.classList.toggle('on',b.dataset.g==='sa2'));
@@ -2335,14 +2344,42 @@ function amStyle(f){if(!areaState)return {color:'rgba(7,59,76,.3)',weight:.5,fil
  const c=String(f.properties.c);const sel=c===areaState.code;
  const inSA3=areaState.geo==='sa3'&&areaState.code&&c.slice(0,5)===String(areaState.code).slice(0,5);
  const cand=amCandidates().some(x=>x.c===c);
+ const member=areaState.cat&&areaState.cat.has(c)&&c!==areaState.code;
  if(sel)return {color:'#073B4C',weight:2.2,fillColor:'#EF476F',fillOpacity:.45};
+ if(member)return {color:'#B97E00',weight:1.8,fillColor:'#FFB703',fillOpacity:areaState.catEdit?.45:.32,dashArray:areaState.catEdit?'5,4':null};
  if(inSA3)return {color:'#073B4C',weight:1.4,fillColor:'#EF476F',fillOpacity:.16};
  if(cand)return {color:'#118AB2',weight:2.2,dashArray:'6,4',fillColor:'#118AB2',fillOpacity:.08};
  return {color:'rgba(7,59,76,.3)',weight:.5,fillColor:'#FFF8E7',fillOpacity:.03};}
 function amRestyle(){if(window._amLayer)window._amLayer.setStyle(amStyle);}
-function amSelect(code){code=String(code);if(!SA2LOOK[code]){toast('That area has no Index data.',null,true);return;}areaState.code=code;amRestyle();amInfo();}
+function amSelect(code){code=String(code);if(!SA2LOOK[code]){toast('That area has no Index data.',null,true);return;}
+ if(areaState.catEdit){
+  if(code===areaState.code){toast('The venue\u2019s own SA2 is always part of its catchment.',null,true);return;}
+  if(areaState.cat.has(code))areaState.cat.delete(code);else areaState.cat.add(code);
+  amRestyle();amInfo();amCatButtons();return;}
+ areaState.code=code;amRestyle();amInfo();}
 function amSetGeo(g2){areaState.geo=g2;document.querySelectorAll('#amGeo button').forEach(b=>b.classList.toggle('on',b.dataset.g===g2));amRestyle();amInfo();}
 function amZoom(code){if(!window._amLayer)return;let bb=null;window._amLayer.eachLayer(l=>{if(l.feature&&String(l.feature.properties.c)===String(code))bb=l.getBounds();});if(bb)areaMap.fitBounds(bb.pad(0.5));}
+function amCatButtons(){const st=areaState||{};const isEdit=st.mode==='edit'&&EDIT;
+ const be=document.getElementById('amCatEdit'),bl=document.getElementById('amCatLock'),bc=document.getElementById('amCatClear'),bu=document.getElementById('amUseBtn');
+ if(!be)return;
+ be.style.display=isEdit?'':'none';
+ be.textContent=st.catEdit?'Stop editing':'Edit catchment';
+ bl.style.display=(isEdit&&st.catEdit)?'':'none';
+ bl.textContent='Lock in catchment ('+((st.cat?st.cat.size:0)+1)+')';
+ bc.style.display=(isEdit&&st.catEdit&&((st.cat&&st.cat.size)||(st.i!=null&&V[st.i]&&CATCH[V[st.i].id]&&CATCH[V[st.i].id].length)))?'':'none';
+ if(bu)bu.style.display=st.catEdit?'none':'';}
+function toggleCatEdit(){if(!EDIT)return;areaState.catEdit=!areaState.catEdit;amCatButtons();amRestyle();amInfo();}
+async function lockCatchment(){if(!EDIT)return;const v=V[areaState.i];if(!v||!areaState.code){toast('Pick the venue\u2019s own SA2 first.',null,true);return;}
+ const codes=[areaState.code,...areaState.cat].filter((x,ix,a)=>a.indexOf(x)===ix);
+ try{
+  let {error:e1}=await sbc.from('venue_catchments').delete().eq('venue_id',v.id);if(e1)throw e1;
+  if(codes.length>1){const {error:e2}=await sbc.from('venue_catchments').insert(codes.map(c2=>({venue_id:v.id,sa2_code:c2})));if(e2)throw e2;
+   CATCH[v.id]=codes;}
+  else delete CATCH[v.id];
+  areaState.catEdit=false;amCatButtons();amRestyle();amInfo();recompute();render();
+  toast(codes.length>1?('Catchment locked in: '+codes.length+' communities for \u201c'+esc(v.name)+'\u201d.'):'Catchment cleared \u2014 back to the venue\u2019s own SA2.');
+ }catch(e){toast('Could not save the catchment: '+e.message+(/.relation|does not exist/i.test(e.message||'')?' \u2014 run venue-catchments.sql in Supabase.':''),null,true);}}
+async function clearCatchment(){if(!EDIT)return;areaState.cat=new Set();await lockCatchment();}
 function amInfo(){const el=document.getElementById('amInfo');if(!el)return;const c=areaState.code;const cands=amCandidates();
  let h='';
  if(c){const f=areaFieldsFor(c);const idx=computeSA2(c);const L=SA2LOOK[c];
@@ -2358,7 +2395,18 @@ function amInfo(){const el=document.getElementById('amInfo');if(!el)return;const
       <div class="amtile"><div class="amv">${f&&f.sa2_decile!=null?f.sa2_decile:'\u2014'}</div><div class="aml">SEIFA decile</div></div>
       <div class="amtile"><div class="amv" style="font-size:12px;padding-top:3px">${ra?esc(ra):'\u2014'}</div><div class="aml">remoteness</div></div>
       <div class="amtile"><div class="amv">${f&&f.sa2_em_pct!=null?(+f.sa2_em_pct).toFixed(1)+'%':'\u2014'}</div><div class="aml">EM at risk / vuln</div></div>
-    </div></div>`;}
+    </div></div>`;
+  const catSet=areaState.cat||new Set();
+  if(areaState.catEdit||catSet.size){
+   const codes=[c,...catSet].filter((x,ix,a)=>a.indexOf(x)===ix);
+   let n=0,d=0,ch=0;codes.forEach(cd=>{const L2=SA2LOOK[cd];if(!L2)return;const r=computeSA2(cd);const w=(L2.ch&&L2.ch>0)?L2.ch:1;ch+=L2.ch||0;if(r&&r.idx!=null){n+=r.idx*w;d+=w;}});
+   const wIdx=d?Math.round(n/d*10)/10:null;const wTier=wIdx==null?null:(wIdx>=MODEL.thr.high?'High':wIdx>=MODEL.thr.med?'Medium':'Low');
+   h+=`<div style="margin-top:8px;background:#FFF3D0;border:1.5px solid #B97E00;border-radius:8px;padding:8px 11px">
+     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:#7A5200"><b>Catchment \u00b7 ${codes.length} communit${codes.length===1?'y':'ies'}</b>
+       <span>${ch.toLocaleString()} children 0\u201314</span>
+       ${wIdx!=null?`<span style="margin-left:auto;font-weight:800;color:var(--navy);background:${TIERCOL[wTier]};border-radius:12px;padding:1px 9px;font-size:11px">child-weighted ${wIdx.toFixed(1)} \u00b7 ${wTier}</span>`:''}</div>
+     ${areaState.catEdit?`<div style="font-size:10.5px;color:#7A5200;margin-top:4px">Click areas on the map to add or remove them (amber). The venue\u2019s own SA2 is always included. Lock in to save.</div>`:`<div style="font-size:10.5px;color:#7A5200;margin-top:4px">Used by models with the Catchment geography. The venue\u2019s own SA2 stays the default elsewhere.</div>`}
+   </div>`;}}
  else h+='<div class="muted" style="font-size:12px">No SA2 selected \u2014 drag the pin onto the venue, or click an area.</div>';
  if(areaState.pc)h+=`<div style="margin-top:6px;font-size:11px;color:var(--slate)">Postcode ${esc(areaState.pc)} ${cands.length?('overlaps '+cands.length+' scored SA2'+(cands.length>1?'s':'')+' \u2014 click to compare:'):'\u2014 no scored SA2 overlap on record.'}</div>`;
  if(cands.length)h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:5px">'+cands.map(x=>`<button class="fchip2" style="${x.c===c?'background:var(--pink);color:#fff;border-color:var(--pink)':''}" onclick="amSelect('${x.c}');amZoom('${x.c}')">${x.c} \u00b7 ${Math.round(x.r*100)}%</button>`).join('')+'</div>';
@@ -2470,7 +2518,8 @@ function maintTouchRegister(){if(!EDIT)return;if(!dbReady())return;
 const VERSIONS=[
  {v:'1.2',when:'October 2026',status:'in development',title:'Access measurement (review R3, stage one)',items:[
   ['Distance Barrier (DB) indicator \u2014 experimental','Straight-line distance from each community\u2019s centre to the nearest eligible venue in the pilot register, converted to a 0\u201310 mid-rank percentile (percentile in both scoring methods, since distance has no national-average anchor). Added alongside Remoteness, which is retained as the reviewers recommended, so the two can be compared. Off by default. The register snapshot, eligibility rule and method are recorded with every computation.'],
-  ['Maintenance section','New page under Audit for computed indicators: shows the register fingerprint the scores were built against, warns when venues have changed since, recomputes in one step, and keeps a permanent run log.']]},
+  ['Maintenance section','New page under Audit for computed indicators: shows the register fingerprint the scores were built against, warns when venues have changed since, recomputes in one step, and keeps a permanent run log.'],
+  ['Venue catchments \u2014 Catchment geography','A venue can now carry a curated catchment of the communities it serves (Maintain area \u2192 Edit catchment, shown in amber, locked in explicitly and audit-logged). Models using the new Catchment geography score such venues as the child-population-weighted average of their member communities\u2019 scores, per the review\u2019s \u201cscore communities first\u201d recommendation; venues without a catchment fall back to their own SA2. Children reached are counted once per community across overlapping catchments.']]},
  {v:'1.1',when:'October 2026',status:'in development',title:'Methodology review, round one',items:[
   ['R1 · Renamed to the Children\u2019s Theatre Access Index','Previously the Impact Index. The score is now described as relative priority for children\u2019s theatre support, with explicit \u201cuse it to / it does not mean\u201d guidance and the three decision layers (priority \u2192 readiness and delivery \u2192 funding) on the About page and in every report. Scoring is unchanged.'],
   ['R2 · Common percentile scoring, as a model option','Models can now score every indicator on one common rule: the sub-score is the share of communities with less need (8.0 \u2248 80th percentile), with disadvantage measured from the raw SEIFA IRSD score rather than the decile. The original method is kept and named Anchored (each indicator\u2019s own rule, 5 = national average). Two saved models \u2014 Balanced · Anchored and Balanced · Percentile — hold everything else equal so the methods can be compared side by side.']]},
@@ -2788,11 +2837,11 @@ function autoModelName(){const den=activeKeys().reduce((a,k)=>a+MODEL.pct[k],0)|
  const parts=IND.filter(([k])=>MODEL.on[k]&&MODEL.pct[k]>0).map(([k,l,c,code])=>code+Math.round(MODEL.pct[k]/den*100));
  const w=parts.length?parts.join('\u00b7'):'no indicators';
  const sub=`${Math.round(MODEL.sub.floor*100)}\u2013${Math.round(MODEL.sub.ceil*100)}%@${(+MODEL.sub.full).toFixed(1).replace(/\.0$/,'')}`;
- return `${w} \u00b7 ${MODEL.geo.toUpperCase()}${(MODEL.scoring||'anchored')==='percentile'?' \u00b7 pct':''} \u00b7 H${(+MODEL.thr.high).toFixed(1)} \u00b7 ${sub}`;}
+ return `${w} \u00b7 ${geoLabel().toUpperCase()}${(MODEL.scoring||'anchored')==='percentile'?' \u00b7 pct':''} \u00b7 H${(+MODEL.thr.high).toFixed(1)} \u00b7 ${sub}`;}
 function autoModelDesc(){const den=activeKeys().reduce((a,k)=>a+MODEL.pct[k],0)||1;
  const on=IND.filter(([k])=>MODEL.on[k]).map(([k,l,c,code])=>`${code} ${Math.round(MODEL.pct[k]/den*100)}%`).join(', ')||'none';
  const off=IND.filter(([k])=>!MODEL.on[k]).map(([k,l,c,code])=>code);
- return `Geography ${MODEL.geo.toUpperCase()}. Weights ${on}${off.length?` (${off.join(', ')} off)`:''}. `+
+ return `Geography ${geoLabel().toUpperCase()}. Weights ${on}${off.length?` (${off.join(', ')} off)`:''}. `+
   `Tiers: High \u2265 ${(+MODEL.thr.high).toFixed(1)}, Medium \u2265 ${(+MODEL.thr.med).toFixed(1)}. `+
   `Subsidy ${Math.round(MODEL.sub.floor*100)}% \u2192 ${Math.round(MODEL.sub.ceil*100)}%, full at ${(+MODEL.sub.full).toFixed(1)}. `+
   ((MODEL.scoring||'anchored')==='percentile'?'Common percentile scoring (sub-score = share of communities with less need).':'Anchored scoring (5 = national average).');}
@@ -2830,7 +2879,13 @@ function submitName(){if(!_mmCb)return;
  const desc=document.getElementById('mm_desc').value.trim();
  const cb=_mmCb;_mmCb=null;document.getElementById('modelmodal').classList.remove('open');cb(val,desc);}
 
-function computeWith(v,m){const g=v[m.geo||'sa2'];if(!g)return{index:null,tier:'—',subsidy:0,elig:'No'};let map={em:g.em_sub,seifa:g.seifa_sub,rem:g.rem_sub,dv2:g.dv2_sub};
+function computeWith(v,m){
+ if((m.geo||'sa2')==='catch'){const a=catchAgg(v,m);
+  if(a.idx==null)return{index:null,tier:'—',subsidy:0,elig:'No'};
+  const idx=a.idx;const tier=idx>=m.thr.high?'High':idx>=m.thr.med?'Medium':'Low';
+  let sub=0;if(tier==='High'){const span=m.sub.full-m.thr.high;const frac=span<=0?1:Math.min(1,Math.max(0,(idx-m.thr.high)/span));sub=round5pct(m.sub.floor+(m.sub.ceil-m.sub.floor)*frac);}
+  return{index:idx,tier,subsidy:sub,elig:(tier==='High')?'Yes':'No'};}
+ const g=v[m.geo||'sa2'];if(!g)return{index:null,tier:'—',subsidy:0,elig:'No'};let map={em:g.em_sub,seifa:g.seifa_sub,rem:g.rem_sub,dv2:g.dv2_sub};
  if((m.scoring||'anchored')==='percentile'){const L=SA2LOOK[v.sa2code];if(L&&L.pe2!=null)map=(m.geo==='sa3')?{em:L.pe3,seifa:L.pd3,rem:L.pr3,dv2:L.pv3}:{em:L.pe2,seifa:L.pd2,rem:L.pr2,dv2:L.pv2};else if(!window._pctWarned){window._pctWarned=true;toast('Percentile scoring needs percentile-scoring.sql — using anchored sub-scores until it is run.',null,true);}}
  const Ldb=SA2LOOK[v.sa2code];map.db=Ldb?((m.geo==='sa3')?Ldb.pdb3:Ldb.pdb2):null;
  let num=0,den=0;for(const k of INDKEYS){if(m.on[k]&&map[k]!=null){num+=m.pct[k]*map[k];den+=m.pct[k];}}
@@ -2838,9 +2893,19 @@ function computeWith(v,m){const g=v[m.geo||'sa2'];if(!g)return{index:null,tier:'
  const idx=Math.round(num/den*10)/10;const tier=idx>=m.thr.high?'High':idx>=m.thr.med?'Medium':'Low';
  let sub=0;if(tier==='High'){const span=m.sub.full-m.thr.high;const frac=span<=0?1:Math.min(1,Math.max(0,(idx-m.thr.high)/span));sub=round5pct(m.sub.floor+(m.sub.ceil-m.sub.floor)*frac);}
  return{index:idx,tier,subsidy:sub,elig:(tier==='High')?'Yes':'No'};}
+function catchAgg(v,m){const codes=venueCatchCodes(v);let n=0,d=0,ch=0,used=0;
+ for(const code of codes){const L=SA2LOOK[code];if(!L)continue;
+  const sub=communitySubs(code,m);let nn=0,dd=0;
+  for(const k of INDKEYS){if(m.on[k]&&sub[k]!=null){nn+=m.pct[k]*sub[k];dd+=m.pct[k];}}
+  const w=(L.ch&&L.ch>0)?L.ch:1;ch+=L.ch||0;
+  if(dd>0){n+=(nn/dd)*w;d+=w;used++;}}
+ return {idx:d?Math.round(n/d*10)/10:null,ch,codes,used};}
 function computeOne(v){return computeWith(v,MODEL);}
-function recompute(){for(const v of V){const c=computeOne(v);const g=v[MODEL.geo];const ch=v[MODEL.geo==='sa3'?'childSA3':'childSA2'];
- v.cIndex=c.index;v.cTier=c.tier;v.cSub=c.subsidy;v.cElig=c.elig;v.cEm=g.em_pct;v.cDec=g.decile;v.cRA=g.ra;v.cChild=ch?ch.t:null;v.cAges=ch?ch.a:[0,0,0];}
+function recompute(){const catchGeo=MODEL.geo==='catch';
+ for(const v of V){const c=computeOne(v);const g=v[catchGeo?'sa2':MODEL.geo];const ch=v[MODEL.geo==='sa3'?'childSA3':'childSA2'];
+ v.cIndex=c.index;v.cTier=c.tier;v.cSub=c.subsidy;v.cElig=c.elig;v.cEm=g?g.em_pct:null;v.cDec=g?g.decile:null;v.cRA=g?g.ra:null;
+ if(catchGeo){const codes=venueCatchCodes(v);let t=0;codes.forEach(cd=>{const L=SA2LOOK[cd];t+=(L&&L.ch)||0;});v.cChild=t;v.cAges=(codes.length===1&&ch)?ch.a:null;}
+ else{v.cChild=ch?ch.t:null;v.cAges=ch?ch.a:[0,0,0];}}
  recomputeComm();}
 
 // ---- model UI ----
@@ -2861,7 +2926,9 @@ function applyPreset(key){const p=PRESETS[key];MODEL.on={em:!!p.on.em,seifa:!!p.
  if(p.high!=null){MODEL.thr.high=p.high;const e=document.getElementById('tHigh');if(e)e.value=p.high;}
  buildInd();updateSubnote();recompute();render();}
 function markActivePreset(){for(const key in PRESETS){const p=PRESETS[key];const m=INDKEYS.every(k=>!!MODEL.on[k]===!!p.on[k]&&(+MODEL.pct[k]||0)===(+p.pct[k]||0));const b=document.getElementById('ps_'+key);if(b)b.classList.toggle('on',m);}}
-function setGeo(g){MODEL.geo=g;document.querySelectorAll('#geo button').forEach(b=>b.classList.toggle('on',b.dataset.g===g));recompute();render();}
+function setGeo(g){MODEL.geo=g;document.querySelectorAll('#geo button').forEach(b=>b.classList.toggle('on',b.dataset.g===g));
+ const n=document.getElementById('geoNote');if(n)n.style.display=(g==='catch')?'':'none';
+ recompute();render();}
 function pctReady(){const L=SA2LOOK[Object.keys(SA2LOOK)[0]];return !!(L&&L.pe2!=null);}
 function setScoring(sc){MODEL.scoring=sc;setScoringButtons();recompute();render();}
 function setScoringButtons(){document.querySelectorAll('#scoringBtns [data-sc]').forEach(b=>b.classList.toggle('on',b.dataset.sc===(MODEL.scoring||'anchored')));
@@ -2969,7 +3036,7 @@ function render(){const a=filtered();const _cc=document.getElementById('count');
  const tvfeeCell=v=>{const tv=tvOf(v);const dis=EDIT?'':'disabled';
    return `<td class="center" onclick="event.stopPropagation()">${tv?`<span class="tvfee"><input type="number" value="${tv.fee||0}" step="500" min="0" ${dis} onchange="setTourVenueFee(${v.id},this.value)"></span>`:'<span class="muted">–</span>'}</td>`;};
  const CELL={
-  name:v=>`<td><b>${v.name}</b>${EDIT?` <button class="pencil" title="Edit venue" onclick="event.stopPropagation();editVenue(${v._i})">✎</button>`:''}</td>`,
+  name:v=>`<td><b>${v.name}</b>${hasCatchment(v)?` <span title="Custom catchment · ${CATCH[v.id].length} communities (Maintain area)" style="color:#B97E00;cursor:help">⬢</span>`:''}${EDIT?` <button class="pencil" title="Edit venue" onclick="event.stopPropagation();editVenue(${v._i})">✎</button>`:''}</td>`,
   ontour:v=>{const tv=tvOf(v);const dis=EDIT?'':'disabled';return `<td class="center" onclick="event.stopPropagation()"><input type="checkbox" ${tv?'checked':''} ${dis} title="${tv?'Remove from':'Add to'} ${esc(tourActive?tourActive.name:'')}" onclick="event.stopPropagation();toggleVenueOnTour(${v._i})"></td>`;},
   tfee:tvfeeCell,
   tsub:v=>{const tv=tvOf(v);const dis=EDIT?'':'disabled';const amt=(tv&&tv.confirmed&&v.cSub>0)?fmt$((tv.fee||0)*v.cSub):'';
@@ -3110,21 +3177,27 @@ function areaSummary(v,g){const em=g.em_pct,dec=g.decile,ra=(g.ra||'').replace('
  let why='';
  if(parts.length){const drivers=parts.filter(p=>p[1]>=6).map(p=>p[0]);
    why=`Under the current model the Access Index is <b>${v.cIndex!=null?v.cIndex.toFixed(1):'—'} / 10</b> (${v.cTier} priority). `+(drivers.length?`The score is lifted mainly by ${drivers.join(' and ')}.`:`No single factor is extreme; the score reflects a moderate mix of ${parts.map(p=>p[0]).join(', ')}.`);}
- const kids=v.cChild!=null?`About <b>${v.cChild.toLocaleString()}</b> children aged 0–14 live in this ${MODEL.geo.toUpperCase()} (${(v.cAges[0]||0).toLocaleString()} aged 0–4, ${(v.cAges[1]||0).toLocaleString()} 5–9, ${(v.cAges[2]||0).toLocaleString()} 10–14) — the scale of children who could be reached.`:'';
+ const kids=v.cChild!=null?`About <b>${v.cChild.toLocaleString()}</b> children aged 0–14 live in this ${MODEL.geo==='catch'?'catchment':geoLabel().toUpperCase()}${v.cAges?` (${(v.cAges[0]||0).toLocaleString()} aged 0–4, ${(v.cAges[1]||0).toLocaleString()} 5–9, ${(v.cAges[2]||0).toLocaleString()} 10–14)`:''} — the scale of children who could be reached.`:'';
  const C=g.census;let cen='';
  if(C){const row=(l,val)=>val==null?'':`<div class="cl">${l}</div><div class="cv">${val}</div>`;
    const $=n=>'$'+Number(n).toLocaleString()+'/wk',pc=n=>n+'%';
    cen=`<div style="margin-top:8px;border-top:1px dashed var(--slate);padding-top:8px">
-   <p style="margin:0 0 6px"><b>Community profile</b> <span class="muted">(ABS Census 2021, ${MODEL.geo.toUpperCase()})</span></p>
+   <p style="margin:0 0 6px"><b>Community profile</b> <span class="muted">(ABS Census 2021, ${geoLabel().toUpperCase()})</span></p>
    <div class="cgrid">${[row('Median age',C.age),row('Median household income',C.hhinc!=null?$(C.hhinc):null),row('Median rent',C.rent!=null?$(C.rent):null),row('Unemployment',C.unemp!=null?pc(C.unemp):null),row('Single-parent families',C.oneparent!=null?pc(C.oneparent):null),row('Completed Year 12',C.y12!=null?pc(C.y12):null),row('First Nations',C.indig!=null?pc(C.indig):null),row('Language other than English at home',C.lote!=null?pc(C.lote):null),row('Rented homes',C.rental!=null?pc(C.rental):null),row('Social housing',C.social!=null?pc(C.social):null)].join('')}</div></div>`;}
  return `<div class="about" style="font-size:13px;line-height:1.5">
    <p><b>${v.sa2name||'This area'}</b> — ${[v.state,ra].filter(Boolean).join(', ')||'location'}.</p>
    <p>${emTxt}</p><p>${decTxt}</p>${kids?`<p>${kids}</p>`:''}<p>${why}</p>${cen}
    <p class="muted" style="margin-top:8px">Sources: AEDC 2024 (emotional-maturity domain), ABS SEIFA 2021 (IRSD), ABS Remoteness Areas, ABS ERP 2024 (child population), ABS Census 2021 General Community Profile (medians, family, education, labour force, cultural &amp; housing).</p></div>`;}
-function openD(i){curIdx=i;const v=V[i];const g=v[MODEL.geo];let den=activeKeys().reduce((a,k)=>a+MODEL.pct[k],0);
+function openD(i){curIdx=i;const v=V[i];const g=v[MODEL.geo==='catch'?'sa2':MODEL.geo];let den=activeKeys().reduce((a,k)=>a+MODEL.pct[k],0);
  const _pct=(MODEL.scoring||'anchored')==='percentile';const _L=_pct?SA2LOOK[v.sa2code]:null;
  const submap=(_pct&&_L&&_L.pe2!=null)?(MODEL.geo==='sa3'?{em:_L.pe3,seifa:_L.pd3,rem:_L.pr3,dv2:_L.pv3}:{em:_L.pe2,seifa:_L.pd2,rem:_L.pr2,dv2:_L.pv2}):{em:g.em_sub,seifa:g.seifa_sub,rem:g.rem_sub,dv2:g.dv2_sub};
  const _Ld=SA2LOOK[v.sa2code];submap.db=_Ld?((MODEL.geo==='sa3')?_Ld.pdb3:_Ld.pdb2):null;
+ let _catBanner='';
+ if(MODEL.geo==='catch'){const _codes=venueCatchCodes(v);
+  if(_codes.length>1){const wm={};INDKEYS.forEach(k=>{let nn=0,dd=0;_codes.forEach(cd=>{const L2=SA2LOOK[cd];if(!L2)return;const sb=communitySubs(cd,MODEL);if(sb&&sb[k]!=null){const w2=(L2.ch&&L2.ch>0)?L2.ch:1;nn+=sb[k]*w2;dd+=w2;}});wm[k]=dd?Math.round(nn/dd*100)/100:null;});
+   INDKEYS.forEach(k=>submap[k]=wm[k]);
+   _catBanner=`<div style="background:#FFF3D0;border:1.5px solid #B97E00;border-radius:7px;padding:7px 10px;font-size:11.5px;color:#7A5200;margin:8px 0"><b>Custom catchment · ${_codes.length} communities.</b> Sub-scores and the Index are child-weighted averages across the catchment. Edit it under Maintain area.</div>`;}
+  else _catBanner=`<div class="muted" style="font-size:11px;margin:8px 0">Catchment geography: this venue has no custom catchment, so its own SA2 is used.</div>`;}
  const meta={em:'EM '+(g.em_pct!=null?(+g.em_pct).toFixed(1)+'% at-risk/vuln':'—'),seifa:'SEIFA decile '+(g.decile??'—'),rem:(g.ra||'').replace(' Australia',''),
    dv2:'vulnerable 2+ domains',db:_Ld&&_Ld.db2!=null?((MODEL.geo==='sa3'?_Ld.db3:_Ld.db2).toFixed(0)+' km to nearest venue'):'not computed yet'};
  const rows=IND.map(([k,label,col])=>{const on=MODEL.on[k];const sub=submap[k];const contrib=(on&&den&&sub!=null)?MODEL.pct[k]/den*sub:0;
@@ -3133,18 +3206,18 @@ function openD(i){curIdx=i;const v=V[i];const g=v[MODEL.geo];let den=activeKeys(
    <div class="muted" style="margin-top:2px">${on?`sub-score ${(+sub).toFixed(1)} × weight ${den?Math.round(MODEL.pct[k]/den*100):0}% = <b>${contrib.toFixed(2)}</b>`:'excluded from this model'}</div></div>`;}).join('');
  const activeParts=IND.filter(([k])=>MODEL.on[k]&&submap[k]!=null).map(([k,l,col])=>`<span style="color:${col};font-weight:700">${(+submap[k]).toFixed(1)}×${den?Math.round(MODEL.pct[k]/den*100):0}%</span>`).join(' + ')||'—';
  const html=`<div class="dhead"><span class="x" onclick="closeD()">×</span><h2>${v.name}</h2>
-   <div class="loc">${[v.state,(g.ra||'').replace(' Australia',''),v.status].filter(Boolean).join(' · ')} · postcode ${v.postcode||'—'} · ${MODEL.geo.toUpperCase()} ${v.sa2name||''}</div></div>
+   <div class="loc">${[v.state,(g.ra||'').replace(' Australia',''),v.status].filter(Boolean).join(' · ')} · postcode ${v.postcode||'—'} · ${geoLabel().toUpperCase()} ${v.sa2name||''}</div></div>
   <div class="dbody">
    <div style="display:flex;gap:12px;align-items:center;margin-bottom:6px"><div class="card" style="padding:10px 16px;text-align:center"><div class="disp" style="font-size:34px;color:${TIERCOL[v.cTier]}">${v.cIndex!=null?v.cIndex.toFixed(1):'—'}</div><div class="muted">Access Index</div></div>
      <div><span class="chip tier-${v.cTier}" style="font-size:13px">${v.cTier} priority</span><br><br><span class="muted">Subsidy: </span><b>${v.cSub?Math.round(v.cSub*100)+'%':'none'}</b> · <span class="muted">Eligible: </span><b>${v.cElig}</b></div>
      <div style="margin-left:auto;text-align:center;cursor:pointer" title="Open the area checker — verify this venue's SA2/SA3 on a live map" onclick="closeD();openAreaChecker('edit',${i})">${ausLocatorSVG(v)}<div style="font-size:10px;font-weight:800;color:var(--pink);margin-top:3px;text-decoration:underline">Check location</div></div></div>
    ${v.address?`<div class="muted" style="font-size:11.5px;margin:4px 0 2px">${esc(v.address)}</div>`:''}${EDIT?`<button class="btn sec" style="margin:8px 0 2px" onclick="closeD();editVenue(${i})">✎ Edit details</button>`:''}
-   <div class="muted" style="margin:8px 0 2px">Model: <b>${MODEL.geo.toUpperCase()}</b>, weights normalised across active indicators</div>
+   <div class="muted" style="margin:8px 0 2px">Model: <b>${geoLabel().toUpperCase()}</b>, weights normalised across active indicators</div>
    ${rows}
-   <div class="formula"><div class="muted">Index under the current model · ${(MODEL.scoring||'anchored')==='percentile'?'percentile scoring (sub-score ≈ share of communities with less need)':'anchored scoring (5 = national average)'}</div><div style="margin-top:4px">Index = ${activeParts} = <span class="big" style="color:${TIERCOL[v.cTier]}">${v.cIndex!=null?v.cIndex.toFixed(1):'—'}</span></div></div>
+   ${_catBanner}<div class="formula"><div class="muted">Index under the current model · ${(MODEL.scoring||'anchored')==='percentile'?'percentile scoring (sub-score ≈ share of communities with less need)':'anchored scoring (5 = national average)'}</div><div style="margin-top:4px">Index = ${activeParts} = <span class="big" style="color:${TIERCOL[v.cTier]}">${v.cIndex!=null?v.cIndex.toFixed(1):'—'}</span></div></div>
    <div class="card" style="padding:12px 14px;margin-top:14px;box-shadow:none;border:1.5px dashed var(--navy)">
-     <div style="font-weight:700;margin-bottom:5px">Children in the area <span class="muted">(${MODEL.geo.toUpperCase()}, ERP 2024)</span></div>
-     <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px"><span><b>${(v.cAges[0]||0).toLocaleString()}</b> aged 0–4</span><span><b>${(v.cAges[1]||0).toLocaleString()}</b> 5–9</span><span><b>${(v.cAges[2]||0).toLocaleString()}</b> 10–14</span><span style="color:var(--pink)"><b>${(v.cChild||0).toLocaleString()}</b> total 0–14</span></div>
+     <div style="font-weight:700;margin-bottom:5px">Children in the area <span class="muted">(${geoLabel().toUpperCase()}, ERP 2024)</span></div>
+     <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px">${v.cAges?`<span><b>${(v.cAges[0]||0).toLocaleString()}</b> aged 0–4</span><span><b>${(v.cAges[1]||0).toLocaleString()}</b> 5–9</span><span><b>${(v.cAges[2]||0).toLocaleString()}</b> 10–14</span>`:`<span class="muted" style="font-size:11.5px;align-self:center">age bands shown per single area only</span>`}<span style="color:var(--pink)"><b>${(v.cChild||0).toLocaleString()}</b> total 0–14</span></div>
      <div class="muted" style="margin-top:6px">The Index measures need <i>intensity</i>; these counts show the <i>scale</i> of children who could be reached. ${v.cTier==='High'?'High-priority area — subsidy here benefits this group.':'A '+v.cTier+'-priority area under this model.'}</div>
    </div>
    <button class="btn sec" style="margin-top:14px" onclick="const p=document.getElementById('aboutArea');const h=p.classList.toggle('hidden');this.textContent=(h?'About the area ▾':'About the area ▴')">About the area ▾</button>
@@ -3189,11 +3262,15 @@ function bandLabel(x){const b=idxBand(x);return b===9?'9+':String(b);}
 function passFilter(r){if(!r)return true;return (F.tier.size===0||F.tier.has(r.tier))&&(F.idx.size===0||F.idx.has(bandLabel(r.idx)))&&(F.state.size===0||F.state.has(r.st));}
 const STATEBYDIGIT={'1':'NSW','2':'VIC','3':'QLD','4':'SA','5':'WA','6':'TAS','7':'NT','8':'ACT','9':'OT'};
 function sa2State(code){return STATEBYDIGIT[String(code)[0]];}
+function communitySubs(code,m){const L=SA2LOOK[code];if(!L)return null;
+ const sa3=(m.geo==='sa3');
+ const pct=(m.scoring||'anchored')==='percentile'&&L.pe2!=null;
+ const sub=pct?(sa3?{em:L.pe3,seifa:L.pd3,rem:L.pr3,dv2:L.pv3}:{em:L.pe2,seifa:L.pd2,rem:L.pr2,dv2:L.pv2})
+          :(sa3?{em:L.e3,seifa:L.d3,rem:L.r3,dv2:L.v3}:{em:L.e2,seifa:L.d2,rem:L.r2,dv2:L.v2});
+ sub.db=sa3?L.pdb3:L.pdb2;
+ return sub;}
 function computeSA2(code){const L=SA2LOOK[code];if(!L)return null;
- const pct=(MODEL.scoring||'anchored')==='percentile'&&L.pe2!=null;
- const sub=pct?(MODEL.geo==='sa3'?{em:L.pe3,seifa:L.pd3,rem:L.pr3,dv2:L.pv3}:{em:L.pe2,seifa:L.pd2,rem:L.pr2,dv2:L.pv2})
-          :(MODEL.geo==='sa3'?{em:L.e3,seifa:L.d3,rem:L.r3,dv2:L.v3}:{em:L.e2,seifa:L.d2,rem:L.r2,dv2:L.v2});
- sub.db=MODEL.geo==='sa3'?L.pdb3:L.pdb2;
+ const sub=communitySubs(code,MODEL);
  let num=0,den=0;for(const k of INDKEYS){if(MODEL.on[k]&&sub[k]!=null){num+=MODEL.pct[k]*sub[k];den+=MODEL.pct[k];}}
  if(den===0)return null;const idx=Math.round(num/den*10)/10;const tier=idx>=MODEL.thr.high?'High':idx>=MODEL.thr.med?'Medium':'Low';
  return {idx,tier,hv:L.hv,ch:L.ch,st:sa2State(code)};}
@@ -3710,6 +3787,8 @@ async function boot(){
     if(EDIT)toast('Models loaded without stars/ordering — run model-order.sql in Supabase to enable them.',null,true);}
    catch(m2){console.warn('models not loaded (create the table with models.sql):',m2);}}
   setProgress(90);
+  try{const vc=await sbAll('venue_catchments','venue_id,sa2_code');CATCH={};vc.forEach(r=>{(CATCH[r.venue_id]=CATCH[r.venue_id]||[]).push(String(r.sa2_code));});recompute();}
+  catch(cErr){console.warn('catchments not loaded (run venue-catchments.sql to enable):',cErr);}
   await loadTours();loadAllTourVenues();restoreState();
   setProgress(100);
  }catch(e){
