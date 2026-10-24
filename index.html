@@ -657,6 +657,11 @@ body.aboutmode .sitefoot{margin-top:26px;}
      <div class="subbody"><div class="ind" id="ind"></div></div></div>
    <div class="subsec collapsed" id="sec-geo"><div class="subhead" onclick="toggleSub(this)">Geography <span class="caret">▾</span></div>
      <div class="subbody"><span class="geo" id="geo"><button data-g="sa2" class="on" onclick="setGeo('sa2')">SA2</button><button data-g="sa3" onclick="setGeo('sa3')">SA3</button></span></div></div>
+   <div class="subsec" id="sec-scoring"><div class="subhead" onclick="toggleSub(this)">Scoring method <span class="caret">▾</span></div>
+     <div class="subbody">
+       <span class="geo" id="scoringBtns"><button data-sc="anchored" class="on" onclick="setScoring('anchored')" title="The current method: each indicator keeps its own conversion rule, with 5 anchored to the national average (EM 25.2% = 5.0, decile flipped, remoteness in fixed steps).">Anchored</button><button data-sc="percentile" onclick="setScoring('percentile')" title="UWA review R2: one common rule for every indicator — the sub-score is the share of communities with less need, so 8.0 means roughly the 80th percentile. Disadvantage uses the raw IRSD score.">Percentile</button></span>
+       <div class="muted" id="scoringNote" style="margin-top:7px;font-size:11px"></div>
+     </div></div>
    <div class="subsec" id="sec-tier"><div class="subhead" onclick="toggleSub(this)">Tier <span class="caret">▾</span></div>
      <div class="subbody">
        <div class="tierviz">
@@ -1025,6 +1030,14 @@ body.aboutmode .sitefoot{margin-top:26px;}
    <div class="authactions"><button class="btn sec" onclick="closeName()">Cancel</button><button class="btn" id="mm_ok" onclick="submitName()">Save</button></div>
  </div>
 </div>
+<div class="authmodal" id="versmodal" onclick="if(event.target===this)closeVersions()">
+ <div class="authcard" style="max-width:640px;width:94vw;max-height:86vh;overflow:auto">
+   <button class="authx" onclick="closeVersions()" title="Close">×</button>
+   <h2>Version <span class="pink">history</span></h2>
+   <p style="font-size:12px;color:var(--slate);margin:4px 0 10px">What changed in the Index methodology and system, version by version. Field-level edits to data are in the Change log.</p>
+   <div id="versList"></div>
+ </div>
+</div>
 <div class="authmodal" id="clogmodal" onclick="if(event.target===this)closeChangeLog()">
  <div class="authcard" style="max-width:760px;width:96vw">
    <button class="authx" onclick="closeChangeLog()" title="Close">×</button>
@@ -1190,7 +1203,7 @@ const fmt$=n=>'$'+Math.round(n).toLocaleString();
 function costPerChild(sub,child){if(!child||child<=0||!sub||sub<=0)return null;
  const v=sub/child;
  return v<1?('$'+v.toFixed(2)):('$'+v.toFixed(v<10?2:0));}
-let MODEL={geo:'sa2',on:{em:true,seifa:true,rem:true,dv2:false},pct:{em:40,seifa:40,rem:20,dv2:0},
+let MODEL={geo:'sa2',scoring:'anchored',on:{em:true,seifa:true,rem:true,dv2:false},pct:{em:40,seifa:40,rem:20,dv2:0},
  thr:{high:6.3,med:3.8}, sub:{floor:0.5,ceil:1.0,full:8.0}};
 function activeKeys(){return ['em','seifa','rem','dv2'].filter(k=>MODEL.on[k]);}
 function areaCode(v){return MODEL.geo==='sa3'?v.sa3code:v.sa2code;}
@@ -1326,7 +1339,7 @@ function closeDock(){dockOpen=null;document.getElementById('dockwrap').classList
 function openTourFullEditor(){showPage('venues');}
 function toggleRail(){}
 function applyModelObj(c){if(!c)return;
- MODEL.geo=c.geo||'sa2';MODEL.on={em:!!c.on.em,seifa:!!c.on.seifa,rem:!!c.on.rem,dv2:!!c.on.dv2};MODEL.pct={em:+c.pct.em||0,seifa:+c.pct.seifa||0,rem:+c.pct.rem||0,dv2:+c.pct.dv2||0};MODEL.thr={high:+c.thr.high,med:+c.thr.med};MODEL.sub={floor:+c.sub.floor,ceil:+c.sub.ceil,full:+c.sub.full};
+ MODEL.geo=c.geo||'sa2';MODEL.on={em:!!c.on.em,seifa:!!c.on.seifa,rem:!!c.on.rem,dv2:!!c.on.dv2};MODEL.pct={em:+c.pct.em||0,seifa:+c.pct.seifa||0,rem:+c.pct.rem||0,dv2:+c.pct.dv2||0};MODEL.thr={high:+c.thr.high,med:+c.thr.med};MODEL.sub={floor:+c.sub.floor,ceil:+c.sub.ceil,full:+c.sub.full};MODEL.scoring=c.scoring||'anchored';setScoringButtons();
  document.querySelectorAll('#geo button').forEach(b=>b.classList.toggle('on',b.dataset.g===MODEL.geo));
  const gv=(i,val)=>{const e=document.getElementById(i);if(e&&val!=null&&!isNaN(val))e.value=val;};
  gv('tHigh',MODEL.thr.high);gv('tMed',MODEL.thr.med);gv('sFloor',Math.round(MODEL.sub.floor*100));gv('sCeil',Math.round(MODEL.sub.ceil*100));gv('sFull',MODEL.sub.full);
@@ -1343,7 +1356,7 @@ function _exitTourNow(){const t=activeTourObj();if(!t)return;
  renderTourPanel();renderTourVenues();renderBasket();render();
  toast('Left “'+esc(name)+'”'+(restore?' — your previous model is back.':'.'));}
 function deactivateTour(){exitTour();}
-function cfgEq(a,b){if(!a||!b)return false;try{return (a.geo||'sa2')===(b.geo||'sa2')&&['em','seifa','rem','dv2'].every(k=>!!a.on[k]===!!b.on[k]&&(+a.pct[k]||0)===(+b.pct[k]||0))&&+a.thr.high===+b.thr.high&&+a.thr.med===+b.thr.med&&+a.sub.floor===+b.sub.floor&&+a.sub.ceil===+b.sub.ceil&&+a.sub.full===+b.sub.full;}catch(e){return false;}}
+function cfgEq(a,b){if(!a||!b)return false;try{return (a.geo||'sa2')===(b.geo||'sa2')&&(a.scoring||'anchored')===(b.scoring||'anchored')&&['em','seifa','rem','dv2'].every(k=>!!a.on[k]===!!b.on[k]&&(+a.pct[k]||0)===(+b.pct[k]||0))&&+a.thr.high===+b.thr.high&&+a.thr.med===+b.thr.med&&+a.sub.floor===+b.sub.floor&&+a.sub.ceil===+b.sub.ceil&&+a.sub.full===+b.sub.full;}catch(e){return false;}}
 function renderContext(){const t=activeTourObj();
  const mEl=document.getElementById('ctxModelTxt'),tEl=document.getElementById('ctxTourTxt');
  if(!mEl)return;
@@ -1498,7 +1511,7 @@ function closeTourEdit(){document.getElementById('tourEditModal').classList.remo
 function deleteTour(){const t=activeTourObj();if(!t)return;openConfirm('Delete tour?','Deleting “'+t.name+'” removes its venue list. This cannot be undone.','Delete',async()=>{const {error}=await sbc.from('tours').delete().eq('id',t.id);if(error){toast(error.message,null,true);return;}TOURS=TOURS.filter(x=>x.id!==t.id);curTour=null;renderTourPanel();});}
 function applyTourModel(){const t=activeTourObj();if(!t||!t.model)return;const c=t.model;
  if(!modelBeforeTour)modelBeforeTour=JSON.parse(JSON.stringify(MODEL));
- MODEL.geo=c.geo||'sa2';MODEL.on={em:!!c.on.em,seifa:!!c.on.seifa,rem:!!c.on.rem,dv2:!!c.on.dv2};MODEL.pct={em:+c.pct.em||0,seifa:+c.pct.seifa||0,rem:+c.pct.rem||0,dv2:+c.pct.dv2||0};MODEL.thr={high:+c.thr.high,med:+c.thr.med};MODEL.sub={floor:+c.sub.floor,ceil:+c.sub.ceil,full:+c.sub.full};
+ MODEL.geo=c.geo||'sa2';MODEL.on={em:!!c.on.em,seifa:!!c.on.seifa,rem:!!c.on.rem,dv2:!!c.on.dv2};MODEL.pct={em:+c.pct.em||0,seifa:+c.pct.seifa||0,rem:+c.pct.rem||0,dv2:+c.pct.dv2||0};MODEL.thr={high:+c.thr.high,med:+c.thr.med};MODEL.sub={floor:+c.sub.floor,ceil:+c.sub.ceil,full:+c.sub.full};MODEL.scoring=c.scoring||'anchored';if(typeof setScoringButtons==='function')setScoringButtons();
  document.querySelectorAll('#geo button').forEach(b=>b.classList.toggle('on',b.dataset.g===MODEL.geo));
  const gv=(i,val)=>{const e=document.getElementById(i);if(e&&val!=null&&!isNaN(val))e.value=val;};
  gv('tHigh',MODEL.thr.high);gv('tMed',MODEL.thr.med);gv('sFloor',Math.round(MODEL.sub.floor*100));gv('sCeil',Math.round(MODEL.sub.ceil*100));gv('sFull',MODEL.sub.full);
@@ -2098,7 +2111,7 @@ function renderAuth(){const el=document.getElementById('authbox');if(!el)return;
  if(SESSION){el.innerHTML=`<div class="repmenuwrap"><button class="iconbtn" style="width:54px;height:45px;font-size:23px" title="Menu" onclick="event.stopPropagation();toggleUserMenu()">☰</button>
   <div class="repmenu" id="usermenu" style="min-width:160px">
     <button onclick="closeUserMenu();openProfile()">Profile</button>
-    ${EDIT?'<button onclick="closeUserMenu();openUsers()">Users</button><div class="menugrp">Audit</div><button onclick="closeUserMenu();openAudit()">Location audit</button><button onclick="closeUserMenu();openChangeLog()">Change log</button>':''}
+    ${EDIT?'<button onclick="closeUserMenu();openUsers()">Users</button><div class="menugrp">Audit</div><button onclick="closeUserMenu();openAudit()">Location audit</button><button onclick="closeUserMenu();openChangeLog()">Change log</button><button onclick="closeUserMenu();openVersions()">Version history</button>':''}
     <button onclick="closeUserMenu();signOut()">Log out</button>
   </div></div>`;}
  else el.innerHTML='';}
@@ -2325,6 +2338,22 @@ let clogRows=[],clogOldest=null,clogTable='',clogQ='',clogSortK='at',clogSortD=-
 const CLOG_FIELDS={sa2_code:'SA2',sa3_code:'SA3',sa2_em_pct:'EM % (SA2)',sa3_em_pct:'EM % (SA3)',sa2_decile:'D decile (SA2)',sa3_decile:'D decile (SA3)',sa2_ra:'Remoteness (SA2)',sa3_ra:'Remoteness (SA3)',subsidy_confirmed:'Subsidy confirmed',default_fee:'Default fee',must_change_password:'Password change due',sort_order:'Order'};
 function clogFieldName(k){return CLOG_FIELDS[k]||k.replace(/_/g,' ');}
 function clogVal(v){if(v===null||v===undefined)return '—';if(typeof v==='object')return JSON.stringify(v).slice(0,60)+(JSON.stringify(v).length>60?'…':'');return String(v);}
+const VERSIONS=[
+ {v:'1.1',when:'October 2026',status:'in development',title:'Methodology review, round one',items:[
+  ['R1 · Renamed to the Children\u2019s Theatre Access Index','Previously the Impact Index. The score is now described as relative priority for children\u2019s theatre support, with explicit \u201cuse it to / it does not mean\u201d guidance and the three decision layers (priority \u2192 readiness and delivery \u2192 funding) on the About page and in every report. Scoring is unchanged.'],
+  ['R2 · Common percentile scoring, as a model option','Models can now score every indicator on one common rule: the sub-score is the share of communities with less need (8.0 \u2248 80th percentile), with disadvantage measured from the raw SEIFA IRSD score rather than the decile. The original method is kept and named Anchored (each indicator\u2019s own rule, 5 = national average). Two saved models \u2014 Balanced · Anchored and Balanced · Percentile — hold everything else equal so the methods can be compared side by side.']]},
+ {v:'0',when:'August – October 2026',status:'baseline',title:'Original prototype',items:[
+  ['Children\u2019s Theatre Impact Index','Four indicators (EM, D, R, DV2) anchored to national averages; priority tiers and the subsidy ramp; venues, tours, reports, users and audit. This is the version reviewed by the UWA School of Population and Global Health in October 2026.']]}];
+function openVersions(){const el=document.getElementById('versList');
+ el.innerHTML=VERSIONS.map(V=>`<div class="card" style="box-shadow:none;border:1.5px solid var(--navy);padding:12px 14px;margin-bottom:10px">
+   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><b style="font-family:'Charlie Kingdom';font-size:16px;color:var(--navy)">Version ${V.v}</b>
+    <span style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:${V.status==='baseline'?'var(--slate)':'var(--pink)'};border:1.2px solid currentColor;border-radius:10px;padding:1px 8px">${V.status}</span>
+    <span class="muted" style="font-size:11px;margin-left:auto">${V.when}</span></div>
+   <div style="font-size:12.5px;font-weight:700;color:var(--navy);margin:4px 0 6px">${V.title}</div>
+   ${V.items.map(it=>`<div style="margin:0 0 8px"><div style="font-size:12px;font-weight:700;color:var(--navy)">${it[0]}</div><div style="font-size:11.5px;color:var(--slate);line-height:1.45">${it[1]}</div></div>`).join('')}
+ </div>`).join('');
+ document.getElementById('versmodal').classList.add('open');}
+function closeVersions(){document.getElementById('versmodal').classList.remove('open');}
 async function openChangeLog(){if(!EDIT)return;
  document.getElementById('clogmodal').classList.add('open');
  clogRows=[];clogOldest=null;await loadChangeLog(false);}
@@ -2579,6 +2608,7 @@ let MODELS=[];
 function fmtDate(iso){try{return new Date(iso).toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'});}catch(e){return '';}}
 function modelEq(c){if(!c)return false;const M=MODEL;
  if((c.geo||'sa2')!==M.geo)return false;
+ if((c.scoring||'anchored')!==(M.scoring||'anchored'))return false;
  for(const k of ['em','seifa','rem','dv2']){if(!!(c.on&&c.on[k])!==!!M.on[k])return false;if((+((c.pct&&c.pct[k])||0))!==(+M.pct[k]))return false;}
  if(c.thr&&(+c.thr.high!==+M.thr.high||+c.thr.med!==+M.thr.med))return false;
  if(c.sub&&(+c.sub.floor!==+M.sub.floor||+c.sub.ceil!==+M.sub.ceil||+c.sub.full!==+M.sub.full))return false;
@@ -2613,7 +2643,7 @@ function renderModels(){const el=document.getElementById('savedmodels');if(!el)r
 function applyModel(id){const m=MODELS.find(x=>x.id===id);if(!m||!m.config)return;const c=m.config;
  MODEL.geo=c.geo||'sa2';MODEL.on={em:!!c.on.em,seifa:!!c.on.seifa,rem:!!c.on.rem,dv2:!!c.on.dv2};
  MODEL.pct={em:+c.pct.em||0,seifa:+c.pct.seifa||0,rem:+c.pct.rem||0,dv2:+c.pct.dv2||0};
- MODEL.thr={high:+c.thr.high,med:+c.thr.med};MODEL.sub={floor:+c.sub.floor,ceil:+c.sub.ceil,full:+c.sub.full};
+ MODEL.thr={high:+c.thr.high,med:+c.thr.med};MODEL.sub={floor:+c.sub.floor,ceil:+c.sub.ceil,full:+c.sub.full};MODEL.scoring=c.scoring||'anchored';if(typeof setScoringButtons==='function')setScoringButtons();
  document.querySelectorAll('#geo button').forEach(b=>b.classList.toggle('on',b.dataset.g===MODEL.geo));
  const gv=(i,v)=>{const e=document.getElementById(i);if(e&&v!=null&&!isNaN(v))e.value=v;};
  gv('tHigh',MODEL.thr.high);gv('tMed',MODEL.thr.med);gv('sFloor',Math.round(MODEL.sub.floor*100));gv('sCeil',Math.round(MODEL.sub.ceil*100));gv('sFull',MODEL.sub.full);
@@ -2626,13 +2656,14 @@ function autoModelName(){const den=activeKeys().reduce((a,k)=>a+MODEL.pct[k],0)|
  const parts=IND.filter(([k])=>MODEL.on[k]&&MODEL.pct[k]>0).map(([k,l,c,code])=>code+Math.round(MODEL.pct[k]/den*100));
  const w=parts.length?parts.join('\u00b7'):'no indicators';
  const sub=`${Math.round(MODEL.sub.floor*100)}\u2013${Math.round(MODEL.sub.ceil*100)}%@${(+MODEL.sub.full).toFixed(1).replace(/\.0$/,'')}`;
- return `${w} \u00b7 ${MODEL.geo.toUpperCase()} \u00b7 H${(+MODEL.thr.high).toFixed(1)} \u00b7 ${sub}`;}
+ return `${w} \u00b7 ${MODEL.geo.toUpperCase()}${(MODEL.scoring||'anchored')==='percentile'?' \u00b7 pct':''} \u00b7 H${(+MODEL.thr.high).toFixed(1)} \u00b7 ${sub}`;}
 function autoModelDesc(){const den=activeKeys().reduce((a,k)=>a+MODEL.pct[k],0)||1;
  const on=IND.filter(([k])=>MODEL.on[k]).map(([k,l,c,code])=>`${code} ${Math.round(MODEL.pct[k]/den*100)}%`).join(', ')||'none';
  const off=IND.filter(([k])=>!MODEL.on[k]).map(([k,l,c,code])=>code);
  return `Geography ${MODEL.geo.toUpperCase()}. Weights ${on}${off.length?` (${off.join(', ')} off)`:''}. `+
   `Tiers: High \u2265 ${(+MODEL.thr.high).toFixed(1)}, Medium \u2265 ${(+MODEL.thr.med).toFixed(1)}. `+
-  `Subsidy ${Math.round(MODEL.sub.floor*100)}% \u2192 ${Math.round(MODEL.sub.ceil*100)}%, full at ${(+MODEL.sub.full).toFixed(1)}.`;}
+  `Subsidy ${Math.round(MODEL.sub.floor*100)}% \u2192 ${Math.round(MODEL.sub.ceil*100)}%, full at ${(+MODEL.sub.full).toFixed(1)}. `+
+  ((MODEL.scoring||'anchored')==='percentile'?'Common percentile scoring (sub-score = share of communities with less need).':'Anchored scoring (5 = national average).');}
 function uniqueModelName(base){const names=new Set((typeof MODELS!=='undefined'?MODELS:[]).map(m=>m.name));
  if(!names.has(base))return base;let i=2;while(names.has(base+' ('+i+')'))i++;return base+' ('+i+')';}
 function saveCurrentModel(){if(!EDIT){toast('Only admins can save models.',null,true);return;}openModel('Save model',uniqueModelName(autoModelName()),autoModelDesc(),'Save',doSaveModel,{sub:'Named automatically from the current settings \u2014 edit either field if you prefer.'});}
@@ -2667,7 +2698,8 @@ function submitName(){if(!_mmCb)return;
  const desc=document.getElementById('mm_desc').value.trim();
  const cb=_mmCb;_mmCb=null;document.getElementById('modelmodal').classList.remove('open');cb(val,desc);}
 
-function computeWith(v,m){const g=v[m.geo||'sa2'];if(!g)return{index:null,tier:'—',subsidy:0,elig:'No'};const map={em:g.em_sub,seifa:g.seifa_sub,rem:g.rem_sub,dv2:g.dv2_sub};
+function computeWith(v,m){const g=v[m.geo||'sa2'];if(!g)return{index:null,tier:'—',subsidy:0,elig:'No'};let map={em:g.em_sub,seifa:g.seifa_sub,rem:g.rem_sub,dv2:g.dv2_sub};
+ if((m.scoring||'anchored')==='percentile'){const L=SA2LOOK[v.sa2code];if(L&&L.pe2!=null)map=(m.geo==='sa3')?{em:L.pe3,seifa:L.pd3,rem:L.pr3,dv2:L.pv3}:{em:L.pe2,seifa:L.pd2,rem:L.pr2,dv2:L.pv2};else if(!window._pctWarned){window._pctWarned=true;toast('Percentile scoring needs percentile-scoring.sql — using anchored sub-scores until it is run.',null,true);}}
  let num=0,den=0;for(const k of ['em','seifa','rem','dv2']){if(m.on[k]&&map[k]!=null){num+=m.pct[k]*map[k];den+=m.pct[k];}}
  if(den===0)return{index:null,tier:'—',subsidy:0,elig:'No'};
  const idx=Math.round(num/den*10)/10;const tier=idx>=m.thr.high?'High':idx>=m.thr.med?'Medium':'Low';
@@ -2696,6 +2728,14 @@ function applyPreset(key){const p=PRESETS[key];MODEL.on={em:!!p.on.em,seifa:!!p.
  buildInd();updateSubnote();recompute();render();}
 function markActivePreset(){for(const key in PRESETS){const p=PRESETS[key];const m=['em','seifa','rem','dv2'].every(k=>!!MODEL.on[k]===!!p.on[k]&&(+MODEL.pct[k]||0)===(+p.pct[k]||0));const b=document.getElementById('ps_'+key);if(b)b.classList.toggle('on',m);}}
 function setGeo(g){MODEL.geo=g;document.querySelectorAll('#geo button').forEach(b=>b.classList.toggle('on',b.dataset.g===g));recompute();render();}
+function pctReady(){const L=SA2LOOK[Object.keys(SA2LOOK)[0]];return !!(L&&L.pe2!=null);}
+function setScoring(sc){MODEL.scoring=sc;setScoringButtons();recompute();render();}
+function setScoringButtons(){document.querySelectorAll('#scoringBtns [data-sc]').forEach(b=>b.classList.toggle('on',b.dataset.sc===(MODEL.scoring||'anchored')));
+ const n=document.getElementById('scoringNote');if(!n)return;
+ n.textContent=(MODEL.scoring||'anchored')==='percentile'
+  ?(pctReady()?'Common percentile scale (UWA R2): every sub-score is the share of communities with less need — 8.0 ≈ 80th percentile. Disadvantage uses the raw IRSD score.'
+             :'Percentile data is not loaded yet — run percentile-scoring.sql in Supabase, then reload.')
+  :'Anchored to national averages (the original method): each indicator has its own rule, with 5 = the national average.';}
 function setW(k,val){if(!MODEL.on[k])return;val=Math.max(0,Math.min(100,round5(+val)));MODEL.pct[k]=val;
  let others=activeKeys().filter(o=>o!==k);let rem=100-val;let os=others.reduce((a,o)=>a+MODEL.pct[o],0);
  if(others.length===0){MODEL.pct[k]=100;}
@@ -2713,7 +2753,8 @@ function setThr(){const h=parseFloat(document.getElementById('tHigh').value),m=p
 function setSub(){const f=parseFloat(document.getElementById('sFloor').value),c=parseFloat(document.getElementById('sCeil').value),u=parseFloat(document.getElementById('sFull').value);
  if(!isNaN(f))MODEL.sub.floor=f/100;if(!isNaN(c))MODEL.sub.ceil=c/100;if(!isNaN(u))MODEL.sub.full=u;updateSubnote();recompute();render();}
 function updateSubnote(){}
-function resetModel(){MODEL={geo:'sa2',on:{em:true,seifa:true,rem:true,dv2:false},pct:{em:40,seifa:40,rem:20,dv2:0},thr:{high:6.3,med:3.8},sub:{floor:0.5,ceil:1.0,full:8.0}};
+function resetModel(){MODEL={geo:'sa2',scoring:'anchored',on:{em:true,seifa:true,rem:true,dv2:false},pct:{em:40,seifa:40,rem:20,dv2:0},thr:{high:6.3,med:3.8},sub:{floor:0.5,ceil:1.0,full:8.0}};
+ setScoringButtons();
  document.querySelectorAll('#geo button').forEach(b=>b.classList.toggle('on',b.dataset.g==='sa2'));
  const gv=(id,val)=>{const e=document.getElementById(id);if(e)e.value=val;};
  gv('tHigh',6.3);gv('tMed',3.8);gv('sFloor',50);gv('sCeil',100);gv('sFull',8.0);
@@ -2947,7 +2988,8 @@ function areaSummary(v,g){const em=g.em_pct,dec=g.decile,ra=(g.ra||'').replace('
    <p>${emTxt}</p><p>${decTxt}</p>${kids?`<p>${kids}</p>`:''}<p>${why}</p>${cen}
    <p class="muted" style="margin-top:8px">Sources: AEDC 2024 (emotional-maturity domain), ABS SEIFA 2021 (IRSD), ABS Remoteness Areas, ABS ERP 2024 (child population), ABS Census 2021 General Community Profile (medians, family, education, labour force, cultural &amp; housing).</p></div>`;}
 function openD(i){curIdx=i;const v=V[i];const g=v[MODEL.geo];let den=activeKeys().reduce((a,k)=>a+MODEL.pct[k],0);
- const submap={em:g.em_sub,seifa:g.seifa_sub,rem:g.rem_sub,dv2:g.dv2_sub};
+ const _pct=(MODEL.scoring||'anchored')==='percentile';const _L=_pct?SA2LOOK[v.sa2code]:null;
+ const submap=(_pct&&_L&&_L.pe2!=null)?(MODEL.geo==='sa3'?{em:_L.pe3,seifa:_L.pd3,rem:_L.pr3,dv2:_L.pv3}:{em:_L.pe2,seifa:_L.pd2,rem:_L.pr2,dv2:_L.pv2}):{em:g.em_sub,seifa:g.seifa_sub,rem:g.rem_sub,dv2:g.dv2_sub};
  const meta={em:'EM '+(g.em_pct!=null?(+g.em_pct).toFixed(1)+'% at-risk/vuln':'—'),seifa:'SEIFA decile '+(g.decile??'—'),rem:(g.ra||'').replace(' Australia','')};
  const rows=IND.map(([k,label,col])=>{const on=MODEL.on[k];const sub=submap[k];const contrib=(on&&den&&sub!=null)?MODEL.pct[k]/den*sub:0;
   return `<div class="comprow"><div class="top"><span>${label} <span class="muted">(${meta[k]})</span>${on?'':' <span style="color:#EF476F">· OFF</span>'}</span><span>${sub!=null?(+sub).toFixed(1):'—'} / 10</span></div>
@@ -2963,7 +3005,7 @@ function openD(i){curIdx=i;const v=V[i];const g=v[MODEL.geo];let den=activeKeys(
    ${v.address?`<div class="muted" style="font-size:11.5px;margin:4px 0 2px">${esc(v.address)}</div>`:''}${EDIT?`<button class="btn sec" style="margin:8px 0 2px" onclick="closeD();editVenue(${i})">✎ Edit details</button>`:''}
    <div class="muted" style="margin:8px 0 2px">Model: <b>${MODEL.geo.toUpperCase()}</b>, weights normalised across active indicators</div>
    ${rows}
-   <div class="formula"><div class="muted">Index under the current model</div><div style="margin-top:4px">Index = ${activeParts} = <span class="big" style="color:${TIERCOL[v.cTier]}">${v.cIndex!=null?v.cIndex.toFixed(1):'—'}</span></div></div>
+   <div class="formula"><div class="muted">Index under the current model · ${(MODEL.scoring||'anchored')==='percentile'?'percentile scoring (sub-score ≈ share of communities with less need)':'anchored scoring (5 = national average)'}</div><div style="margin-top:4px">Index = ${activeParts} = <span class="big" style="color:${TIERCOL[v.cTier]}">${v.cIndex!=null?v.cIndex.toFixed(1):'—'}</span></div></div>
    <div class="card" style="padding:12px 14px;margin-top:14px;box-shadow:none;border:1.5px dashed var(--navy)">
      <div style="font-weight:700;margin-bottom:5px">Children in the area <span class="muted">(${MODEL.geo.toUpperCase()}, ERP 2024)</span></div>
      <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px"><span><b>${(v.cAges[0]||0).toLocaleString()}</b> aged 0–4</span><span><b>${(v.cAges[1]||0).toLocaleString()}</b> 5–9</span><span><b>${(v.cAges[2]||0).toLocaleString()}</b> 10–14</span><span style="color:var(--pink)"><b>${(v.cChild||0).toLocaleString()}</b> total 0–14</span></div>
@@ -3012,7 +3054,9 @@ function passFilter(r){if(!r)return true;return (F.tier.size===0||F.tier.has(r.t
 const STATEBYDIGIT={'1':'NSW','2':'VIC','3':'QLD','4':'SA','5':'WA','6':'TAS','7':'NT','8':'ACT','9':'OT'};
 function sa2State(code){return STATEBYDIGIT[String(code)[0]];}
 function computeSA2(code){const L=SA2LOOK[code];if(!L)return null;
- const sub=MODEL.geo==='sa3'?{em:L.e3,seifa:L.d3,rem:L.r3,dv2:L.v3}:{em:L.e2,seifa:L.d2,rem:L.r2,dv2:L.v2};
+ const pct=(MODEL.scoring||'anchored')==='percentile'&&L.pe2!=null;
+ const sub=pct?(MODEL.geo==='sa3'?{em:L.pe3,seifa:L.pd3,rem:L.pr3,dv2:L.pv3}:{em:L.pe2,seifa:L.pd2,rem:L.pr2,dv2:L.pv2})
+          :(MODEL.geo==='sa3'?{em:L.e3,seifa:L.d3,rem:L.r3,dv2:L.v3}:{em:L.e2,seifa:L.d2,rem:L.r2,dv2:L.v2});
  let num=0,den=0;for(const k of ['em','seifa','rem','dv2']){if(MODEL.on[k]&&sub[k]!=null){num+=MODEL.pct[k]*sub[k];den+=MODEL.pct[k];}}
  if(den===0)return null;const idx=Math.round(num/den*10)/10;const tier=idx>=MODEL.thr.high?'High':idx>=MODEL.thr.med?'Medium':'Low';
  return {idx,tier,hv:L.hv,ch:L.ch,st:sa2State(code)};}
@@ -3510,16 +3554,16 @@ async function boot(){
   setProgress(12);
   const [venues,scores,cfg]=await Promise.all([
     sbAll('venue_full','*'),
-    sbAll('sa2_scores','sa2_code,e2,d2,r2,e3,d3,r3,v2,v3,ch,hv'),
+    sbAll('sa2_scores','sa2_code,e2,d2,r2,e3,d3,r3,v2,v3,ch,hv,irsd,pe2,pd2,pr2,pv2,pe3,pd3,pr3,pv3').catch(()=>sbAll('sa2_scores','sa2_code,e2,d2,r2,e3,d3,r3,v2,v3,ch,hv')),
     sbOne('app_config?select=key,value')
   ]);
   setProgress(62);
   V=venues; V.forEach((v,i)=>v._i=i); DATA.venues=V;
-  SA2LOOK={}; scores.forEach(s=>{SA2LOOK[s.sa2_code]={e2:+s.e2,d2:+s.d2,r2:+s.r2,e3:+s.e3,d3:+s.d3,r3:+s.r3,v2:s.v2==null?null:+s.v2,v3:s.v3==null?null:+s.v3,ch:s.ch==null?null:+s.ch,hv:+s.hv};});
+  SA2LOOK={}; const nn=x=>x==null?null:+x; scores.forEach(s=>{SA2LOOK[s.sa2_code]={e2:+s.e2,d2:+s.d2,r2:+s.r2,e3:+s.e3,d3:+s.d3,r3:+s.r3,v2:nn(s.v2),v3:nn(s.v3),ch:nn(s.ch),hv:+s.hv,irsd:nn(s.irsd),pe2:nn(s.pe2),pd2:nn(s.pd2),pr2:nn(s.pr2),pv2:nn(s.pv2),pe3:nn(s.pe3),pd3:nn(s.pd3),pr3:nn(s.pr3),pv3:nn(s.pv3)};});
   const cf={}; (cfg||[]).forEach(r=>cf[r.key]=r.value); if(cf.aus_locator)AUS=cf.aus_locator; if(cf.params){P=cf.params; if(P.medThr!=null){MODEL.thr.med=+P.medThr; const e=document.getElementById('tMed'); if(e)e.value=P.medThr;}}
   DATA.params=P;
   hideSkeleton();
-  buildInd();updateSubnote();recompute();initFilters();restoreFilters();render();renderAuth();
+  buildInd();updateSubnote();setScoringButtons();recompute();initFilters();restoreFilters();render();renderAuth();
   setProgress(78);
   loadGeometry();
   try{MODELS=(await sbAll('models','id,name,description,config,is_preset,created_at,starred,sort_order')).map(m=>({id:m.id,name:m.name,description:m.description,config:m.config,date:fmtDate(m.created_at),starred:!!m.starred,ord:m.sort_order==null?9999:+m.sort_order}));sortModels();renderModels();}
