@@ -1,5 +1,5 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Children's Theatre Impact Index — Modelling Dashboard</title>
+<title>Children's Theatre Access Index — Modelling Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -628,7 +628,7 @@ body.aboutmode .sitefoot{margin-top:26px;}
  <div class="topuser" id="authbox"><span style="color:var(--teal);font-size:11px">…</span></div>
 </div>
 <div class="wrap">
-<header><div><h1 class="hero">Children's Theatre Impact <span class="pink">Index</span></h1></div></header>
+<header><div><h1 class="hero">Children's Theatre Access <span class="pink">Index</span></h1></div></header>
 
 <div class="mainrow" id="mainrow">
 <aside class="wbrail" id="siderail">
@@ -829,7 +829,7 @@ body.aboutmode .sitefoot{margin-top:26px;}
  <div class="filters cbody" id="filtersBody" style="padding:0;margin:10px 0 0">
  <div class="fg"><label>Search venue</label><input type="text" id="q" placeholder="type a name…" oninput="render()"></div>
  <div class="fg"><label>Tier</label><div class="ms" id="mTier"></div></div>
- <div class="fg"><label>Impact Index</label><div class="ms" id="mIdx"></div></div>
+ <div class="fg"><label>Access Index</label><div class="ms" id="mIdx"></div></div>
  <div class="fg"><label>Subsidy eligible</label><div class="ms" id="mElig"></div></div>
  <div class="fg"><label>Status</label><div class="ms" id="mStatus"></div></div>
  <div class="fg"><label>State</label><div class="ms" id="mState"></div></div>
@@ -868,7 +868,7 @@ body.aboutmode .sitefoot{margin-top:26px;}
  <div style="display:flex;gap:12px;align-items:center;margin:20px 2px 14px;flex-wrap:wrap">
    <span class="muted">Shade areas by:</span>
    <button class="preset" id="mapmode_tier" onclick="setMapMode('tier')">Tier</button>
-   <button class="preset" id="mapmode_index" onclick="setMapMode('index')">Impact Index (0–10)</button>
+   <button class="preset" id="mapmode_index" onclick="setMapMode('index')">Access Index (0–10)</button>
    <span style="width:1px;height:22px;background:#ccc;margin:0 2px"></span>
    <label style="font-size:12.5px;margin-left:6px"><input type="checkbox" id="mapVenues" checked onchange="paintMarkers()"> show venues</label>
    <label id="mapAllWrap" style="font-size:12.5px"><input type="checkbox" id="mapVenuesAll" onchange="paintMarkers()"> all venues (ignore filter)</label>
@@ -876,7 +876,7 @@ body.aboutmode .sitefoot{margin-top:26px;}
    <label style="font-size:12.5px"><input type="checkbox" id="mapGaps" onchange="schedulePaint()"> highlight gaps (High, no venue)</label>
  </div>
  <div id="mapSkelHost"></div><div class="card" style="padding:0;overflow:hidden"><div id="map"></div></div>
- <div class="muted" style="margin-top:8px">The map is driven by the <b>model controls</b> and the <b>filter bar</b> above. Areas recolour and re-tier under the current model; the <b>Tier</b>, <b>Impact Index</b> and <b>State</b> filters hide areas outside your selection. Circles are venues matching <b>all</b> filters (tick "all venues" to keep every venue visible regardless). Grey = not scored. "Highlight gaps" outlines High-impact areas with no current venue.</div>
+ <div class="muted" style="margin-top:8px">The map is driven by the <b>model controls</b> and the <b>filter bar</b> above. Areas recolour and re-tier under the current model; the <b>Tier</b>, <b>Access Index</b> and <b>State</b> filters hide areas outside your selection. Circles are venues matching <b>all</b> filters (tick "all venues" to keep every venue visible regardless). Grey = not scored. "Highlight gaps" outlines High-impact areas with no current venue.</div>
 </div>
 <div class="page" id="page-xmap">
  <div id="cmapSkelHost"></div><div class="card" style="padding:0;overflow:hidden"><div id="cmap"></div></div>
@@ -912,7 +912,9 @@ body.aboutmode .sitefoot{margin-top:26px;}
    <div class="acc">
      <div class="accitem open"><div class="acch" onclick="toggleAcc(this)"><span>1 · What the Index is</span><span class="caret">▾</span></div><div class="accb">
        <p>The Index answers a practical question for the National Children's Theatre Initiative: with limited touring and subsidy budgets, <b>where should children's theatre go first</b> to reach the children who stand to benefit most?</p>
-       <p>Every community in the country is scored from <b>0 to 10</b> — higher means a greater opportunity for impact. The guiding vision is simple: <b>Theatre for Every Child</b>. The Index turns that ambition into evidence, so touring routes and subsidy can be directed transparently rather than by habit or proximity.</p>
+       <p>Every community in the country is scored from <b>0 to 10</b> — higher means a higher relative priority for children’s theatre support. The guiding vision is simple: <b>Theatre for Every Child</b>. The Index turns that ambition into evidence, so touring routes and subsidy can be directed transparently rather than by habit or proximity.</p>
+       <p style="margin-top:10px"><b>Use the score to</b> identify priority communities and inform funding decisions, alongside delivery and funding considerations. <b>It does not mean</b> that impact has already been achieved, that children are guaranteed to benefit, or that a specific subsidy is automatic. The Index guides priority; evaluation checks what difference a programme makes.</p>
+       <p>The score is also kept <b>separate from the decision layers that follow it</b>: first the priority score (where is the need greatest), then readiness and delivery (what is needed to deliver well there), then the funding decision (what support can be provided, within the available budget). Two communities with the same score can need very different support — low readiness should prompt implementation help, not a lower priority.</p>
      </div></div>
      <div class="accitem open"><div class="acch" onclick="toggleAcc(this)"><span>2 · How the score is calculated</span><span class="caret">▾</span></div><div class="accb">
        <p>The Index blends up to <b>four measures</b>, each converted to its own 0–10 sub-score, then averaged using weights you control:</p>
@@ -952,7 +954,7 @@ body.aboutmode .sitefoot{margin-top:26px;}
      </div></div>
      <div class="accitem"><div class="acch" onclick="toggleAcc(this)"><span>5 · Tiers and the subsidy model</span><span class="caret">▾</span></div><div class="accb">
        <p>Scores band into three priority tiers — <b>High, Medium, Low</b> — at thresholds you set (default High ≥ 6.3, Medium ≥ 3.8).</p>
-       <p>Subsidy applies to <b>High-tier</b> areas only, and ramps up within the band: from a floor (default 50%) at the High threshold to <b>full subsidy (100%)</b> near the top of the scale (default index 8.0+), in 5% steps — so the highest-impact places attract the deepest support.</p>
+       <p>Subsidy applies to <b>High-tier</b> areas only, and ramps up within the band: from a floor (default 50%) at the High threshold to <b>full subsidy (100%)</b> near the top of the scale (default index 8.0+), in 5% steps — so the highest-priority places attract the deepest support.</p>
        <p>When a tour or scenario is costed, its subsidy is funded through <b>income sources</b> you assemble from scratch: the <b>Children's Theatre Investment Fund</b>, state touring grants (calculated automatically from each state's venues, and editable), Playing Australia, philanthropy and other contributions. The panel shows the balance still needed until the subsidy is fully funded, and the split flows through to every report.</p>
      </div></div>
      <div class="accitem"><div class="acch" onclick="toggleAcc(this)"><span>6 · The modelling sandbox and saved models</span><span class="caret">▾</span></div><div class="accb">
@@ -973,7 +975,7 @@ body.aboutmode .sitefoot{margin-top:26px;}
      </div></div>
      <div class="accitem"><div class="acch" onclick="toggleAcc(this)"><span>8 · How it is used and deployed</span><span class="caret">▾</span></div><div class="accb">
        <p>The Index supports three decisions: <b>where to tour, where to subsidise, and how to make the case</b> to funders.</p>
-       <p>Venues are mapped against the national picture so <b>gaps</b> — high-impact communities with no current venue — are visible. From there, <b>tours</b> are built directly in the venue list: tick venues onto a tour, set per-venue fees, confirm subsidy, and save. The <b>Tours</b> page tracks the whole portfolio — every company, work and tour, with committed subsidy and children reached.</p>
+       <p>Venues are mapped against the national picture so <b>gaps</b> — high-priority communities with no current venue — are visible. From there, <b>tours</b> are built directly in the venue list: tick venues onto a tour, set per-venue fees, confirm subsidy, and save. The <b>Tours</b> page tracks the whole portfolio — every company, work and tour, with committed subsidy and children reached.</p>
        <p>Four print-ready <b>reports</b> carry the case outward: a funder subsidy report, a per-tour proposal, a venue-facing offer letter, and a technical specification of any model.</p>
        <p>The tool is a <b>live web application</b> with sign-in for invited users — viewers see everything, administrators edit — and every change to the data is recorded in an audit log. Figures refresh as new ABS and AEDC releases arrive.</p>
      </div></div>
@@ -1638,7 +1640,7 @@ function createTourReport(){const t=activeTourObj();if(!t){toast('Select a tour 
      ${rptHBars(states.filter(st=>stateSub[st]>0).map(st=>({label:st,value:stateSub[st],color:'#EF476F'})))}
      <h3>Venues by state</h3>
      <table><thead>${vhead}</thead><tbody>${vrows}</tbody></table>
-     <div class="rpt-foot">Impact scoring from AEDC 2024, ABS SEIFA 2021 (IRSD), ABS Remoteness Areas, ABS Census 2021 and Estimated Resident Population. Prepared with the National Children's Theatre Initiative.</div>
+     <div class="rpt-foot">Index scoring from AEDC 2024, ABS SEIFA 2021 (IRSD), ABS Remoteness Areas, ABS Census 2021 and Estimated Resident Population. Prepared with the National Children's Theatre Initiative.</div>
    </div>
  </div>`;
  document.getElementById('reportBody').innerHTML=html;document.getElementById('reportView').classList.add('open');document.getElementById('reportView').scrollTop=0;}
@@ -1898,10 +1900,10 @@ function createModelReport(){
   ['Remoteness (R)','rem','Major Cities 0 · Inner Regional 2.5 · Outer Regional 5 · Remote 7.5 · Very Remote 10 (ABS Remoteness Areas).'],
   ['Developmentally Vulnerable (DV2)','dv2','min(10, DV2% ÷ 12.46 × 5) — DV2% is the share vulnerable on two or more AEDC domains (2024); 12.46% is the national average.']].filter(x=>MODEL.on[x[1]]);
  const html=`<div class="rpt">
-   <div class="rpt-headbar">${logo?`<img class="rpt-logo" src="${logo}">`:''}<div class="rpt-title">${esc(nm.name)}</div><div class="rpt-subt">Impact Index model — technical specification · ${dt}</div></div>
+   <div class="rpt-headbar">${logo?`<img class="rpt-logo" src="${logo}">`:''}<div class="rpt-title">${esc(nm.name)}</div><div class="rpt-subt">Access Index model — technical specification · ${dt}</div></div>
    <div class="rpt-body">
      ${nm.desc?`<p>${esc(nm.desc)}</p>`:''}
-     <p>This document specifies how the model scores every Australian community 0–10 for children's-theatre impact, how scores become priority tiers and subsidy rates, and what the model produces across the venue network.</p>
+     <p>This document specifies how the model scores every Australian community 0–10 for the relative priority of children's theatre support, how scores become priority tiers and subsidy rates, and what the model produces across the venue network.</p><p style="font-size:11px;color:#6b7a80">The Access Index indicates relative priority for children's theatre support. It does not measure delivered impact, guarantee benefit, or make any subsidy automatic; funding decisions also weigh delivery readiness and the available budget.</p>
      <div class="rpt-hero">
        <div><div class="h">${MODEL.geo.toUpperCase()}</div><div class="l">Geography</div></div>
        <div><div class="h">${weights.length}</div><div class="l">Indicators in use</div></div>
@@ -1915,7 +1917,7 @@ function createModelReport(){
      <table><thead><tr><th>Indicator</th><th>Sub-score formula</th></tr></thead><tbody>
      ${fmtsub.map(x=>`<tr><td style="white-space:nowrap"><b>${x[0]}</b></td><td style="font-size:11.5px">${x[2]}</td></tr>`).join('')}
      </tbody></table>
-     <p style="font-size:11.5px">The Impact Index is the weighted average of the active sub-scores. Where an indicator has no data for an area, it is skipped and the remaining weights re-balance.</p>
+     <p style="font-size:11.5px">The Access Index is the weighted average of the active sub-scores. Where an indicator has no data for an area, it is skipped and the remaining weights re-balance.</p>
      <h3>Tiers &amp; subsidy</h3>
      <div class="settings">
        <div>Priority tiers: <b>High ≥ ${(+MODEL.thr.high).toFixed(1)}</b>, Medium ≥ ${(+MODEL.thr.med).toFixed(1)}</div>
@@ -1937,7 +1939,7 @@ function createModelReport(){
          rows+=`<tr class="grp"><td colspan="4">${esc(st)} — ${arr.length} venue${arr.length!=1?'s':''} · ${ch.toLocaleString()} children 0–14</td></tr>`;
          arr.forEach(v=>{rows+=`<tr><td>${esc(v.name)}</td><td class="center">${v.cIndex!=null?v.cIndex.toFixed(1):'—'}</td><td class="center">${v.cTier}</td><td class="right"><b>${Math.round(v.cSub*100)}%</b></td></tr>`;});});
        return `<h3>Venues subsidised under this model</h3>
-        <p style="font-size:11.5px;color:#6b7a80;margin-bottom:6px">The ${elig.length} venue${elig.length!=1?'s':''} that would attract a subsidy, grouped by state and ordered by Impact Index.</p>
+        <p style="font-size:11.5px;color:#6b7a80;margin-bottom:6px">The ${elig.length} venue${elig.length!=1?'s':''} that would attract a subsidy, grouped by state and ordered by Access Index.</p>
         <table><thead><tr><th>Venue</th><th class="center">Index</th><th>Tier</th><th class="right">Subsidy</th></tr></thead><tbody>${rows}</tbody></table>`;})()}
      <h3>Across the nation</h3>
      <p style="font-size:12px">Under this model, <b>${aHi.toLocaleString()}</b> SA2 communities score High (home to ~<b>${aCh.toLocaleString()}</b> children 0–14), <b>${aMed.toLocaleString()}</b> Medium and <b>${aLo.toLocaleString()}</b> Low.</p>
@@ -1967,9 +1969,9 @@ function createReport(){
  const vhead=`<tr><th>Venue</th>${multi?'':'<th>State</th>'}<th>Status</th><th class="center">Index</th><th>Tier</th><th class="right">Subsidy</th><th class="right">Amount</th></tr>`;
  const fundRows=R.rows.map(r=>`<tr><td>${esc(r.name)}</td><td class="right">${fmt$(r.amount)}</td></tr>`).join('')+(R.remaining>0.5?`<tr><td>Balance to be funded <span style="color:#6b7a80">(unallocated)</span></td><td class="right">${fmt$(R.remaining)}</td></tr>`:'');
  const html=`<div class="rpt">
-   <div class="rpt-headbar">${logo?`<img class="rpt-logo" src="${logo}">`:''}<div class="rpt-title">Children's Theatre Impact Index</div><div class="rpt-subt">Subsidy investment proposal · ${dt}</div></div>
+   <div class="rpt-headbar">${logo?`<img class="rpt-logo" src="${logo}">`:''}<div class="rpt-title">Children's Theatre Access Index</div><div class="rpt-subt">Subsidy investment proposal · ${dt}</div></div>
    <div class="rpt-body">
-     <p>This proposal sets out the subsidy sought to bring professional children's theatre to <b>${n}</b> high-impact ${multi?'communities across '+states.length+' states/territories':'communities'}, and the children it would reach. Priorities are set by the Children's Theatre Impact Index; the model and settings used are stated below.</p>
+     <p>This proposal sets out the subsidy sought to bring professional children's theatre to <b>${n}</b> high-priority ${multi?'communities across '+states.length+' states/territories':'communities'}, and the children it would reach. Priorities are set by the Children's Theatre Access Index; the model and settings used are stated below.</p><p style="font-size:11px;color:#6b7a80">The Access Index indicates relative priority for children's theatre support. It does not measure delivered impact, guarantee benefit, or make any subsidy automatic; funding decisions also weigh delivery readiness and the available budget.</p>
      <div class="rpt-hero">
        <div><div class="h pink">${fmt$(sub)}</div><div class="l">Subsidy sought</div></div>
        <div><div class="h">${n}</div><div class="l">Venues supported${elig!==n?` · ${elig} funded`:''}</div></div>
@@ -1996,7 +1998,7 @@ function createReport(){
      <div style="margin:6px 0 4px">${ausMapSVG(pts,400)}</div>
      <h3>Venues supported${multi?' (by state)':''}</h3>
      <table><thead>${vhead}</thead><tbody>${vrows}</tbody></table>
-     <div class="rpt-foot">Impact scoring from AEDC 2024 (emotional maturity), ABS SEIFA 2021 (disadvantage), ABS Remoteness Areas, ABS Census 2021 and Estimated Resident Population. "Children reached" counts children aged 0–14 in the distinct areas served (each area once). Prepared with the National Children's Theatre Initiative Impact Index.</div>
+     <div class="rpt-foot">Index scoring from AEDC 2024 (emotional maturity), ABS SEIFA 2021 (disadvantage), ABS Remoteness Areas, ABS Census 2021 and Estimated Resident Population. "Children reached" counts children aged 0–14 in the distinct areas served (each area once). Prepared with the National Children's Theatre Initiative.</div>
    </div>
  </div>`;
  document.getElementById('reportBody').innerHTML=html;
@@ -2028,7 +2030,7 @@ function createVenueReport(i){const v=V[i];if(!v)return;const g=v[MODEL.geo]||{}
       <div style="border:1.5px solid var(--navy);border-radius:8px;padding:12px 16px;background:#fff;margin:8px 0 4px"><b>The producing company and touring artists are paid the full package fee.</b> The subsidy covers the discount, so the work is fully funded — your venue simply pays the reduced net fee above.</div>`
    : `<p>Under the current model, ${esc(area)} sits in the <b>${v.cTier}</b> tier and does not currently attract a subsidy. This summary is provided for context.</p>`;
  const html=`<div class="rpt">
-   <div class="rpt-headbar">${logo?`<img class="rpt-logo" src="${logo}">`:''}<div class="rpt-title">Children's Theatre Impact Index</div><div class="rpt-subt">Venue subsidy summary · ${dt}</div></div>
+   <div class="rpt-headbar">${logo?`<img class="rpt-logo" src="${logo}">`:''}<div class="rpt-title">Children's Theatre Access Index</div><div class="rpt-subt">Venue subsidy summary · ${dt}</div></div>
    <div class="rpt-body">
      <div style="display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:12px">
        <div><h2 style="font-family:'Charlie Kingdom';font-size:24px;color:var(--navy);margin:0 0 2px">${esc(v.name)}</h2>
@@ -2037,7 +2039,7 @@ function createVenueReport(i){const v=V[i];if(!v)return;const g=v[MODEL.geo]||{}
      </div>
      <p>This summary explains the subsidy the National Children's Theatre Initiative is offering ${esc(v.name)} — why your community is a priority, how the figure is calculated, and how it is funded. It is intended to make the offer clear as we discuss bringing professional children's theatre to ${esc(area)}.</p>
      <h3>Why your community is a priority</h3>
-     <p>The Children's Theatre Impact Index scores every community in Australia from 0 to 10 for the social value that children's theatre can create there, using children's emotional development (AEDC), socio-economic disadvantage (ABS SEIFA) and remoteness.</p>
+     <p>The Children's Theatre Access Index scores every community in Australia from 0 to 10 for its relative priority for children's theatre support, using children's emotional development (AEDC), socio-economic disadvantage (ABS SEIFA) and remoteness.</p><p style="font-size:11px;color:#6b7a80">The Access Index indicates relative priority for children's theatre support. It does not measure delivered impact, guarantee benefit, or make any subsidy automatic; funding decisions also weigh delivery readiness and the available budget.</p>
      <div class="rpt-hero"><div><div class="h pink">${v.cIndex!=null?v.cIndex.toFixed(1):'—'}<span style="font-size:15px"> / 10</span></div><div class="l">${esc(area)} — ${v.cTier} priority</div></div><div><div class="h">${(v.cChild||0).toLocaleString()}</div><div class="l">Children 0–14 in the area</div></div></div>
      ${rptHBars(IND.filter(([k])=>MODEL.on[k]&&{em:g.em_sub,seifa:g.seifa_sub,rem:g.rem_sub,dv2:g.dv2_sub}[k]!=null).map(([k,l,col])=>({label:l,value:+({em:g.em_sub,seifa:g.seifa_sub,rem:g.rem_sub,dv2:g.dv2_sub}[k]),color:col})),10,v2=>v2.toFixed(1)+' / 10')}
      <h3>How the score is calculated</h3>
@@ -2104,7 +2106,7 @@ function toggleUserMenu(){const m=document.getElementById('usermenu');if(m)m.cla
 function closeUserMenu(){const m=document.getElementById('usermenu');if(m)m.classList.remove('open');}
 document.addEventListener('click',e=>{if(!e.target.closest('#authbox'))closeUserMenu();});
 // ---------- gate ----------
-function gateHTML(inner){return `<div style="max-width:400px;width:100%"><div style="font-family:'Charlie Kingdom';font-size:26px;color:var(--navy);margin-bottom:4px">Children's Theatre Impact <span style="color:var(--pink)">Index</span></div>${inner}</div>`;}
+function gateHTML(inner){return `<div style="max-width:400px;width:100%"><div style="font-family:'Charlie Kingdom';font-size:26px;color:var(--navy);margin-bottom:4px">Children's Theatre Access <span style="color:var(--pink)">Index</span></div>${inner}</div>`;}
 function showGate(mode,msg){const g=document.getElementById('gateView');const ft=document.querySelector('.sitefoot');if(ft)ft.style.display=mode?'none':'';
  if(!mode){g.style.display='none';return;}
  g.style.display='flex';
@@ -2306,7 +2308,7 @@ function amZoom(code){if(!window._amLayer)return;let bb=null;window._amLayer.eac
 function amInfo(){const el=document.getElementById('amInfo');if(!el)return;const c=areaState.code;const cands=amCandidates();
  let h='';
  if(c){const f=areaFieldsFor(c);const idx=computeSA2(c);
-  h+=`<div style="font-size:12.5px"><b>SA2 ${esc(c)}</b>${(f&&f.sa2_name)?' \u00b7 '+esc(f.sa2_name):''} \u2014 SA3 ${c.slice(0,5)}${idx?` \u00b7 Impact <b>${idx.idx.toFixed(1)}</b> (${idx.tier})`:''}${f?` \u00b7 ~${(f.c2_t||0).toLocaleString()} children 0\u201314`:''}</div>`;}
+  h+=`<div style="font-size:12.5px"><b>SA2 ${esc(c)}</b>${(f&&f.sa2_name)?' \u00b7 '+esc(f.sa2_name):''} \u2014 SA3 ${c.slice(0,5)}${idx?` \u00b7 Index <b>${idx.idx.toFixed(1)}</b> (${idx.tier})`:''}${f?` \u00b7 ~${(f.c2_t||0).toLocaleString()} children 0\u201314`:''}</div>`;}
  else h+='<div class="muted" style="font-size:12px">No SA2 selected \u2014 drag the pin onto the venue, or click an area.</div>';
  if(areaState.pc)h+=`<div style="margin-top:6px;font-size:11px;color:var(--slate)">Postcode ${esc(areaState.pc)} ${cands.length?('overlaps '+cands.length+' scored SA2'+(cands.length>1?'s':'')+' \u2014 click to compare:'):'\u2014 no scored SA2 overlap on record.'}</div>`;
  if(cands.length)h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:5px">'+cands.map(x=>`<button class="fchip2" style="${x.c===c?'background:var(--pink);color:#fff;border-color:var(--pink)':''}" onclick="amSelect('${x.c}');amZoom('${x.c}')">${x.c} \u00b7 ${Math.round(x.r*100)}%</button>`).join('')+'</div>';
@@ -2529,7 +2531,7 @@ function avShowArea(){const code=(document.getElementById('av_sa2').value||'').t
  const L=SA2LOOK[code];
  if(!L){box.innerHTML='<span style="color:var(--pink)">Unknown SA2 code — it must be one of the '+Object.keys(SA2LOOK).length.toLocaleString()+' scored areas.</span>';return;}
  const f=areaFieldsFor(code);const idx=computeSA2(code);
- box.innerHTML=`Area <b>${esc(code)}</b>${f.sa2_name?' \u00b7 '+esc(f.sa2_name):''} — ${f.sa2_ra||'—'} \u00b7 SEIFA decile ${f.sa2_decile==null?'—':f.sa2_decile} \u00b7 ~${(f.c2_t||0).toLocaleString()} children 0–14`+(idx?` \u00b7 Impact <b>${idx.idx.toFixed(1)}</b> (${idx.tier})`:'');}
+ box.innerHTML=`Area <b>${esc(code)}</b>${f.sa2_name?' \u00b7 '+esc(f.sa2_name):''} — ${f.sa2_ra||'—'} \u00b7 SEIFA decile ${f.sa2_decile==null?'—':f.sa2_decile} \u00b7 ~${(f.c2_t||0).toLocaleString()} children 0–14`+(idx?` \u00b7 Index <b>${idx.idx.toFixed(1)}</b> (${idx.tier})`:'');}
 async function createVenue(){const g=id=>document.getElementById(id);const msg=g('av_msg');msg.textContent='';
  const name=g('av_name').value.trim(),code=(g('av_sa2').value||'').trim();
  const lat=parseFloat(g('av_lat').value),lng=parseFloat(g('av_lng').value);
@@ -2925,14 +2927,14 @@ function ausTourMap(items,w){w=w||400;if(!AUS.states||!AUS.states.length)return 
  // draw non-subsidised first, subsidised on top
  return `<svg viewBox="0 0 ${AUS.w} ${AUS.h}" width="${w}" style="border:1.5px solid #073B4C;border-radius:6px;background:#EAF3F6;display:block;margin:0 auto;max-width:100%">${paths}${draw(false)}${draw(true)}</svg>`;}
 function areaSummary(v,g){const em=g.em_pct,dec=g.decile,ra=(g.ra||'').replace(' Australia','');
- const emTxt=em!=null?`<b>${(+em).toFixed(1)}%</b> of young children here are developmentally vulnerable or at-risk on the AEDC emotional-maturity domain — ${em>=25.17?'<b>above</b>':'below'} the national average of about 25%. ${em>=25.17?'Higher rates point to greater developmental vulnerability among local children, which lifts the Impact score.':'Lower rates ease the emotional-maturity part of the score.'}`:'Emotional-maturity data is not available for this area.';
+ const emTxt=em!=null?`<b>${(+em).toFixed(1)}%</b> of young children here are developmentally vulnerable or at-risk on the AEDC emotional-maturity domain — ${em>=25.17?'<b>above</b>':'below'} the national average of about 25%. ${em>=25.17?'Higher rates point to greater developmental vulnerability among local children, which lifts the Index score.':'Lower rates ease the emotional-maturity part of the score.'}`:'Emotional-maturity data is not available for this area.';
  let decTxt='Disadvantage (SEIFA) data is not available for this area.';
  if(dec!=null){const band=dec<=3?'among the more socio-economically disadvantaged areas in Australia':dec<=7?'around the middle of the national distribution':'among the more advantaged areas in Australia';
    decTxt=`It sits in the <b>${ordinal(dec)} SEIFA decile</b> (1 = most disadvantaged 10% nationally), placing it ${band}.`;}
  const parts=[['emotional maturity (EM)',g.em_sub,MODEL.on.em],['disadvantage (D)',g.seifa_sub,MODEL.on.seifa],['remoteness (R)',g.rem_sub,MODEL.on.rem],['developmental vulnerability (DV2)',g.dv2_sub,MODEL.on.dv2]].filter(p=>p[2]&&p[1]!=null).sort((a,b)=>b[1]-a[1]);
  let why='';
  if(parts.length){const drivers=parts.filter(p=>p[1]>=6).map(p=>p[0]);
-   why=`Under the current model the Impact Index is <b>${v.cIndex!=null?v.cIndex.toFixed(1):'—'} / 10</b> (${v.cTier} priority). `+(drivers.length?`The score is lifted mainly by ${drivers.join(' and ')}.`:`No single factor is extreme; the score reflects a moderate mix of ${parts.map(p=>p[0]).join(', ')}.`);}
+   why=`Under the current model the Access Index is <b>${v.cIndex!=null?v.cIndex.toFixed(1):'—'} / 10</b> (${v.cTier} priority). `+(drivers.length?`The score is lifted mainly by ${drivers.join(' and ')}.`:`No single factor is extreme; the score reflects a moderate mix of ${parts.map(p=>p[0]).join(', ')}.`);}
  const kids=v.cChild!=null?`About <b>${v.cChild.toLocaleString()}</b> children aged 0–14 live in this ${MODEL.geo.toUpperCase()} (${(v.cAges[0]||0).toLocaleString()} aged 0–4, ${(v.cAges[1]||0).toLocaleString()} 5–9, ${(v.cAges[2]||0).toLocaleString()} 10–14) — the scale of children who could be reached.`:'';
  const C=g.census;let cen='';
  if(C){const row=(l,val)=>val==null?'':`<div class="cl">${l}</div><div class="cv">${val}</div>`;
@@ -2955,7 +2957,7 @@ function openD(i){curIdx=i;const v=V[i];const g=v[MODEL.geo];let den=activeKeys(
  const html=`<div class="dhead"><span class="x" onclick="closeD()">×</span><h2>${v.name}</h2>
    <div class="loc">${[v.state,(g.ra||'').replace(' Australia',''),v.status].filter(Boolean).join(' · ')} · postcode ${v.postcode||'—'} · ${MODEL.geo.toUpperCase()} ${v.sa2name||''}</div></div>
   <div class="dbody">
-   <div style="display:flex;gap:12px;align-items:center;margin-bottom:6px"><div class="card" style="padding:10px 16px;text-align:center"><div class="disp" style="font-size:34px;color:${TIERCOL[v.cTier]}">${v.cIndex!=null?v.cIndex.toFixed(1):'—'}</div><div class="muted">Impact Index</div></div>
+   <div style="display:flex;gap:12px;align-items:center;margin-bottom:6px"><div class="card" style="padding:10px 16px;text-align:center"><div class="disp" style="font-size:34px;color:${TIERCOL[v.cTier]}">${v.cIndex!=null?v.cIndex.toFixed(1):'—'}</div><div class="muted">Access Index</div></div>
      <div><span class="chip tier-${v.cTier}" style="font-size:13px">${v.cTier} priority</span><br><br><span class="muted">Subsidy: </span><b>${v.cSub?Math.round(v.cSub*100)+'%':'none'}</b> · <span class="muted">Eligible: </span><b>${v.cElig}</b></div>
      <div style="margin-left:auto;text-align:center;cursor:pointer" title="Open the area checker — verify this venue's SA2/SA3 on a live map" onclick="closeD();openAreaChecker('edit',${i})">${ausLocatorSVG(v)}<div style="font-size:10px;font-weight:800;color:var(--pink);margin-top:3px;text-decoration:underline">Check location</div></div></div>
    ${v.address?`<div class="muted" style="font-size:11.5px;margin:4px 0 2px">${esc(v.address)}</div>`:''}${EDIT?`<button class="btn sec" style="margin:8px 0 2px" onclick="closeD();editVenue(${i})">✎ Edit details</button>`:''}
@@ -3005,7 +3007,7 @@ function addBasemap(m,maxZoom){
 let map=null,sa2Layer=null,venueLayer=null,mapMode='tier',paintScheduled=false,legendCtl=null;
 function idxBand(x){return Math.min(9,Math.max(0,Math.floor(x)));}
 function bandLabel(x){const b=idxBand(x);return b===9?'9+':String(b);}
-// map areas obey the shared Tier + Impact Index filters from the main filter bar
+// map areas obey the shared Tier + Access Index filters from the main filter bar
 function passFilter(r){if(!r)return true;return (F.tier.size===0||F.tier.has(r.tier))&&(F.idx.size===0||F.idx.has(bandLabel(r.idx)))&&(F.state.size===0||F.state.has(r.st));}
 const STATEBYDIGIT={'1':'NSW','2':'VIC','3':'QLD','4':'SA','5':'WA','6':'TAS','7':'NT','8':'ACT','9':'OT'};
 function sa2State(code){return STATEBYDIGIT[String(code)[0]];}
@@ -3038,12 +3040,12 @@ function paintMarkers(){if(!venueLayer)return;venueLayer.clearLayers();
 function setMapMode(m){mapMode=m;document.getElementById('mapmode_tier').classList.toggle('on',m==='tier');document.getElementById('mapmode_index').classList.toggle('on',m==='index');paintMap();paintMarkers();}
 function updateLegend(){if(!legendCtl)return;let h='';
  if(mapMode==='tier'){h=`<b>Tier</b><br><i style="background:${TIERCOL.High}"></i>High<br><i style="background:${TIERCOL.Medium}"></i>Medium<br><i style="background:${TIERCOL.Low}"></i>Low<br><i style="background:#dcdcdc"></i>Not scored`;}
- else{h=`<b>Impact Index</b><br><i style="background:${idxColor(9)}"></i>8–10<br><i style="background:${idxColor(6)}"></i>5–7<br><i style="background:${idxColor(3)}"></i>2–4<br><i style="background:${idxColor(0.5)}"></i>0–2`;}
+ else{h=`<b>Access Index</b><br><i style="background:${idxColor(9)}"></i>8–10<br><i style="background:${idxColor(6)}"></i>5–7<br><i style="background:${idxColor(3)}"></i>2–4<br><i style="background:${idxColor(0.5)}"></i>0–2`;}
  legendCtl.getContainer().innerHTML='<div class="maplegend">'+h+'</div>';}
 function initMap(){if(map)return;
  map=L.map('map',{preferCanvas:true}).setView([-27,134],4);
  addBasemap(map,12);
- sa2Layer=L.geoJSON(SA2GEO,{style:styleSA2,onEachFeature:(f,l)=>{l.on('click',()=>{const r=computeSA2(f.properties.c);const t=r?`Impact ${r.idx.toFixed(1)} · ${r.tier}<br>~${(r.ch||0).toLocaleString()} children 0–14${r.hv?'<br><b>has a venue</b>':''}`:'not scored';l.bindPopup(`<b>SA2 ${f.properties.c}</b><br>${t}`).openPopup();});}}).addTo(map);
+ sa2Layer=L.geoJSON(SA2GEO,{style:styleSA2,onEachFeature:(f,l)=>{l.on('click',()=>{const r=computeSA2(f.properties.c);const t=r?`Index ${r.idx.toFixed(1)} · ${r.tier}<br>~${(r.ch||0).toLocaleString()} children 0–14${r.hv?'<br><b>has a venue</b>':''}`:'not scored';l.bindPopup(`<b>SA2 ${f.properties.c}</b><br>${t}`).openPopup();});}}).addTo(map);
  venueLayer=L.layerGroup().addTo(map);
  mapMode='tier';document.getElementById('mapmode_tier').classList.add('on');
  legendCtl=L.control({position:'bottomright'});legendCtl.onAdd=()=>L.DomUtil.create('div');legendCtl.addTo(map);
@@ -3077,8 +3079,8 @@ const CENSUSF=[['age','Median age','n0'],['hhinc','Median household income','mon
 // hi:'good' means a HIGH value is a good thing, so the ramp is reversed by
 // default and need shows hot. agg is how the measure rolls up to State level.
 const CAT=[
- {g:'Impact Index',items:[
-  {k:'index',n:'Impact Index',fmt:'n1',agg:'ch'},
+ {g:'Access Index',items:[
+  {k:'index',n:'Access Index',fmt:'n1',agg:'ch'},
   {k:'tier',n:'Priority tier',cat:true}]},
  {g:'AEDC 2024',items:[
   {k:'phy',n:'Physical health and wellbeing',aedc:true},
@@ -3279,7 +3281,7 @@ function commPopup(r){
  const rows=[];const push=(l,v,hi)=>rows.push(`<tr${hi?' class="hilite"':''}><td>${l}</td><td>${v}</td></tr>`);
  const it=layerItem();
  if(it.k!=='index')push(layerName(),isCatLayer()?esc(String(layerVal(r)||'—')):cfmt(layerVal(r),layerFmt()),true);
- push('Impact Index',r._idx==null?'—':r._idx.toFixed(1)+' · '+r._tier,it.k==='index');
+ push('Access Index',r._idx==null?'—':r._idx.toFixed(1)+' · '+r._tier,it.k==='index');
  push('Children 0–14',cfmt(r.ch,'n0'));
  if(r.decile!=null)push('Disadvantage decile',r.decile);
  if(r.dv2!=null)push('Vulnerable 2+ domains',cfmt(r.dv2,'pct'));
@@ -3328,7 +3330,7 @@ function renderCatalogue(){const el=document.getElementById('catalogue');if(!el)
  const row=document.getElementById('aedcModeRow');if(row)row.style.display=layerItem().aedc?'':'none';
  const ln=document.getElementById('layerNote');
  if(ln){const it=layerItem();
-  ln.textContent=it.k==='index'?'The Impact Index under the model currently applied. Change the weights in the Model panel and the map follows.'
+  ln.textContent=it.k==='index'?'The Access Index under the model currently applied. Change the weights in the Model panel and the map follows.'
    :isCatLayer()?'A category layer, so classification does not apply.'
    :'Colouring is set in Classification below. High values are '+(it.hi==='good'?'a good sign':'a sign of need')+'.';}}
 function setLayer(k){CLAYER=k;CBREAKS=null;CLS.rev=defaultRev();
@@ -3360,7 +3362,7 @@ function renderCKpis(a){const el=document.getElementById('ckpis');if(!el)return;
  const K=(v,l,c)=>`<div class="kpi"><div class="kv"${c?` style="color:${c}"`:''}>${v}</div><div class="kl">${l}</div></div>`;
  el.innerHTML=K(a.length.toLocaleString(),commGeoLabel()+(a.length===1?'':'s'))
   +K(ch.toLocaleString(),'Children 0–14','#118AB2')
-  +K(mean.toFixed(1),'Mean Impact Index')
+  +K(mean.toFixed(1),'Mean Access Index')
   +K(hi.toLocaleString(),'High priority','#EF476F')
   +K(withV.toLocaleString(),'With a venue')
   +K(hiNo.toLocaleString(),'High priority, no venue','#EF476F');}
@@ -3422,7 +3424,7 @@ function openCommModal(r){
    .filter(f=>r[f[0]]!=null).map(f=>tr(f[1],cfmt(r[f[0]],'n0')));
  if(r.ch_share!=null)kids.push(tr('Children as a share of population',cfmt(r.ch_share,'pct')));
  const prof=CENSUSF.filter(f=>r[f[0]]!=null).map(f=>tr(f[1],cfmt(r[f[0]],f[2])));
- const head=[tr('Impact Index',r._idx==null?'—':`${r._idx.toFixed(1)} <span class="tbadge" style="background:${TIERCOL[r._tier]}">${r._tier}</span>`)];
+ const head=[tr('Access Index',r._idx==null?'—':`${r._idx.toFixed(1)} <span class="tbadge" style="background:${TIERCOL[r._tier]}">${r._tier}</span>`)];
  if(r.decile!=null)head.push(tr('SEIFA IRSD decile',r.decile));
  if(r.ra)head.push(tr('Remoteness',r.ra));
  head.push(tr('Venues in our register',r.venues||0));
@@ -3438,7 +3440,7 @@ function openCommModal(r){
 function drawCommCharts(a){const tiers=['High','Medium','Low'];
  const tc=tiers.map(t=>a.filter(r=>r._tier===t).length);
  const it=layerItem();
- document.getElementById('cHistTitle').textContent=isCatLayer()?'Impact Index distribution':layerName();
+ document.getElementById('cHistTitle').textContent=isCatLayer()?'Access Index distribution':layerName();
  const hv=(isCatLayer()?a.map(r=>r._idx):a.map(layerVal)).filter(v=>v!=null&&isFinite(v));
  let labels=[],counts=[],cols=[];
  if(hv.length){const mn=Math.min.apply(null,hv),mx=Math.max.apply(null,hv),nb=10,w=(mx-mn)/nb||1;
@@ -3501,7 +3503,7 @@ async function loadGeometry(){
   if(isCommPage(curPage)&&COMM.sa2){if(!cmap)initCommMap();else refreshCommGeoLayer();
    setTimeout(()=>{if(cmap){cmap.invalidateSize();paintCommMap();paintCommMarkers();}},60);}
   if(map&&sa2Layer){try{map.removeLayer(sa2Layer);}catch(e){}sa2Layer=null;}
-  if(curPage==='map'){if(!map)initMap();else{sa2Layer=L.geoJSON(SA2GEO,{style:styleSA2,onEachFeature:(f,l)=>{l.on('click',()=>{const rr=computeSA2(f.properties.c);const t=rr?`Impact ${rr.idx.toFixed(1)} · ${rr.tier}<br>~${(rr.ch||0).toLocaleString()} children 0–14${rr.hv?'<br><b>has a venue</b>':''}`:'not scored';l.bindPopup(`<b>SA2 ${f.properties.c}</b><br>${t}`).openPopup();});}}).addTo(map);paintMap();paintMarkers();}}
+  if(curPage==='map'){if(!map)initMap();else{sa2Layer=L.geoJSON(SA2GEO,{style:styleSA2,onEachFeature:(f,l)=>{l.on('click',()=>{const rr=computeSA2(f.properties.c);const t=rr?`Index ${rr.idx.toFixed(1)} · ${rr.tier}<br>~${(rr.ch||0).toLocaleString()} children 0–14${rr.hv?'<br><b>has a venue</b>':''}`:'not scored';l.bindPopup(`<b>SA2 ${f.properties.c}</b><br>${t}`).openPopup();});}}).addTo(map);paintMap();paintMarkers();}}
  }catch(e){console.warn('geometry failed:',e);const note=document.getElementById('mapSkelNote');if(note)note.innerHTML='<span style="color:var(--pink)">Map boundaries could not be loaded — venue pins still work.</span>';}}
 async function boot(){
  try{
