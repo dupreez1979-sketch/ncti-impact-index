@@ -2359,6 +2359,14 @@ function amSelect(code){code=String(code);if(!SA2LOOK[code]){toast('That area ha
  areaState.code=code;amRestyle();amInfo();}
 function amSetGeo(g2){areaState.geo=g2;document.querySelectorAll('#amGeo button').forEach(b=>b.classList.toggle('on',b.dataset.g===g2));amRestyle();amInfo();}
 function amZoom(code){if(!window._amLayer)return;let bb=null;window._amLayer.eachLayer(l=>{if(l.feature&&String(l.feature.properties.c)===String(code))bb=l.getBounds();});if(bb)areaMap.fitBounds(bb.pad(0.5));}
+function sa3Members(prefix){return Object.keys(SA2LOOK).filter(c=>c.slice(0,5)===String(prefix));}
+function sa3Children(prefix){return sa3Members(prefix).reduce((t,c)=>t+((SA2LOOK[c]&&SA2LOOK[c].ch)||0),0);}
+function useSA3AsCatchment(){if(!EDIT||!areaState||!areaState.code)return;
+ const prefix=String(areaState.code).slice(0,5);
+ areaState.cat=new Set(sa3Members(prefix).filter(c=>c!==areaState.code));
+ if(!areaState.catEdit)areaState.catEdit=true;
+ amCatButtons();amRestyle();amInfo();
+ toast('Catchment seeded with the '+(areaState.cat.size+1)+' communities of SA3 '+prefix+' \u2014 review in amber, then lock in.');}
 function amCatButtons(){const st=areaState||{};const isEdit=st.mode==='edit'&&EDIT;
  const be=document.getElementById('amCatEdit'),bl=document.getElementById('amCatLock'),bc=document.getElementById('amCatClear'),bu=document.getElementById('amUseBtn');
  if(!be)return;
@@ -2385,17 +2393,23 @@ function amInfo(){const el=document.getElementById('amInfo');if(!el)return;const
  if(c){const f=areaFieldsFor(c);const idx=computeSA2(c);const L=SA2LOOK[c];
   const sa3v=areaState.geo==='sa3';
   const km=L?(sa3v?L.db3:L.db2):null, pdb=L?(sa3v?L.pdb3:L.pdb2):null;
-  const ra=f&&f.sa2_ra?String(f.sa2_ra).replace(' Australia','').replace(' of',''):null;
+  const kids=sa3v?sa3Children(c.slice(0,5)):(f?f.c2_t:null);
+  const dec=sa3v?(f?f.sa3_decile:null):(f?f.sa2_decile:null);
+  const emp=sa3v?(f?f.sa3_em_pct:null):(f?f.sa2_em_pct:null);
+  const raRaw=sa3v?(f?f.sa3_ra:null):(f?f.sa2_ra:null);
+  const ra=raRaw?String(raRaw).replace(' Australia','').replace(' of',''):null;
   h+=`<div class="amcard">
     <div class="amhead"><b>${f&&f.sa2_name?esc(f.sa2_name):'SA2 '+esc(c)}</b><span class="ammeta">SA2 ${esc(c)} \u00b7 SA3 ${c.slice(0,5)}${sa3v?' (showing SA3 catchment)':''}</span>
       ${idx?`<span class="amindex" style="background:${TIERCOL[idx.tier]}">${idx.idx.toFixed(1)} \u00b7 ${idx.tier}</span>`:''}</div>
     <div class="amtiles">
       <div class="amtile amdist"><div class="amv">${km!=null?((km<1?'<1':Math.round(km).toLocaleString())+' km'):'\u2014'}</div><div class="aml">to nearest venue${sa3v?' \u00b7 sa3':''}</div><div class="ams">${pdb!=null?('poorer access than '+Math.round(pdb*10)+'% of communities'):(km==null?'not computed yet \u2014 Audit \u2192 Maintenance':'')}</div></div>
-      <div class="amtile"><div class="amv">${f&&f.c2_t!=null?(+f.c2_t).toLocaleString():'\u2014'}</div><div class="aml">children 0\u201314</div></div>
-      <div class="amtile"><div class="amv">${f&&f.sa2_decile!=null?f.sa2_decile:'\u2014'}</div><div class="aml">SEIFA decile</div></div>
-      <div class="amtile"><div class="amv" style="font-size:12px;padding-top:3px">${ra?esc(ra):'\u2014'}</div><div class="aml">remoteness</div></div>
-      <div class="amtile"><div class="amv">${f&&f.sa2_em_pct!=null?(+f.sa2_em_pct).toFixed(1)+'%':'\u2014'}</div><div class="aml">EM at risk / vuln</div></div>
-    </div></div>`;
+      <div class="amtile"><div class="amv">${kids!=null?(+kids).toLocaleString():'\u2014'}</div><div class="aml">children 0\u201314${sa3v?' \u00b7 sa3':''}</div></div>
+      <div class="amtile"><div class="amv">${dec!=null?dec:'\u2014'}</div><div class="aml">SEIFA decile${sa3v?' \u00b7 sa3':''}</div></div>
+      <div class="amtile"><div class="amv" style="font-size:12px;padding-top:3px">${ra?esc(ra):'\u2014'}</div><div class="aml">remoteness${sa3v?' \u00b7 sa3':''}</div></div>
+      <div class="amtile"><div class="amv">${emp!=null?(+emp).toFixed(1)+'%':'\u2014'}</div><div class="aml">EM at risk / vuln${sa3v?' \u00b7 sa3':''}</div></div>
+    </div>
+    ${(sa3v&&areaState.mode==='edit'&&EDIT)?`<div style="margin-top:8px"><button class="btn sec" style="border-color:#B97E00;color:#7A5200;padding:6px 12px;font-size:12px" onclick="useSA3AsCatchment()">Use this SA3\u2019s ${sa3Members(c.slice(0,5)).length} communities as the catchment</button><span class="muted" style="font-size:10.5px;margin-left:8px">seeds the catchment for review \u2014 nothing is saved until you lock in</span></div>`:''}
+    </div>`;
   const catSet=areaState.cat||new Set();
   if(areaState.catEdit||catSet.size){
    const codes=[c,...catSet].filter((x,ix,a)=>a.indexOf(x)===ix);
