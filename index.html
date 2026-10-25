@@ -86,6 +86,17 @@ header h1{font-size:29px;margin:0;} header .sub{color:var(--slate);font-size:13p
 .amrow .amhome{font-size:9px;font-weight:800;letter-spacing:.4px;color:#fff;background:var(--navy);border-radius:8px;padding:1px 6px;}
 .amdelta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#fff;border:1.5px solid var(--navy);border-radius:8px;padding:8px 10px;margin-top:8px;}
 .amdelta .big{font-family:'Charlie Kingdom';font-size:19px;}
+.amrow2{padding:6px 7px;border-bottom:1px solid #F0E6CC;cursor:pointer;border-radius:5px;}
+.amrow2:hover{background:#FFF3D6;}
+.amrow2 .l1{display:flex;align-items:center;gap:7px;font-size:11.5px;}
+.amrow2 .l2{font-size:10px;color:var(--slate);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.amaggs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:7px;}
+.amagg{background:#fff;border:1px solid #E8D9AE;border-radius:6px;padding:5px 6px 4px;text-align:center;}
+.amagg .v{font-weight:800;font-size:13px;color:var(--navy);line-height:1.1;}
+.amagg .l{font-size:8.5px;color:var(--slate);text-transform:uppercase;letter-spacing:.3px;margin-top:2px;}
+.amagg.dist{background:var(--navy);border-color:var(--navy);}
+.amagg.dist .v{color:#fff;}
+.amagg.dist .l{color:#9DB8C2;}
 /* Area checker: community stat tiles */
 .amcard{border:1.5px solid var(--navy);border-radius:9px;padding:10px 12px;background:#fff;}
 .amhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13.5px;color:var(--navy);}
@@ -2433,9 +2444,22 @@ function amInfo(){const el=document.getElementById('amInfo');if(!el)return;const
   if(areaState.catEdit||catSet.size){
    const codes=[c,...catSet].filter((x,ix,a)=>a.indexOf(x)===ix);
    let n=0,d=0,ch=0;const members=[];
+   let emN=0,emD=0,decN=0,decD=0,kmN=0,kmD=0,kmMin=null,kmMax=null;const raSet=new Set();
    codes.forEach(cd=>{const L2=SA2LOOK[cd];if(!L2)return;const r=computeSA2(cd);const w=(L2.ch&&L2.ch>0)?L2.ch:1;ch+=L2.ch||0;
     if(r&&r.idx!=null){n+=r.idx*w;d+=w;}
-    members.push({cd,nm:L2.nm||('SA2 '+cd),ch:L2.ch||0,idx:r?r.idx:null,tier:r?r.tier:null});});
+    const em=L2.e2!=null?Math.round(L2.e2/5*25.17*10)/10:null;
+    const dec=L2.d2!=null?Math.round(11-L2.d2):null;
+    const ra2=RAMAP[L2.r2]?String(RAMAP[L2.r2]).replace(' Australia','').replace(' of',''):null;
+    const km2=L2.db2;
+    if(em!=null){emN+=em*w;emD+=w;}
+    if(dec!=null){decN+=dec*w;decD+=w;}
+    if(km2!=null){kmN+=km2*w;kmD+=w;kmMin=kmMin==null?km2:Math.min(kmMin,km2);kmMax=kmMax==null?km2:Math.max(kmMax,km2);}
+    if(ra2)raSet.add(ra2);
+    members.push({cd,nm:L2.nm||('SA2 '+cd),ch:L2.ch||0,idx:r?r.idx:null,tier:r?r.tier:null,em,dec,ra:ra2,km:km2});});
+   const agEm=emD?Math.round(emN/emD*10)/10:null;
+   const agDec=decD?Math.round(decN/decD*10)/10:null;
+   const agKm=kmD?Math.round(kmN/kmD):null;
+   const raArr=[...raSet];const agRa=raArr.length===0?null:(raArr.length===1?raArr[0]:raArr.length+' classes');
    members.sort((a,b)=>(a.cd===c?-1:b.cd===c?1:(b.idx||0)-(a.idx||0)));
    const wIdx=d?Math.round(n/d*10)/10:null;const wTier=wIdx==null?null:(wIdx>=MODEL.thr.high?'High':wIdx>=MODEL.thr.med?'Medium':'Low');
    const own=computeSA2(c);const ownIdx=own?own.idx:null;const ownTier=own?own.tier:null;
@@ -2443,12 +2467,23 @@ function amInfo(){const el=document.getElementById('amInfo');if(!el)return;const
    h+=`<div style="margin-top:8px;background:#FFF3D0;border:1.5px solid #B97E00;border-radius:8px;padding:8px 10px">
      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:#7A5200"><b>Catchment \u00b7 ${codes.length} communit${codes.length===1?'y':'ies'}</b>
        <span style="margin-left:auto">${ch.toLocaleString()} children 0\u201314</span></div>
-     <div style="margin-top:6px;max-height:168px;overflow-y:auto;background:#fff;border:1px solid #E8D9AE;border-radius:6px">
-       ${members.map(m2=>`<div class="amrow" onclick="amZoom('${m2.cd}')" title="${esc(m2.nm)} \u00b7 click to zoom">
-          <span class="amrn">${esc(m2.nm)}</span>
-          <span class="amrch">${m2.ch.toLocaleString()} kids</span>
-          <span class="amridx" style="background:${m2.tier?TIERCOL[m2.tier]:'#ddd'}">${m2.idx!=null?m2.idx.toFixed(1):'\u2014'}</span>
-          ${m2.cd===c?'<span class="amhome">HOME</span>':(areaState.catEdit?`<button class="amrx" title="Remove from catchment" onclick="event.stopPropagation();amSelect('${m2.cd}')">\u2715</button>`:'')}
+     <div class="amaggs">
+       <div class="amagg dist"><div class="v">${agKm!=null?agKm+' km':'\u2014'}</div><div class="l">to venue \u00b7 weighted${kmMin!=null&&kmMax!=null&&Math.round(kmMin)!==Math.round(kmMax)?' ('+Math.round(kmMin)+'\u2013'+Math.round(kmMax)+')':''}</div></div>
+       <div class="amagg"><div class="v">${ch.toLocaleString()}</div><div class="l">children 0\u201314</div></div>
+       <div class="amagg"><div class="v">${agEm!=null?agEm.toFixed(1)+'%':'\u2014'}</div><div class="l">EM at risk/vuln</div></div>
+       <div class="amagg"><div class="v">${agDec!=null?agDec.toFixed(1):'\u2014'}</div><div class="l">SEIFA decile</div></div>
+       <div class="amagg" title="${raArr.join(' \u00b7 ')}"><div class="v" style="font-size:10.5px;padding-top:2px">${agRa?esc(agRa):'\u2014'}</div><div class="l">remoteness</div></div>
+       <div class="amagg"><div class="v">${codes.length}</div><div class="l">communities</div></div>
+     </div>
+     <div style="font-size:9px;color:#7A5200;margin-top:3px">Rates are child-weighted across the catchment \u00b7 distance from each community\u2019s centre</div>
+     <div style="margin-top:6px;max-height:190px;overflow-y:auto;background:#fff;border:1px solid #E8D9AE;border-radius:6px">
+       ${members.map(m2=>`<div class="amrow2" onclick="amZoom('${m2.cd}')" title="${esc(m2.nm)} \u00b7 click to zoom">
+          <div class="l1">
+            <span class="amrn">${esc(m2.nm)}</span>
+            <span class="amridx" style="background:${m2.tier?TIERCOL[m2.tier]:'#ddd'}">${m2.idx!=null?m2.idx.toFixed(1):'\u2014'}</span>
+            ${m2.cd===c?'<span class="amhome">HOME</span>':(areaState.catEdit?`<button class="amrx" title="Remove from catchment" onclick="event.stopPropagation();amSelect('${m2.cd}')">\u2715</button>`:'')}
+          </div>
+          <div class="l2">${m2.ch.toLocaleString()} kids \u00b7 EM ${m2.em!=null?m2.em.toFixed(1)+'%':'\u2014'} \u00b7 decile ${m2.dec!=null?m2.dec:'\u2014'} \u00b7 ${m2.ra||'\u2014'} \u00b7 ${m2.km!=null?(m2.km<1?'<1':Math.round(m2.km))+' km to venue':'distance not computed'}</div>
         </div>`).join('')}
      </div>
      <div class="amdelta">
