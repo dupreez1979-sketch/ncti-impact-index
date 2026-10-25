@@ -71,6 +71,21 @@ header h1{font-size:29px;margin:0;} header .sub{color:var(--slate);font-size:13p
 .editform input[type=checkbox]{width:auto;}
 .editform .chk{display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:13px;color:var(--navy);font-weight:600;margin:0;cursor:pointer;}
 .authmodal{position:fixed;inset:0;background:rgba(7,59,76,.42);display:none;align-items:center;justify-content:center;z-index:6000;padding:20px;}
+/* Area checker: two-column layout */
+.amlayout{display:flex;gap:12px;align-items:stretch;}
+.ammapcol{flex:1.5;min-width:0;}
+.amsidecol{flex:1;min-width:280px;max-width:390px;max-height:430px;overflow-y:auto;padding-right:2px;}
+@media(max-width:860px){.amlayout{flex-direction:column;}.amsidecol{max-width:none;max-height:none;}.ammapcol #areamap{height:320px!important;}}
+/* catchment member list */
+.amrow{display:flex;align-items:center;gap:7px;padding:5px 7px;border-bottom:1px solid #F0E6CC;font-size:11.5px;cursor:pointer;border-radius:5px;}
+.amrow:hover{background:#FFF3D6;}
+.amrow .amrn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--navy);font-weight:700;}
+.amrow .amrch{color:var(--slate);white-space:nowrap;}
+.amrow .amridx{font-weight:800;color:var(--navy);border-radius:10px;padding:0 8px;font-size:10.5px;white-space:nowrap;}
+.amrow .amrx{border:none;background:none;color:#B97E00;font-weight:800;cursor:pointer;font-size:13px;padding:0 2px;}
+.amrow .amhome{font-size:9px;font-weight:800;letter-spacing:.4px;color:#fff;background:var(--navy);border-radius:8px;padding:1px 6px;}
+.amdelta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#fff;border:1.5px solid var(--navy);border-radius:8px;padding:8px 10px;margin-top:8px;}
+.amdelta .big{font-family:'Charlie Kingdom';font-size:19px;}
 /* Area checker: community stat tiles */
 .amcard{border:1.5px solid var(--navy);border-radius:9px;padding:10px 12px;background:#fff;}
 .amhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13.5px;color:var(--navy);}
@@ -85,6 +100,8 @@ header h1{font-size:29px;margin:0;} header .sub{color:var(--slate);font-size:13p
 .amdist .amv{color:#fff;font-size:17px;}
 .amdist .aml{color:#9DB8C2;}
 .amdist .ams{color:#5BC0BE;font-weight:700;}
+.amsidecol .amtiles{grid-template-columns:1fr 1fr;}
+.amsidecol .amdist{grid-column:span 2;}
 @media(max-width:700px){.amtiles{grid-template-columns:1fr 1fr;}.amdist{grid-column:span 2;}}
 .telbl{display:block;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--slate);margin:12px 0 4px;}
 .terow{display:flex;gap:6px;align-items:center;}
@@ -1090,7 +1107,7 @@ body.aboutmode .sitefoot{margin-top:26px;}
  </div>
 </div>
 <div class="authmodal" id="areamodal" style="z-index:6500" onclick="if(event.target===this)closeAreaChecker()">
- <div class="authcard" style="max-width:760px;width:96vw">
+ <div class="authcard" style="max-width:1060px;width:97vw">
    <button class="authx" onclick="closeAreaChecker()" title="Close">×</button>
    <h2>Maintain <span class="pink">area</span> — <span id="amName" style="font-size:16px"></span></h2>
    <div style="display:flex;gap:10px;align-items:center;margin:2px 0 8px;flex-wrap:wrap">
@@ -1098,8 +1115,10 @@ body.aboutmode .sitefoot{margin-top:26px;}
      <span class="geo" id="amGeo"><button data-g="sa2" class="on" onclick="amSetGeo('sa2')">SA2</button><button data-g="sa3" onclick="amSetGeo('sa3')">SA3</button></span>
    </div>
    <div style="display:flex;gap:8px;margin:0 0 8px"><input id="amAddr" placeholder="Search an address to move the pin…" style="flex:1" onkeydown="if(event.key==='Enter'){event.preventDefault();amGeocode();}"><button class="btn sec efbtn" style="height:38px" onclick="amGeocode()">Find</button></div>
-   <div id="areamap" style="height:380px;border:1.5px solid var(--navy);border-radius:9px"></div>
-   <div id="amInfo" style="margin-top:10px;min-height:34px"></div>
+   <div class="amlayout">
+     <div class="ammapcol"><div id="areamap" style="height:430px;border:1.5px solid var(--navy);border-radius:9px"></div></div>
+     <div id="amInfo" class="amsidecol"></div>
+   </div>
    <div class="authactions"><button class="btn sec" id="amCatEdit" style="display:none;border-color:#B97E00;color:#7A5200" onclick="toggleCatEdit()">Edit catchment</button><button class="btn sec" id="amCatClear" style="display:none" onclick="clearCatchment()">Clear catchment</button><button class="btn" id="amCatLock" style="display:none;background:#B97E00;border-color:#B97E00" onclick="lockCatchment()">Lock in catchment</button><span style="flex:1"></span><button class="btn sec" onclick="closeAreaChecker()">Cancel</button><button class="btn" id="amUseBtn" onclick="applyAreaChecker()">Use this area</button></div>
  </div>
 </div>
@@ -2413,13 +2432,37 @@ function amInfo(){const el=document.getElementById('amInfo');if(!el)return;const
   const catSet=areaState.cat||new Set();
   if(areaState.catEdit||catSet.size){
    const codes=[c,...catSet].filter((x,ix,a)=>a.indexOf(x)===ix);
-   let n=0,d=0,ch=0;codes.forEach(cd=>{const L2=SA2LOOK[cd];if(!L2)return;const r=computeSA2(cd);const w=(L2.ch&&L2.ch>0)?L2.ch:1;ch+=L2.ch||0;if(r&&r.idx!=null){n+=r.idx*w;d+=w;}});
+   let n=0,d=0,ch=0;const members=[];
+   codes.forEach(cd=>{const L2=SA2LOOK[cd];if(!L2)return;const r=computeSA2(cd);const w=(L2.ch&&L2.ch>0)?L2.ch:1;ch+=L2.ch||0;
+    if(r&&r.idx!=null){n+=r.idx*w;d+=w;}
+    members.push({cd,nm:L2.nm||('SA2 '+cd),ch:L2.ch||0,idx:r?r.idx:null,tier:r?r.tier:null});});
+   members.sort((a,b)=>(a.cd===c?-1:b.cd===c?1:(b.idx||0)-(a.idx||0)));
    const wIdx=d?Math.round(n/d*10)/10:null;const wTier=wIdx==null?null:(wIdx>=MODEL.thr.high?'High':wIdx>=MODEL.thr.med?'Medium':'Low');
-   h+=`<div style="margin-top:8px;background:#FFF3D0;border:1.5px solid #B97E00;border-radius:8px;padding:8px 11px">
+   const own=computeSA2(c);const ownIdx=own?own.idx:null;const ownTier=own?own.tier:null;
+   const delta=(wIdx!=null&&ownIdx!=null)?Math.round((wIdx-ownIdx)*10)/10:null;
+   h+=`<div style="margin-top:8px;background:#FFF3D0;border:1.5px solid #B97E00;border-radius:8px;padding:8px 10px">
      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:#7A5200"><b>Catchment \u00b7 ${codes.length} communit${codes.length===1?'y':'ies'}</b>
-       <span>${ch.toLocaleString()} children 0\u201314</span>
-       ${wIdx!=null?`<span style="margin-left:auto;font-weight:800;color:var(--navy);background:${TIERCOL[wTier]};border-radius:12px;padding:1px 9px;font-size:11px">child-weighted ${wIdx.toFixed(1)} \u00b7 ${wTier}</span>`:''}</div>
-     ${areaState.catEdit?`<div style="font-size:10.5px;color:#7A5200;margin-top:4px">Click areas on the map to add or remove them (amber). The venue\u2019s own SA2 is always included. Lock in to save.</div>`:`<div style="font-size:10.5px;color:#7A5200;margin-top:4px">Used by models with the Catchment geography. The venue\u2019s own SA2 stays the default elsewhere.</div>`}
+       <span style="margin-left:auto">${ch.toLocaleString()} children 0\u201314</span></div>
+     <div style="margin-top:6px;max-height:168px;overflow-y:auto;background:#fff;border:1px solid #E8D9AE;border-radius:6px">
+       ${members.map(m2=>`<div class="amrow" onclick="amZoom('${m2.cd}')" title="${esc(m2.nm)} \u00b7 click to zoom">
+          <span class="amrn">${esc(m2.nm)}</span>
+          <span class="amrch">${m2.ch.toLocaleString()} kids</span>
+          <span class="amridx" style="background:${m2.tier?TIERCOL[m2.tier]:'#ddd'}">${m2.idx!=null?m2.idx.toFixed(1):'\u2014'}</span>
+          ${m2.cd===c?'<span class="amhome">HOME</span>':(areaState.catEdit?`<button class="amrx" title="Remove from catchment" onclick="event.stopPropagation();amSelect('${m2.cd}')">\u2715</button>`:'')}
+        </div>`).join('')}
+     </div>
+     <div class="amdelta">
+       <span style="font-size:10px;font-weight:800;letter-spacing:.4px;color:var(--slate)">OWN SA2</span>
+       <span class="big" style="color:var(--navy)">${ownIdx!=null?ownIdx.toFixed(1):'\u2014'}</span>
+       ${ownTier?`<span class="amridx" style="background:${TIERCOL[ownTier]}">${ownTier}</span>`:''}
+       <span style="font-size:16px;color:#B97E00">\u2192</span>
+       <span style="font-size:10px;font-weight:800;letter-spacing:.4px;color:#7A5200">CATCHMENT</span>
+       <span class="big" style="color:#7A5200">${wIdx!=null?wIdx.toFixed(1):'\u2014'}</span>
+       ${wTier?`<span class="amridx" style="background:${TIERCOL[wTier]}">${wTier}</span>`:''}
+       ${delta!=null&&delta!==0?`<span style="margin-left:auto;font-weight:800;font-size:12px;color:${delta>0?'#0F7B57':'var(--pink)'}">${delta>0?'+':''}${delta.toFixed(1)}</span>`:(delta===0?'<span style="margin-left:auto;font-size:11px;color:var(--slate)">no change</span>':'')}
+     </div>
+     ${wTier&&ownTier&&wTier!==ownTier?`<div style="font-size:10.5px;font-weight:700;color:var(--pink);margin-top:5px">Tier changes: ${ownTier} \u2192 ${wTier}${(ownTier==='High')!==(wTier==='High')?' \u2014 subsidy eligibility changes with it':''}</div>`:''}
+     ${areaState.catEdit?`<div style="font-size:10.5px;color:#7A5200;margin-top:5px">Click areas on the map to add or remove them (amber), or \u2715 in the list. The venue\u2019s own SA2 is always included. Lock in to save.</div>`:`<div style="font-size:10.5px;color:#7A5200;margin-top:5px">Used by models with the Catchment geography. The venue\u2019s own SA2 stays the default elsewhere.</div>`}
    </div>`;}}
  else h+='<div class="muted" style="font-size:12px">No SA2 selected \u2014 drag the pin onto the venue, or click an area.</div>';
  if(areaState.pc)h+=`<div style="margin-top:6px;font-size:11px;color:var(--slate)">Postcode ${esc(areaState.pc)} ${cands.length?('overlaps '+cands.length+' scored SA2'+(cands.length>1?'s':'')+' \u2014 click to compare:'):'\u2014 no scored SA2 overlap on record.'}</div>`;
@@ -3782,12 +3825,12 @@ async function boot(){
   setProgress(12);
   const [venues,scores,cfg]=await Promise.all([
     sbAll('venue_full','*'),
-    sbAll('sa2_scores','sa2_code,e2,d2,r2,e3,d3,r3,v2,v3,ch,hv,irsd,pe2,pd2,pr2,pv2,pe3,pd3,pr3,pv3,db2,pdb2,db3,pdb3').catch(()=>sbAll('sa2_scores','sa2_code,e2,d2,r2,e3,d3,r3,v2,v3,ch,hv,irsd,pe2,pd2,pr2,pv2,pe3,pd3,pr3,pv3').catch(()=>sbAll('sa2_scores','sa2_code,e2,d2,r2,e3,d3,r3,v2,v3,ch,hv'))),
+    sbAll('sa2_scores','sa2_code,sa2_name,e2,d2,r2,e3,d3,r3,v2,v3,ch,hv,irsd,pe2,pd2,pr2,pv2,pe3,pd3,pr3,pv3,db2,pdb2,db3,pdb3').catch(()=>sbAll('sa2_scores','sa2_code,sa2_name,e2,d2,r2,e3,d3,r3,v2,v3,ch,hv,irsd,pe2,pd2,pr2,pv2,pe3,pd3,pr3,pv3').catch(()=>sbAll('sa2_scores','sa2_code,sa2_name,e2,d2,r2,e3,d3,r3,v2,v3,ch,hv'))),
     sbOne('app_config?select=key,value')
   ]);
   setProgress(62);
   V=venues; V.forEach((v,i)=>v._i=i); DATA.venues=V;
-  SA2LOOK={}; const nn=x=>x==null?null:+x; scores.forEach(s=>{SA2LOOK[s.sa2_code]={e2:+s.e2,d2:+s.d2,r2:+s.r2,e3:+s.e3,d3:+s.d3,r3:+s.r3,v2:nn(s.v2),v3:nn(s.v3),ch:nn(s.ch),hv:+s.hv,irsd:nn(s.irsd),pe2:nn(s.pe2),pd2:nn(s.pd2),pr2:nn(s.pr2),pv2:nn(s.pv2),pe3:nn(s.pe3),pd3:nn(s.pd3),pr3:nn(s.pr3),pv3:nn(s.pv3),db2:nn(s.db2),pdb2:nn(s.pdb2),db3:nn(s.db3),pdb3:nn(s.pdb3)};});
+  SA2LOOK={}; const nn=x=>x==null?null:+x; scores.forEach(s=>{SA2LOOK[s.sa2_code]={nm:s.sa2_name||null,e2:+s.e2,d2:+s.d2,r2:+s.r2,e3:+s.e3,d3:+s.d3,r3:+s.r3,v2:nn(s.v2),v3:nn(s.v3),ch:nn(s.ch),hv:+s.hv,irsd:nn(s.irsd),pe2:nn(s.pe2),pd2:nn(s.pd2),pr2:nn(s.pr2),pv2:nn(s.pv2),pe3:nn(s.pe3),pd3:nn(s.pd3),pr3:nn(s.pr3),pv3:nn(s.pv3),db2:nn(s.db2),pdb2:nn(s.pdb2),db3:nn(s.db3),pdb3:nn(s.pdb3)};});
   const cf={}; (cfg||[]).forEach(r=>cf[r.key]=r.value); if(cf.aus_locator)AUS=cf.aus_locator; if(cf.params){P=cf.params; if(P.medThr!=null){MODEL.thr.med=+P.medThr; const e=document.getElementById('tMed'); if(e)e.value=P.medThr;}}
   DATA.params=P;
   hideSkeleton();
